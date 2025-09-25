@@ -1,3 +1,9 @@
+## Unreleased
+
+- Changed `BaseHiveService` to `AbstractHiveService` for better abstraction and flexibility
+- Added optional parameters to `AbstractHiveService` for supporting more advanced Hive features like encryption, compaction, crash recovery, path, collection, and key comparator
+- Added `LazyHiveService` for lazy boxes and `HiveService` for regular boxes
+
 ## 0.0.1
 
 Initial release of hivez package.
