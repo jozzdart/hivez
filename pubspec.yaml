@@ -1,0 +1,17 @@
+name: hivez
+description: "A new Flutter package project."
+version: 0.0.1
+homepage:
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  collection: ^1.19.1
+  hive_ce: ^2.13.2
+  meta: ^1.16.0
+  synchronized: ^3.2.0
+
+dev_dependencies:
+  test: ^1.26.1
+  lints: ^5.1.1
