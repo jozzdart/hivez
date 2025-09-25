@@ -1,8 +1,9 @@
 import 'package:hive_ce/hive.dart';
+import 'package:hivez/src/src.dart';
 import 'package:meta/meta.dart';
 import 'package:synchronized/synchronized.dart';
 
-abstract class AbstractHiveService<K, T> {
+abstract class AbstractHiveService<K, T, B extends BoxBase<T>> {
   final String boxName;
   final HiveCipher? encryptionCipher;
   final bool crashRecovery;
@@ -14,8 +15,17 @@ abstract class AbstractHiveService<K, T> {
   final Lock _lock = Lock();
   final Lock _initLock = Lock();
 
-  bool get isInitialized;
-  bool get isOpen;
+  @protected
+  bool get isInitialized => _box != null;
+
+  @protected
+  bool get isOpen => _box?.isOpen ?? false;
+
+  @protected
+  B getBox();
+
+  @protected
+  Future<B> openBox();
 
   AbstractHiveService(
     this.boxName, {
@@ -28,14 +38,16 @@ abstract class AbstractHiveService<K, T> {
     assert(boxName.isNotEmpty, 'Box name cannot be empty');
   }
 
-  @protected
-  Future<void> openBox();
+  Future<void> _initBox() async {
+    if (isInitialized) return;
+    _box = Hive.isBoxOpen(boxName) ? getBox() : await openBox();
+  }
 
   Future<void> ensureInitialized() async {
     if (isInitialized) return;
     await _initLock.synchronized(() async {
       if (isInitialized) return;
-      await openBox();
+      await _initBox();
     });
   }
 
@@ -63,9 +75,35 @@ abstract class AbstractHiveService<K, T> {
     }
   }
 
-  Future<void> closeBox();
+  B? _box;
 
-  Future<void> deleteFromDisk();
+  @protected
+  B get box {
+    if (_box == null) {
+      throw HiveServiceInitException(
+        "Box '$boxName' not initialized. Call ensureInitialized() first.",
+      );
+    }
+    return _box!;
+  }
+
+  Future<void> closeBox() async {
+    if (isOpen) {
+      await _box!.close();
+      _box = null;
+    }
+  }
+
+  Future<void> deleteFromDisk() async {
+    if (isOpen) {
+      await _box!.deleteFromDisk();
+      _box = null;
+    } else if (Hive.isBoxOpen(boxName)) {
+      await getBox().deleteFromDisk();
+    } else {
+      await Hive.deleteBoxFromDisk(boxName);
+    }
+  }
 }
 
 typedef LogHandler = void Function(String message);
