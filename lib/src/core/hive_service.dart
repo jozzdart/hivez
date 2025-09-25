@@ -7,7 +7,14 @@ import 'package:hivez/src/exceptions/service_init.dart';
 class HiveService<K, T> extends AbstractHiveService<K, T> {
   Box<T>? _box;
 
-  HiveService(super.boxName, {super.logger});
+  HiveService(
+    super.boxName, {
+    super.encryptionCipher,
+    super.crashRecovery,
+    super.path,
+    super.collection,
+    super.logger,
+  });
 
   @override
   bool get isInitialized => _box != null;
@@ -30,7 +37,13 @@ class HiveService<K, T> extends AbstractHiveService<K, T> {
     if (isInitialized) return;
     _box = Hive.isBoxOpen(boxName)
         ? Hive.box<T>(boxName)
-        : await Hive.openBox<T>(boxName);
+        : await Hive.openBox<T>(
+            boxName,
+            encryptionCipher: encryptionCipher,
+            crashRecovery: crashRecovery,
+            path: path,
+            collection: collection,
+          );
   }
 
   @override
