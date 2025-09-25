@@ -1,48 +1,28 @@
-import 'package:hive_ce/hive.dart';
 import 'package:meta/meta.dart';
 import 'package:synchronized/synchronized.dart';
 
-import 'package:hivez/src/exceptions/service_init.dart';
-
-abstract class BaseHiveService<K, T> {
+abstract class AbstractHiveService<K, T> {
   final String boxName;
-  Box<T>? _box;
+  final LogHandler? logger;
   final Lock _lock = Lock();
   final Lock _initLock = Lock();
-  final LogHandler? logger;
 
-  BaseHiveService(this.boxName, {this.logger});
+  bool get isInitialized;
+  bool get isOpen;
 
-  bool get isInitialized => _box != null;
-  bool get isOpen => _box?.isOpen ?? false;
+  AbstractHiveService(this.boxName, {this.logger}) {
+    assert(boxName.isNotEmpty, 'Box name cannot be empty');
+  }
 
   @protected
-  Future<void> onInit() async {}
-
-  Future<void> _init() async {
-    if (isInitialized) return;
-    await onInit();
-    _box = Hive.isBoxOpen(boxName)
-        ? Hive.box<T>(boxName)
-        : await Hive.openBox<T>(boxName);
-  }
+  Future<void> openBox();
 
   Future<void> ensureInitialized() async {
     if (isInitialized) return;
     await _initLock.synchronized(() async {
       if (isInitialized) return;
-      await _init();
+      await openBox();
     });
-  }
-
-  @protected
-  Box<T> get box {
-    if (_box == null) {
-      throw HiveServiceInitException(
-        "Box '$boxName' not initialized. Call init() first.",
-      );
-    }
-    return _box!;
   }
 
   @protected
@@ -57,13 +37,6 @@ abstract class BaseHiveService<K, T> {
     return await action(); // safer if action throws
   }
 
-  Future<void> closeBox() async {
-    if (_box != null && _box!.isOpen) {
-      await _box!.close();
-      _box = null;
-    }
-  }
-
   @protected
   void debugLog(String message) {
     if (logger != null) {
@@ -76,16 +49,9 @@ abstract class BaseHiveService<K, T> {
     }
   }
 
-  Future<void> deleteFromDisk() async {
-    if (_box != null) {
-      await _box!.deleteFromDisk();
-      _box = null;
-    } else if (Hive.isBoxOpen(boxName)) {
-      await Hive.box(boxName).deleteFromDisk();
-    } else {
-      await Hive.deleteBoxFromDisk(boxName);
-    }
-  }
+  Future<void> closeBox();
+
+  Future<void> deleteFromDisk();
 }
 
 typedef LogHandler = void Function(String message);
