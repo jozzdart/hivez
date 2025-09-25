@@ -1,7 +1,15 @@
 name: hivez
-description: "A new Flutter package project."
+description: "The cleanest way to use Hive in production. Type-safe, concurrency-safe, boilerplate-free."
 version: 0.0.1
-homepage:
+homepage: https://github.com/jozzdart/hivez
+repository: https://github.com/jozzdart/hivez
+issue_tracker: https://github.com/jozzdart/hivez/issues
+topics:
+  - hive
+  - hive_ce
+  - database
+  - nosql
+  - clean
 
 environment:
   sdk: ^3.5.0
