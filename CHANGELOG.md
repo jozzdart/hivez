@@ -1,3 +1,9 @@
+## 0.0.7
+
+- Implemented extensive testing for all box types and functions
+- Tests for `put`, `get`, `putAll`, `containsKey`, `keys`, `length`, `isEmpty`, `isNotEmpty`, `delete`, `deleteAt`, `deleteAll`, `clear`, `generateBackupJson`, `restoreBackupJson`, `generateBackupCompressed`, `restoreBackupCompressed`
+- Box types tested: `HivezBox`, `HivezLazyBox`, `HivezIsolatedBox`, `HivezIsolatedLazyBox`
+
 ## 0.0.6
 
 - Created backup extension methods for all box types, it uses the existing json backup extension methods and compresses the json string using the `shrink` package with compression ratios of 5x-40x
