@@ -1,3 +1,11 @@
+## 0.0.4
+
+- Added all box types, all ready to use out of the box
+  - `HivezBox` for regular boxes
+  - `HivezLazyBox` for lazy boxes
+  - `HivezIsolatedBox` for regular isolated boxes
+  - `HivezIsolatedLazyBox` for lazy isolated boxes
+
 ## 0.0.3
 
 - Added abstract boxes
