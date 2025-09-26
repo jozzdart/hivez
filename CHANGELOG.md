@@ -1,3 +1,8 @@
+## Unreleased
+
+- Added search extension methods for all box types
+  - `search` for searching the box for values that match the search query. It supports pagination, sorting and improved search with multiple search terms.
+
 ## 0.0.7
 
 - Implemented extensive testing for all box types and functions
