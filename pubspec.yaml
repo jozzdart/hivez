@@ -1,6 +1,6 @@
 name: hivez
 description: "The cleanest way to use Hive in production. Type-safe, concurrency-safe, boilerplate-free. (Using hive_ce)"
-version: 0.0.5
+version: 0.0.6
 homepage: https://github.com/jozzdart/hivez
 repository: https://github.com/jozzdart/hivez
 issue_tracker: https://github.com/jozzdart/hivez/issues
@@ -17,8 +17,12 @@ dependencies:
   collection: ^1.19.1
   hive_ce: ^2.13.2
   meta: ^1.16.0
+  shrink: ^1.5.12
   synchronized: ^3.2.0
 
 dev_dependencies:
-  test: ^1.26.1
+  flutter_test:
+    sdk: flutter
   lints: ^5.1.1
+  mocktail: ^1.0.4
+  hive_ce_flutter: ^2.3.2
