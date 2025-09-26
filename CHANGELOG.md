@@ -1,8 +1,3 @@
-## Unreleased
-
-- Added optional parameters to `AbstractHivezBox` for supporting more advanced Hive features like encryption, compaction, crash recovery, path, collection, and key comparator
-- Added `HivezLazyBox` for lazy boxes and `HivezBox` for regular boxes, `HivezIsolatedBox` for isolated boxes and `HivezIsolatedLazyBox` for isolated lazy boxes
-
 ## 0.0.2
 
 - Changed `BaseHiveService` to `BaseHivezBox` for better abstraction and flexibility
