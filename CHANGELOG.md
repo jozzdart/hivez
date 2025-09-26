@@ -1,3 +1,9 @@
+## 0.0.5
+
+- Created backup extension methods for all box types, it saves all data existing in the box to a json string and allows to restore the data from the json string back to the box
+  - `generateBackupJson` for generating json backups
+  - `restoreBackupJson` for restoring json backups
+
 ## 0.0.4
 
 - Added all box types, all ready to use out of the box
