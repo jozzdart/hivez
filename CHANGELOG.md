@@ -1,3 +1,12 @@
+## 0.0.6
+
+- Created backup extension methods for all box types, it uses the existing json backup extension methods and compresses the json string using the `shrink` package with compression ratios of 5x-40x
+  - `generateBackupCompressed` for generating compressed backups
+  - `restoreBackupCompressed` for restoring compressed backups
+- Started setting up testing for the package
+- Implemented test setup utilities using the `hive_ce_flutter` package
+- Added testing dev dependencies
+
 ## 0.0.5
 
 - Created backup extension methods for all box types, it saves all data existing in the box to a json string and allows to restore the data from the json string back to the box
