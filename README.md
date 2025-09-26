@@ -2,10 +2,10 @@
 
 <h3 align="center"><i>Safe, synchronized and ready for production.</i></h3>
 <p align="center">
-        <img src="https://img.shields.io/codefactor/grade/github/jozzdart/hivezz/main?style=flat-square">
-        <img src="https://img.shields.io/github/license/jozzdart/hivezz?style=flat-square">
-        <img src="https://img.shields.io/pub/points/hivezz?style=flat-square">
-        <img src="https://img.shields.io/pub/v/hivezz?style=flat-square">
+        <img src="https://img.shields.io/codefactor/grade/github/jozzdart/hivez/main?style=flat-square">
+        <img src="https://img.shields.io/github/license/jozzdart/hivez?style=flat-square">
+        <img src="https://img.shields.io/pub/points/hivez?style=flat-square">
+        <img src="https://img.shields.io/pub/v/hivez?style=flat-square">
         
 </p>
 <p align="center">
