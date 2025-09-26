@@ -1,3 +1,10 @@
+## 0.0.3
+
+- Added abstract boxes
+  - `AbstractHivezBox` for lazy and regular boxes
+  - `AbstractHivezIsolatedBox` for lazy and regular isolated boxes
+- Implemented shared functionality for all boxes
+
 ## 0.0.2
 
 - Changed `BaseHiveService` to `BaseHivezBox` for better abstraction and flexibility
