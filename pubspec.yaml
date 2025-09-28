@@ -26,3 +26,4 @@ dev_dependencies:
   lints: ^5.1.1
   mocktail: ^1.0.4
   hive_ce_flutter: ^2.3.2
+  crypto: ^3.0.6
