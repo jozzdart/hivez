@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce_flutter/adapters.dart';
-import 'package:hivez/src/boxes/hivez_box.dart';
 
 import '../utils/test_setup.dart';
+
+import 'package:hivez/hivez.dart';
 
 void main() {
   late HivezBox<int, int> hivezBox;
@@ -81,5 +82,110 @@ void main() {
     await hivezBox.clear();
     expect(await hivezBox.length, 0);
     expect(await hivezBox.isEmpty, true);
+  });
+
+  test('putAt updates by index and valueAt reflects change', () async {
+    await hivezBox.putAll({1: 10, 2: 20});
+    // index 0 corresponds to key 1
+    await hivezBox.putAt(0, 15);
+    expect(await hivezBox.valueAt(0), 15);
+    expect(await hivezBox.get(1), 15);
+  });
+
+  test('firstWhereOrNull finds a matching value or returns null', () async {
+    await hivezBox.putAll({1: 10, 2: 20, 3: 30});
+    final found = await hivezBox.firstWhereOrNull((v) => v > 15);
+    expect(found, 20);
+    final none = await hivezBox.firstWhereOrNull((v) => v > 100);
+    expect(none, isNull);
+  });
+
+  test('firstWhereContains performs case-insensitive substring search',
+      () async {
+    final box = HivezBox<int, String>('textBox');
+    await box.ensureInitialized();
+    await box.clear();
+    await box.putAll({1: 'Hello World', 2: 'hElLo there', 3: 'Goodbye'});
+
+    final match = await box.firstWhereContains(
+      'hello',
+      searchableText: (s) => s,
+    );
+    expect(match, anyOf('Hello World', 'hElLo there'));
+
+    final noMatch = await box.firstWhereContains(
+      'nomatch',
+      searchableText: (s) => s,
+    );
+    expect(noMatch, isNull);
+
+    await box.deleteFromDisk();
+  });
+
+  test('toMap returns current key/value snapshot', () async {
+    final box = HivezBox<int, String>('mapBox');
+    await box.ensureInitialized();
+    await box.clear();
+    await box.putAll({1: 'a', 2: 'b'});
+    final map = await box.toMap();
+    expect(map, {1: 'a', 2: 'b'});
+    await box.deleteFromDisk();
+  });
+
+  test('watch emits BoxEvent on put and delete for a specific key', () async {
+    final events = <BoxEvent>[];
+
+    final sub = hivezBox.watch(1).listen(events.add);
+    await hivezBox.put(1, 10);
+    await hivezBox.put(1, 11);
+    await hivezBox.delete(1);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await sub.cancel();
+
+    expect(events.length, greaterThanOrEqualTo(2));
+    expect(events.first.key, 1);
+    expect(events.first.deleted, isFalse);
+    expect(events.first.value, anyOf(10, 11));
+    expect(events.last.key, 1);
+    expect(events.last.deleted, isTrue);
+    // Some adapters emit the last known value on delete
+    expect(events.last.value, anyOf(isNull, 11));
+  });
+
+  test('flush, close and reopen preserves data', () async {
+    await hivezBox.putAll({1: 10, 2: 20});
+    await hivezBox.flushBox();
+    expect(await hivezBox.length, 2);
+
+    await hivezBox.closeBox();
+
+    // Reopen and verify
+    await hivezBox.ensureInitialized();
+    expect(await hivezBox.get(1), 10);
+    expect(await hivezBox.get(2), 20);
+  });
+
+  test('compactBox executes without errors', () async {
+    await hivezBox.putAll({1: 10, 2: 20, 3: 30});
+    await hivezBox.delete(2);
+    await hivezBox.compactBox();
+    expect(await hivezBox.containsKey(1), true);
+    expect(await hivezBox.containsKey(2), false);
+  });
+
+  test('deleteFromDisk removes box data from disk', () async {
+    final box = HivezBox<int, int>('diskBox');
+    await box.ensureInitialized();
+    await box.clear();
+    await box.putAll({1: 10, 2: 20});
+    expect(await box.length, 2);
+
+    await box.deleteFromDisk();
+
+    // Recreate and verify empty
+    final box2 = HivezBox<int, int>('diskBox');
+    await box2.ensureInitialized();
+    expect(await box2.length, 0);
+    await box2.deleteFromDisk();
   });
 }

@@ -1,15 +1,12 @@
-import 'package:hive_ce/hive.dart';
-import 'package:meta/meta.dart';
+part of 'boxes.dart';
 
-import '../core/core.dart';
-
-class HivezIsolatedBox<K, T>
+class HivezBoxIsolated<K, T>
     extends AbstractHivezIsolatedBox<K, T, IsolatedBox<T>> {
   @override
   bool get isLazy => false;
 
-  HivezIsolatedBox(
-    super.boxName, {
+  HivezBoxIsolated(
+    super.name, {
     super.encryptionCipher,
     super.crashRecovery,
     super.path,
@@ -18,38 +15,24 @@ class HivezIsolatedBox<K, T>
   });
 
   @override
-  @protected
-  IsolatedBox<T> hiveGetBox() => IsolatedHive.box<T>(boxName);
-
-  @override
-  @protected
-  Future<IsolatedBox<T>> hiveOpenBox() async => await IsolatedHive.openBox<T>(
-        boxName,
-        encryptionCipher: encryptionCipher,
-        crashRecovery: crashRecovery,
-        path: path,
-        collection: collection,
-      );
-
-  @override
   Future<T?> get(K key, {T? defaultValue}) async {
-    return synchronizedRead(
+    return _executeRead(
         () => Future.value(box.get(key, defaultValue: defaultValue)));
   }
 
   @override
   Future<Iterable<T>> getAllValues() async {
-    return synchronizedRead(() => box.values);
+    return _executeRead(() => box.values);
   }
 
   @override
   Future<T?> valueAt(int index) async {
-    return synchronizedRead(() => box.getAt(index));
+    return _executeRead(() => box.getAt(index));
   }
 
   @override
   Future<T?> firstWhereOrNull(bool Function(T) condition) async {
-    return synchronizedRead(() async {
+    return _executeRead(() async {
       for (final key in (await box.keys)) {
         final value = await box.get(key);
         if (value != null && condition(value)) return value;
@@ -59,7 +42,19 @@ class HivezIsolatedBox<K, T>
   }
 
   Future<Map<K, T>> toMap() async {
-    return synchronizedRead(
+    return _executeRead(
         () async => Future.value((await box.toMap()).cast<K, T>()));
   }
+
+  @override
+  Future<IsolatedBox<T>> _openBox() => IsolatedHive.openBox<T>(
+        name,
+        encryptionCipher: _encryptionCipher,
+        crashRecovery: _crashRecovery,
+        path: _path,
+        collection: _collection,
+      );
+
+  @override
+  IsolatedBox<T> _getExistingBox() => IsolatedHive.box<T>(name);
 }

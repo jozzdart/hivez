@@ -1,9 +1,9 @@
 import 'dart:typed_data';
-import 'package:shrink/shrink.dart';
 import 'package:hivez/hivez.dart';
+import 'package:hivez/src/boxes/boxes.dart';
+import 'package:shrink/shrink.dart';
 
-extension HivezBackupCompressedExtension<K, T, B>
-    on HivezBoxInterface<K, T, B> {
+extension BackupCompressedExtension<K, T, B> on BoxInterface<K, T, B> {
   Future<Uint8List> generateBackupCompressed({
     String Function(K key)? keyToString,
     Object? Function(T value)? valueToJson,

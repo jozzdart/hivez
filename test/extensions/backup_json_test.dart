@@ -1,8 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce_flutter/adapters.dart';
-import 'package:hivez/src/boxes/hivez_box.dart';
-import 'package:hivez/src/boxes/hivez_box_lazy.dart';
-import 'package:hivez/src/extensions/backup_json.dart';
+import 'package:hivez/hivez.dart';
 
 import '../utils/test_setup.dart';
 
@@ -72,10 +70,10 @@ void main() {
   });
 
   group('backup_json HivezLazyBox', () {
-    late HivezLazyBox<String, String> box;
+    late HivezBoxLazy<String, String> box;
 
     setUp(() async {
-      box = HivezLazyBox<String, String>('backupJsonLazyBox');
+      box = HivezBoxLazy<String, String>('backupJsonLazyBox');
       await box.ensureInitialized();
       await box.clear();
     });

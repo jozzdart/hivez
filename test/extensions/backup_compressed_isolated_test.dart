@@ -1,10 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce_flutter/adapters.dart';
-import 'package:hivez/src/boxes/hivez_isolated.dart';
-import 'package:hivez/src/boxes/hivez_isolated_lazy.dart';
-import 'package:hivez/src/extensions/backup_compressed.dart';
 
 import '../utils/test_setup.dart';
+
+import 'package:hivez/hivez.dart';
 
 void main() {
   setUpAll(() async {
@@ -12,10 +11,10 @@ void main() {
   });
 
   group('backup_compressed HivezIsolatedBox', () {
-    late HivezIsolatedBox<String, String> box;
+    late HivezBoxIsolated<String, String> box;
 
     setUp(() async {
-      box = HivezIsolatedBox<String, String>('backupCompressedIsolatedBox');
+      box = HivezBoxIsolated<String, String>('backupCompressedIsolatedBox');
       await box.ensureInitialized();
       await box.clear();
     });
@@ -44,10 +43,10 @@ void main() {
   });
 
   group('backup_compressed HivezIsolatedLazyBox', () {
-    late HivezIsolatedLazyBox<String, String> box;
+    late HivezBoxIsolatedLazy<String, String> box;
 
     setUp(() async {
-      box = HivezIsolatedLazyBox<String, String>(
+      box = HivezBoxIsolatedLazy<String, String>(
           'backupCompressedIsolatedLazyBox');
       await box.ensureInitialized();
       await box.clear();

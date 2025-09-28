@@ -1,6 +1,20 @@
-## Unreleased
+## 0.0.9
 
-- Added extensive tests for backup extension methods for all box types testing both JSON and compressed backups
+- Improved API structure, type safety and made unnecessary public members private
+- Improved logging performance by using a function builder instead of a string literal
+- Added basic logs to `initialize`, `flush`, `compact`, `deleteFromDisk`, and `closeBox` operations
+- Added extensive tests for backup extension methods for all box types testing both JSON and compressed backups and many more tests for all box types
+- Fixed missing exports for extension methods
+- To improve the auto-completion and code readability, renamed boxes from
+  - `HivezBox`
+  - `HivezLazyBox`
+  - `HivezIsolatedBox`
+  - `HivezIsolatedLazyBox`
+- to
+  - `HivezBox`,
+  - `HivezBoxLazy`,
+  - `HivezBoxIsolated`,
+  - `HivezBoxIsolatedLazy`
 
 ## 0.0.8
 
