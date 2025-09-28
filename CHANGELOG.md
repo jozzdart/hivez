@@ -1,6 +1,7 @@
 ## Unreleased
 
 - Added `moveKey` method to reassign a value from one key to another (renames the key while preserving the value).
+- Added `foreachKey` and `foreachValue` methods to iterate over all keys and values in the box
 
 ## 0.0.9
 
