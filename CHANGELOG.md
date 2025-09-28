@@ -1,3 +1,7 @@
+## Unreleased
+
+- Added extensive tests for backup extension methods for all box types testing both JSON and compressed backups
+
 ## 0.0.8
 
 - Improved performance by removing unnecessary checks and validation while making the package even more type safe and flexible

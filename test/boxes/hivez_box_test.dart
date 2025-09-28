@@ -1,8 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce_flutter/adapters.dart';
 import 'package:hivez/src/boxes/hivez_box.dart';
-import 'package:hivez/src/extensions/backup_json.dart';
-import 'package:hivez/src/extensions/backup_compressed.dart';
 
 import '../utils/test_setup.dart';
 
@@ -83,61 +81,5 @@ void main() {
     await hivezBox.clear();
     expect(await hivezBox.length, 0);
     expect(await hivezBox.isEmpty, true);
-  });
-
-  group('String key/value + backup/restore (box)', () {
-    late HivezBox<String, String> strBox;
-
-    setUp(() async {
-      strBox = HivezBox<String, String>('boxTestStr');
-      await strBox.ensureInitialized();
-      await strBox.clear();
-    });
-
-    tearDown(() async {
-      await Hive.deleteBoxFromDisk('boxTestStr');
-    });
-
-    test('put/get with String key and value', () async {
-      await strBox.put('k', 'v');
-      expect(await strBox.get('k'), 'v');
-    });
-
-    test('backup and restore using JSON', () async {
-      await strBox.putAll({'a': 'alpha', 'b': 'beta'});
-      final json = await strBox.generateBackupJson();
-
-      // mutate data to ensure restore overwrites
-      await strBox.put('a', 'zzz');
-      await strBox.delete('b');
-
-      await strBox.restoreBackupJson(
-        json,
-        stringToKey: (s) => s,
-        jsonToValue: (j) => j as String,
-      );
-
-      expect(await strBox.get('a'), 'alpha');
-      expect(await strBox.get('b'), 'beta');
-      expect(await strBox.length, 2);
-    });
-
-    test('backup and restore using compressed', () async {
-      await strBox.putAll({'x': 'ex', 'y': 'why'});
-      final data = await strBox.generateBackupCompressed();
-
-      await strBox.put('x', 'mutated');
-      await strBox.delete('y');
-
-      await strBox.restoreBackupCompressed(
-        data,
-        stringToKey: (s) => s,
-        jsonToValue: (j) => j as String,
-      );
-
-      expect(await strBox.get('x'), 'ex');
-      expect(await strBox.get('y'), 'why');
-      expect(await strBox.length, 2);
-    });
   });
 }
