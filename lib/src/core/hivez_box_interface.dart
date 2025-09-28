@@ -9,7 +9,8 @@ abstract class HivezBoxInterface<K, T, B>
         HivezBoxOperationsRead<K, T, B>,
         HivezBoxOperationsDelete<K, T>,
         HivezBoxOperationsQuery<K, T>,
-        HivezBoxInfoGetters {}
+        HivezBoxInfoGetters,
+        HivezBoxIdentityGetters {}
 
 abstract class HivezBoxOperationsWrite<K, T> {
   Future<void> put(K key, T value);
@@ -30,6 +31,11 @@ abstract class HivezBoxInfoGetters {
   Future<bool> get isEmpty;
   Future<bool> get isNotEmpty;
   Future<int> get length;
+}
+
+abstract class HivezBoxIdentityGetters {
+  bool get isIsolated;
+  bool get isLazy;
 }
 
 abstract class HivezBoxOperationsRead<K, T, B> {

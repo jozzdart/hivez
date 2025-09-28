@@ -5,6 +5,9 @@ import '../core/core.dart';
 
 class HivezIsolatedBox<K, T>
     extends AbstractHivezIsolatedBox<K, T, IsolatedBox<T>> {
+  @override
+  bool get isLazy => false;
+
   HivezIsolatedBox(
     super.boxName, {
     super.encryptionCipher,
