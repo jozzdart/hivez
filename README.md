@@ -19,81 +19,81 @@ Meet `Hivez` — the smart, type-safe way to use **_Hive_** (using the [`hive_ce
 #### Table of Contents
 
 - [Features](#-features)
-- [Introduction](#-introduction)
-- [`Hive` vs `Hivez`](#-hive-vs-hivez)
-- [Introduction & Examples](#-introduction-&-examples)
+- [Hive vs `Hivez` Comparison](#hive-vs-hivez)
+- [How to Use `Hivez`](#-how-to-use-hivez)
+  - [Which `Box` Should I Use?](#which-box-should-i-use)
+  - [Available Methods](#-available-methods)
+  - [Examples](#examples)
 - [Setup Guide for `hive_ce`](#-setup-guide-for-hive_ce)
 - [Clean architecture with `Hivez`](#-clean-architecture-with-hivez)
 
 ## ✅ Features
 
-- **Zero setup** – No manual `openBox` or init checks. Boxes auto-initialize on first use.
-- **Type-safe API** – No `dynamic`, no runtime surprises. Always the right types at compile time.
-- **Unified interface** – One clean API for `Box`, `LazyBox`, `IsolatedBox`, and `IsolatedLazyBox`. Swap implementations with a single line.
-- **Concurrency-safe** – Built-in locks ensure atomic writes and isolated reads under heavy async loads.
-- **Clean architecture ready** – Decouple storage from business logic with a consistent, testable interface.
-- **Production-grade** – Encryption, crash recovery, compaction, and path overrides included.
-- **Utility-rich** – Backup/restore (JSON), search helpers, iteration utilities, and full box management tools.
-- **Future-proof** – Start simple, scale later. Switch box types without rewriting your app logic.
-- **Fully compatible** – 100% Hive under the hood. All features supported, none removed.
+- **Zero setup** – no manual `openBox`, auto-init on first use
+- **Type-safe** – no `dynamic`, compile-time guarantees
+- **Unified API** – one interface for Box, Lazy, Isolated
+- **Concurrency-safe** – atomic writes, safe reads
+- **Clean architecture** – decoupled, testable design
+- **Production-ready** – encryption, crash recovery, compaction
+- **Utility-rich** – backup/restore, search, iteration, box tools
+- **Future-proof** – swap box types with one line
+- **Hive-compatible** – 100% features, zero loss
 
-No `dynamic` (even for keys), no surprises.
+**Type-safe** – no `dynamic`, no surprises
 
 ```dart
 final users = HivezBox<int, User>('users');
 await users.put(1, User('Alice'));
-final User? u = await users.get(1);
+final u = await users.get(1); // User('Alice')
 ```
 
-Zero Setup & Auto-Initialization, no more await `Hive.openBox`.
+**Zero setup** – no `openBox`, auto-init on first use
 
 ```dart
 final settings = HivezBox<String, bool>('settings');
-await settings.put('darkMode', true); // no manual init
-final darkMode = await settings.get('darkMode');
+await settings.put('darkMode', true);
+final dark = await settings.get('darkMode'); // true
 ```
 
-**Unified API Across Box Types**  
-`Box`, `LazyBox`, `IsolatedBox` — all with one async interface.  
-Switch with a single line, your code stays the same.
+**Unified API** – Box, Lazy, Isolated — same interface, swap with one line
 
 ```dart
-final articles = HivezBoxLazy<String, Article>('articles');
-final articles = HivezBoxIsolated<String, Article>('articles');
+final a = HivezBoxLazy<String, Article>('articles');
+final b = HivezBoxIsolated<String, Article>('articles');
 ```
 
-# 🔄 `Hive` vs `Hivez`
+# Hive vs `Hivez`
 
 _[⤴️ Back](#table-of-contents) → Table of Contents_
 
-| Feature / Concern        | Native Hive                                         | With Hivez                                                                   |
-| ------------------------ | --------------------------------------------------- | ---------------------------------------------------------------------------- |
-| **Type Safety**          | Uses `dynamic`, requires manual casts               | Strongly typed: `HivezBox<int, User>` guarantees only `User` with `int` keys |
-| **Initialization**       | Must manually call `Hive.openBox` and check state   | Auto-initializes on first use, no boilerplate or crashes                     |
-| **API Consistency**      | Different APIs for `Box`, `LazyBox`, `IsolatedBox`  | Unified async API for all box types, switch with a single line               |
-| **Concurrency**          | Not concurrency-safe out of the box                 | Built-in locks: atomic writes, isolated reads, no race conditions            |
-| **Architecture**         | Logic tightly coupled with raw boxes                | Clean, abstracted interface ready for Clean Architecture & DI                |
-| **Utilities**            | Only basic CRUD                                     | Backup/restore (JSON), search helpers, iteration tools, box management       |
-| **Error Handling**       | Easy to get “Box not open” or type errors           | Guards built-in: no unsafe access, no unchecked casts                        |
-| **Production Readiness** | Good for small projects, needs extra care           | Encryption, crash recovery, compaction, isolated boxes — all supported       |
-| **Migration / Scaling**  | Switching to LazyBox/IsolatedBox requires rewriting | Swap `HivezBox` → `HivezBoxLazy` or `HivezBoxIsolated` without code changes  |
-| **Developer Experience** | Verbose, repetitive boilerplate                     | Cleaner, safer, future-proof abstraction with less code                      |
+| Feature / Concern   | Native Hive                              | With Hivez                                                      |
+| ------------------- | ---------------------------------------- | --------------------------------------------------------------- |
+| **Type Safety**     | `dynamic` with manual casts              | `HivezBox<int, User>` guarantees correct types                  |
+| **Initialization**  | Must call `Hive.openBox` and check state | Auto-initializes on first use, no boilerplate                   |
+| **API Consistency** | Different APIs for Box types             | Unified async API, switch with a single line                    |
+| **Concurrency**     | Not concurrency-safe                     | Built-in locks: atomic writes, safe reads                       |
+| **Architecture**    | Logic tied to raw boxes                  | Abstracted interface, fits Clean Architecture & DI              |
+| **Utilities**       | Basic CRUD only                          | Backup/restore, search helpers, iteration, box management       |
+| **Production**      | Needs extra care for scaling & safety    | Encryption, crash recovery, compaction, isolated boxes included |
+| **Migration**       | Switching box types requires rewrites    | Swap `HivezBox` ↔ `HivezBoxLazy`/`HivezBoxIsolated` seamlessly  |
+| **Dev Experience**  | Verbose boilerplate, error-prone         | Cleaner, safer, future-proof, less code                         |
 
-# 📦 `HivezBox` API Overview
+# 📦 How to Use `Hivez`
 
 [⤴️ Back](#table-of-contents) → Table of Contents
 
 Hivez provides **four box types** that act as complete, self-initializing services for storing and managing data.  
 Unlike raw Hive, you don’t need to worry about opening/closing boxes — the API is unified and stays identical across box types.
 
-### Which Box Should I Use?
+### Which `Box` Should I Use?
 
-- **`HivezBox<K, T>`** → Default choice. Fast, synchronous reads with async writes.
+- **`HivezBox`** → Default choice. Fast, synchronous reads with async writes.
 - **`HivezBoxLazy`** → Use when working with **large datasets** where values are only loaded on demand.
 - **`HivezBoxIsolated`** → Use when you need **isolate safety** (background isolates or heavy concurrency).
 - **`HivezBoxIsolatedLazy`** → Combine **lazy loading + isolate safety** for maximum scalability.
 
-> 💡 Switching between them is a **single-line change**. Your app logic and API calls stay exactly the same — while in raw Hive, this would break your code.
+> 💡 Switching between them is a **single-line change**. Your app logic and API calls stay exactly the same — while in raw Hive, this would break your code.  
+> ⚠️ **Note on isolates:** The API is identical across all box types, but using `Isolated` boxes requires you to properly set up Hive with isolates. If you’re not familiar with isolate management in Dart/Flutter, it’s safer to stick with **`HivezBox`** or **`HivezBoxLazy`**.
 
 ## 🔧 Available Methods
 
@@ -145,12 +145,93 @@ All `HivezBox` types share the same complete API:
   - `compactBox()` — Compact file to save space
 
 - **Extras**
+
+  - `generateBackupJson()` — Export all data as JSON
+  - `restoreBackupJson()` — Import all data from JSON
+  - `generateBackupCompressed()` — Export all data as compressed binary
+  - `restoreBackupCompressed()` — Import all data from compressed binary
   - `toMap()` — Convert full box to `Map<K, T>` (non-lazy boxes)
-  - Backup/restore extensions — Export/import as JSON
+  - `search(query, searchableText, {page, pageSize, sortBy})` — Full-text search with optional pagination & sorting
 
----
+## Examples
 
-⚡ In short: choose the box type once, and enjoy a **complete, type-safe, async API** everywhere.
+#### ➕ Put & Get
+
+```dart
+final box = HivezBox<int, String>('notes');
+await box.put(1, 'Hello');
+final note = await box.get(1); // "Hello"
+```
+
+#### 📥 Add & Retrieve by Index
+
+```dart
+final id = await box.add('World');   // auto index
+final val = await box.getAt(id);     // "World"
+```
+
+#### ✏️ Update & Move Keys
+
+```dart
+await box.put(1, 'Updated');
+await box.moveKey(1, 2); // value moved from key 1 → key 2
+```
+
+#### ❌ Delete & Clear
+
+```dart
+await box.delete(2);
+await box.clear(); // remove all
+```
+
+#### 🔑 Keys & Values
+
+```dart
+final keys = await box.getAllKeys();     // Iterable<int>
+final vals = await box.getAllValues();  // Iterable<String>
+```
+
+#### 🔍 Queries
+
+```dart
+final match = await box.firstWhereOrNull((v) => v.contains('Hello'));
+final contains = await box.containsKey(1); // true / false
+```
+
+#### 🔄 Iteration Helpers
+
+```dart
+await box.foreachKey((k) async => print(k));
+await box.foreachValue((k, v) async => print('$k:$v'));
+```
+
+#### 📊 Box Info
+
+```dart
+final count = await box.length;
+final empty = await box.isEmpty;
+```
+
+#### ⚡ Utilities
+
+```dart
+await box.flushBox();    // write to disk
+await box.compactBox();  // shrink file
+await box.deleteFromDisk(); // remove permanently
+```
+
+#### 👀 Watch for Changes
+
+```dart
+box.watch(1).listen((event) {
+  print('Key changed: ${event.key}');
+});
+```
+
+> ✅ This is just with `HivezBox`.
+> The same API works for `HivezBoxLazy`, `HivezBoxIsolated`, and `HivezBoxIsolatedLazy`.
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
 
 # 🔗 Setup Guide for `hive_ce`
 
@@ -169,14 +250,14 @@ I made this setup guide for you to make it easier to get started with Hive.
 One line command to add all packages:
 
 ```sh
-flutter pub add hive_ce hive_ce_flutter dev:hive_ce_generator dev:build_runner
+flutter pub add hive_ce_flutter hivez dev:hive_ce_generator dev:build_runner
 ```
 
 or add the following to your `pubspec.yaml` with the _latest_ versions:
 
 ```yaml
 dependencies:
-  hive_ce: ^2.10.1
+  hivez: ^1.0.0
   hive_ce_flutter: ^2.2.0
 
 dev_dependencies:
