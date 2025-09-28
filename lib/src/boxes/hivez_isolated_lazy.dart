@@ -44,7 +44,7 @@ class HivezIsolatedLazyBox<K, T>
       final keys = (await box.keys).cast<K>();
       final List<T> values = [];
       for (final key in keys) {
-        final value = await box.get(key as T); // cast because keys are dynamic
+        final value = await box.get(key);
         if (value != null) values.add(value);
       }
       return values;
