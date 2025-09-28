@@ -4,6 +4,9 @@ import 'package:meta/meta.dart';
 import '../core/core.dart';
 
 class HivezLazyBox<K, T> extends AbstractHivezBox<K, T, LazyBox<T>> {
+  @override
+  bool get isLazy => true;
+
   HivezLazyBox(
     super.boxName, {
     super.encryptionCipher,

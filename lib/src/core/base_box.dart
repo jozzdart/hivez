@@ -17,16 +17,6 @@ abstract class BaseHivezBox<K, T, B> implements HivezBoxInterface<K, T, B> {
   final Lock _initLock = Lock();
 
   B? _box;
-  bool? _isIsolatedInternal;
-
-  bool get _isIsolated {
-    if (_isIsolatedInternal != null) return _isIsolatedInternal!;
-    if (T is IsolatedBoxBase) return _isIsolatedInternal = true;
-    if (T is BoxBase) return _isIsolatedInternal = false;
-    throw HivezBoxInvalidTypeException(
-      "Box '$boxName' is not a valid box type. Must be either IsolatedBoxBase or BoxBase.",
-    );
-  }
 
   @protected
   B get box {
@@ -41,12 +31,11 @@ abstract class BaseHivezBox<K, T, B> implements HivezBoxInterface<K, T, B> {
   @protected
   bool get isOpen {
     if (_box == null) return false;
-    if (_box is BoxBase) {
-      return (box as BoxBase).isOpen;
-    } else if (_box is IsolatedBoxBase) {
+    if (isIsolated) {
       return (box as IsolatedBoxBase).isOpen;
+    } else {
+      return (box as BoxBase).isOpen;
     }
-    return false;
   }
 
   @protected
@@ -59,10 +48,8 @@ abstract class BaseHivezBox<K, T, B> implements HivezBoxInterface<K, T, B> {
     this.path,
     this.collection,
     this.logger,
-    bool? isIsolated,
   }) {
     assert(boxName.isNotEmpty, 'Box name cannot be empty');
-    _isIsolatedInternal = isIsolated;
   }
 
   Future<void> _initBox() async {
@@ -71,7 +58,7 @@ abstract class BaseHivezBox<K, T, B> implements HivezBoxInterface<K, T, B> {
   }
 
   bool _hiveIsBoxOpen(String boxName) {
-    if (_isIsolated) return IsolatedHive.isBoxOpen(boxName);
+    if (isIsolated) return IsolatedHive.isBoxOpen(boxName);
     return Hive.isBoxOpen(boxName);
   }
 
@@ -110,37 +97,12 @@ abstract class BaseHivezBox<K, T, B> implements HivezBoxInterface<K, T, B> {
 
   @override
   Future<void> closeBox() async {
-    if (isOpen) {
-      if (_isIsolated) {
-        await (box as IsolatedBoxBase).close();
-      } else {
-        await (box as BoxBase).close();
-      }
-      _box = null;
-    }
+    _box = null;
   }
 
   @override
   Future<void> deleteFromDisk() async {
-    if (_isIsolated) {
-      if (isOpen) {
-        await (box as IsolatedBoxBase).deleteFromDisk();
-        _box = null;
-      } else if (IsolatedHive.isBoxOpen(boxName)) {
-        await (hiveGetBox() as IsolatedBoxBase).deleteFromDisk();
-      } else {
-        await IsolatedHive.deleteBoxFromDisk(boxName);
-      }
-    } else {
-      if (isOpen) {
-        await (box as BoxBase).deleteFromDisk();
-        _box = null;
-      } else if (Hive.isBoxOpen(boxName)) {
-        await (hiveGetBox() as BoxBase).deleteFromDisk();
-      } else {
-        await Hive.deleteBoxFromDisk(boxName);
-      }
-    }
+    _box = null;
   }
 
   Future<void> logBoxInfo() async {

@@ -1,3 +1,10 @@
+## 0.0.8
+
+- Improved performance by removing unnecessary checks and validation while making the package even more type safe and flexible
+- Added search extension methods for all box types, and added extensive tests with all box types
+  - `search` for searching the box for values that match the search query. It supports pagination, sorting and improved search with multiple search terms.
+- Fixed casting issues with isolated boxes
+
 ## 0.0.7
 
 - Implemented extensive testing for all box types and functions

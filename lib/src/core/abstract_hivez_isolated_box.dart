@@ -4,6 +4,9 @@ import 'base_box.dart';
 
 abstract class AbstractHivezIsolatedBox<K, T, B extends IsolatedBoxBase<T>>
     extends BaseHivezBox<K, T, B> {
+  @override
+  bool get isIsolated => true;
+
   AbstractHivezIsolatedBox(
     super.boxName, {
     super.encryptionCipher,
@@ -11,7 +14,7 @@ abstract class AbstractHivezIsolatedBox<K, T, B extends IsolatedBoxBase<T>>
     super.path,
     super.collection,
     super.logger,
-  }) : super(isIsolated: true);
+  });
 
   @override
   Future<void> put(K key, T value) async {
@@ -103,5 +106,25 @@ abstract class AbstractHivezIsolatedBox<K, T, B extends IsolatedBoxBase<T>>
   @override
   Stream<BoxEvent> watch(K key) {
     return box.watch(key: key);
+  }
+
+  @override
+  Future<void> closeBox() async {
+    if (isOpen) {
+      await box.close();
+      await super.closeBox();
+    }
+  }
+
+  @override
+  Future<void> deleteFromDisk() async {
+    if (isOpen) {
+      await box.deleteFromDisk();
+    } else if (IsolatedHive.isBoxOpen(boxName)) {
+      await IsolatedHive.box<T>(boxName).deleteFromDisk();
+    } else {
+      await IsolatedHive.deleteBoxFromDisk(boxName);
+    }
+    await super.deleteFromDisk();
   }
 }
