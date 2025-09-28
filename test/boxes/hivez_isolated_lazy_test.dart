@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+// ignore: unnecessary_import
 import 'package:hive_ce_flutter/adapters.dart';
 
 import '../utils/test_setup.dart';
