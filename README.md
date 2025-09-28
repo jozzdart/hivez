@@ -85,6 +85,10 @@ _[⤴️ Back](#table-of-contents) → Table of Contents_
 Hivez provides **four box types** that act as complete, self-initializing services for storing and managing data.  
 Unlike raw Hive, you don’t need to worry about opening/closing boxes — the API is unified and stays identical across box types.
 
+- [Which `Box` Should I Use?](#which-box-should-i-use)
+- [Available Methods](#-available-methods)
+- [Examples](#examples)
+
 ### Which `Box` Should I Use?
 
 - **`HivezBox`** → Default choice. Fast, synchronous reads with async writes.
@@ -155,6 +159,10 @@ All `HivezBox` types share the same complete API:
 
 ## Examples
 
+> Before diving in — make sure you’ve set up Hive correctly with adapters.  
+> The setup takes **less than 2 minutes** and is explained here: [Setup Guide](#-setup-guide-for-hive_ce).  
+> Once Hive is set up, you can use `Hivez` right away:
+
 #### ➕ Put & Get
 
 ```dart
@@ -166,7 +174,7 @@ final note = await box.get(1); // "Hello"
 #### 📥 Add & Retrieve by Index
 
 ```dart
-final id = await box.add('World');   // auto index
+final id = await box.add('World');   // auto index (int)
 final val = await box.getAt(id);     // "World"
 ```
 
@@ -228,7 +236,7 @@ box.watch(1).listen((event) {
 });
 ```
 
-> ✅ This is just with `HivezBox`.
+> ✅ This is just with `HivezBox`.  
 > The same API works for `HivezBoxLazy`, `HivezBoxIsolated`, and `HivezBoxIsolatedLazy`.
 
 _[⤴️ Back](#table-of-contents) → Table of Contents_
