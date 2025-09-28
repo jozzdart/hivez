@@ -1,6 +1,6 @@
 name: hivez
 description: "The cleanest way to use Hive in production. Type-safe, concurrency-safe, boilerplate-free. (Using hive_ce)"
-version: 0.0.9
+version: 0.0.10
 homepage: https://github.com/jozzdart/hivez
 repository: https://github.com/jozzdart/hivez
 issue_tracker: https://github.com/jozzdart/hivez/issues
@@ -15,7 +15,7 @@ environment:
 
 dependencies:
   collection: ^1.19.1
-  hive_ce: ^2.13.2
+  hive_ce: ^2.11.3
   meta: ^1.16.0
   shrink: ^1.5.12
   synchronized: ^3.2.0
