@@ -1,6 +1,10 @@
-## Unreleased
+## 0.0.9
 
+- Improved API structure, type safety and made unnecessary public members private
+- Improved logging performance by using a function builder instead of a string literal
+- Added basic logs to `initialize`, `flush`, `compact`, `deleteFromDisk`, and `closeBox` operations
 - Added extensive tests for backup extension methods for all box types testing both JSON and compressed backups
+- Fixed missing exports for extension methods
 
 ## 0.0.8
 

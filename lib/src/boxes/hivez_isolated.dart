@@ -1,7 +1,4 @@
-import 'package:hive_ce/hive.dart';
-import 'package:meta/meta.dart';
-
-import '../core/core.dart';
+part of 'boxes.dart';
 
 class HivezIsolatedBox<K, T>
     extends AbstractHivezIsolatedBox<K, T, IsolatedBox<T>> {
@@ -9,7 +6,7 @@ class HivezIsolatedBox<K, T>
   bool get isLazy => false;
 
   HivezIsolatedBox(
-    super.boxName, {
+    super.name, {
     super.encryptionCipher,
     super.crashRecovery,
     super.path,
@@ -18,40 +15,26 @@ class HivezIsolatedBox<K, T>
   });
 
   @override
-  @protected
-  IsolatedBox<T> hiveGetBox() => IsolatedHive.box<T>(boxName);
-
-  @override
-  @protected
-  Future<IsolatedBox<T>> hiveOpenBox() async => await IsolatedHive.openBox<T>(
-        boxName,
-        encryptionCipher: encryptionCipher,
-        crashRecovery: crashRecovery,
-        path: path,
-        collection: collection,
-      );
-
-  @override
   Future<T?> get(K key, {T? defaultValue}) async {
-    return synchronizedRead(
-        () => Future.value(box.get(key, defaultValue: defaultValue)));
+    return _synchronizedRead(
+        () => Future.value(hiveBox.get(key, defaultValue: defaultValue)));
   }
 
   @override
   Future<Iterable<T>> getAllValues() async {
-    return synchronizedRead(() => box.values);
+    return _synchronizedRead(() => hiveBox.values);
   }
 
   @override
   Future<T?> valueAt(int index) async {
-    return synchronizedRead(() => box.getAt(index));
+    return _synchronizedRead(() => hiveBox.getAt(index));
   }
 
   @override
   Future<T?> firstWhereOrNull(bool Function(T) condition) async {
-    return synchronizedRead(() async {
-      for (final key in (await box.keys)) {
-        final value = await box.get(key);
+    return _synchronizedRead(() async {
+      for (final key in (await hiveBox.keys)) {
+        final value = await hiveBox.get(key);
         if (value != null && condition(value)) return value;
       }
       return null;
@@ -59,7 +42,19 @@ class HivezIsolatedBox<K, T>
   }
 
   Future<Map<K, T>> toMap() async {
-    return synchronizedRead(
-        () async => Future.value((await box.toMap()).cast<K, T>()));
+    return _synchronizedRead(
+        () async => Future.value((await hiveBox.toMap()).cast<K, T>()));
   }
+
+  @override
+  Future<IsolatedBox<T>> _ceateBoxInHive() => IsolatedHive.openBox<T>(
+        name,
+        encryptionCipher: encryptionCipher,
+        crashRecovery: crashRecovery,
+        path: path,
+        collection: collection,
+      );
+
+  @override
+  IsolatedBox<T> _getBoxFromHive() => IsolatedHive.box<T>(name);
 }
