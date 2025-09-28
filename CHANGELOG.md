@@ -1,3 +1,11 @@
+## 0.0.10
+
+- Added `moveKey` method to reassign a value from one key to another (renames the key while preserving the value).
+- Added `foreachKey` and `foreachValue` methods to iterate over all keys and values in the box
+- Made the base `BoxInterface` class simpler for better abstraction and flexibility
+- Added exports from `hive_ce` to the package for ease of use
+- Updated the **README** with more detailed examples and better structure with sections Features, Hive vs `Hivez` Comparison, How to Use `Hivez`, Examples, Setup Guide for `hive_ce`
+
 ## 0.0.9
 
 - Improved API structure, type safety and made unnecessary public members private

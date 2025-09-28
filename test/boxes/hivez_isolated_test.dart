@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hive_ce_flutter/adapters.dart';
 
 import '../utils/test_setup.dart';
 
@@ -172,5 +171,126 @@ void main() {
     await box2.ensureInitialized();
     expect(await box2.length, 0);
     await box2.deleteFromDisk();
+  });
+
+  test('foreachKey visits all keys exactly once and in order', () async {
+    await hivezBox.clear();
+    final entries = <int, int>{};
+    for (var i = 0; i < 140; i++) {
+      entries[i] = i * 4;
+    }
+    await hivezBox.putAll(entries);
+
+    final visitedKeys = <int>[];
+    await hivezBox.foreachKey((key) async {
+      visitedKeys.add(key);
+    });
+
+    final allKeys = (await hivezBox.getAllKeys()).toList();
+    expect(visitedKeys, allKeys);
+    expect(visitedKeys.toSet(), allKeys.toSet());
+  });
+
+  test('foreachValue accumulates sum over many entries', () async {
+    await hivezBox.clear();
+    final entries = <int, int>{};
+    var expectedSum = 0;
+    for (var i = 1; i <= 900; i++) {
+      entries[i] = i;
+      expectedSum += i;
+    }
+    await hivezBox.putAll(entries);
+
+    var sum = 0;
+    await hivezBox.foreachValue((key, value) async {
+      sum += value;
+    });
+    expect(sum, expectedSum);
+  });
+
+  test('foreachValue skips null values for nullable isolated box type',
+      () async {
+    final box = HivezBoxIsolated<int, String?>('nullableIsoBox');
+    await box.ensureInitialized();
+    await box.clear();
+    await box.putAll({
+      1: 'a',
+      2: null,
+      3: 'c',
+      4: null,
+      5: 'e',
+    });
+
+    final seen = <int, String>{};
+    await box.foreachValue((key, value) async {
+      seen[key] = value!;
+    });
+
+    expect(seen.keys.toSet(), {1, 3, 5});
+    expect(seen.values.toSet(), {'a', 'c', 'e'});
+
+    await IsolatedHive.deleteBoxFromDisk('nullableIsoBox');
+  });
+
+  test('foreachKey preserves initial order; may include new keys appended',
+      () async {
+    await hivezBox.clear();
+    await hivezBox.putAll({0: 0, 1: 10, 2: 20, 3: 30});
+
+    final visited = <int>[];
+    await hivezBox.foreachKey((key) async {
+      visited.add(key);
+      if (key == 1) {
+        await hivezBox.put(999, 999);
+      }
+    });
+    expect(visited.take(4).toList(), [0, 1, 2, 3]);
+    expect(visited.length, anyOf(4, 5));
+    if (visited.length == 5) {
+      expect(visited.last, 999);
+    }
+    expect(await hivezBox.containsKey(999), isTrue);
+  });
+
+  test('foreachKey propagates exceptions from action and stops iteration',
+      () async {
+    await hivezBox.clear();
+    await hivezBox.putAll({0: 0, 1: 10, 2: 20, 3: 30});
+
+    var count = 0;
+    Future<void> run() => hivezBox.foreachKey((key) async {
+          count++;
+          if (key == 2) throw StateError('boom');
+        });
+
+    await expectLater(run(), throwsA(isA<StateError>()));
+    expect(count, lessThan(4));
+    expect(count, greaterThanOrEqualTo(3));
+  });
+
+  test('moveKey moves value to new key and removes old key', () async {
+    await hivezBox.putAll({1: 10});
+    final ok = await hivezBox.moveKey(1, 2);
+    expect(ok, isTrue);
+    expect(await hivezBox.containsKey(1), isFalse);
+    expect(await hivezBox.get(2), 10);
+    expect(await hivezBox.length, 1);
+  });
+
+  test('moveKey returns false for missing old key', () async {
+    await hivezBox.putAll({5: 50});
+    final ok = await hivezBox.moveKey(1, 2);
+    expect(ok, isFalse);
+    expect(await hivezBox.containsKey(5), isTrue);
+    expect(await hivezBox.length, 1);
+  });
+
+  test('moveKey overwrites value if new key exists', () async {
+    await hivezBox.putAll({1: 10, 2: 99});
+    final ok = await hivezBox.moveKey(1, 2);
+    expect(ok, isTrue);
+    expect(await hivezBox.containsKey(1), isFalse);
+    expect(await hivezBox.get(2), 10);
+    expect(await hivezBox.length, 1);
   });
 }

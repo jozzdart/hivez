@@ -1,6 +1,6 @@
 import 'package:hivez/src/boxes/boxes.dart';
 
-extension SearchExtensionMethod<K, T, B> on BoxInterface<K, T, B> {
+extension SearchExtensionMethod<K, T> on BoxInterface<K, T> {
   Future<List<T>> search({
     required String query,
     required String Function(T item) searchableText,

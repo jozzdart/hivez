@@ -2,7 +2,7 @@ part of 'boxes.dart';
 
 typedef LogHandler = void Function(String message);
 
-abstract class BoxInterface<K, T, BoxType> {
+abstract class BoxInterface<K, T> {
   final String name;
   final HiveCipher? _encryptionCipher;
   final bool _crashRecovery;
@@ -26,18 +26,19 @@ abstract class BoxInterface<K, T, BoxType> {
   bool get isIsolated;
   bool get isLazy;
 
-  BoxType get box;
   String? get path;
 
   Future<bool> get isEmpty;
   Future<bool> get isNotEmpty;
   Future<int> get length;
+
   // Write operations
   Future<void> put(K key, T value);
   Future<void> putAll(Map<K, T> entries);
   Future<void> putAt(int index, T value);
   Future<int> add(T value);
   Future<void> addAll(Iterable<T> values);
+  Future<bool> moveKey(K oldKey, K newKey);
 
   // Delete operations
   Future<void> delete(K key);
@@ -62,6 +63,8 @@ abstract class BoxInterface<K, T, BoxType> {
     String query, {
     required String Function(T item) searchableText,
   });
+  Future<void> foreachValue(Future<void> Function(K key, T value) action);
+  Future<void> foreachKey(Future<void> Function(K key) action);
 
   // Box management operations
   Future<void> ensureInitialized();
@@ -69,17 +72,21 @@ abstract class BoxInterface<K, T, BoxType> {
   Future<void> closeBox();
   Future<void> flushBox();
   Future<void> compactBox();
-
-  // Helper functions
-  BoxType _getExistingBox();
-  Future<BoxType> _openBox();
-  bool get _isOpenInHive;
 }
 
-abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T, B> {
+abstract class _BoxInterfaceHelpers<K, T, BoxType> {
+  BoxType get box;
+  bool get _isOpenInHive;
+  BoxType _getExistingBox();
+  Future<BoxType> _openBox();
+}
+
+abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
+    implements _BoxInterfaceHelpers<K, T, B> {
   final LogHandler? _logger;
   final Lock _initLock = Lock();
   final Lock _lock = Lock();
+  final Lock _additionalLock = Lock();
   B? _box;
 
   @override
@@ -154,6 +161,23 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T, B> {
   @override
   Future<T?> getAt(int index) => valueAt(index);
 
+  @override
+  Future<bool> moveKey(K oldKey, K newKey) async {
+    return _additionalLock.synchronized(() async {
+      await ensureInitialized();
+
+      final oldValue = await get(oldKey);
+      if (oldValue == null) {
+        return false;
+      }
+
+      await put(newKey, oldValue);
+      await delete(oldKey);
+
+      return true;
+    });
+  }
+
   Future<R> _executeWrite<R>(Future<R> Function() action) async {
     await ensureInitialized(); // <-- ensures box is ready
     return _lock.synchronized(action);
@@ -162,6 +186,31 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T, B> {
   Future<R> _executeRead<R>(Future<R> Function() action) async {
     await ensureInitialized();
     return await action(); // safer if action throws
+  }
+
+  @override
+  Future<void> foreachKey(Future<void> Function(K key) action,
+      {bool Function()? breakCondition}) async {
+    await _executeRead(() async {
+      final keys = await getAllKeys();
+      for (final key in keys) {
+        await action(key);
+        if (breakCondition != null && breakCondition()) {
+          return;
+        }
+      }
+    });
+  }
+
+  @override
+  Future<void> foreachValue(Future<void> Function(K key, T value) action,
+      {bool Function()? breakCondition}) async {
+    await foreachKey((key) async {
+      final value = await get(key);
+      if (value != null) {
+        await action(key, value);
+      }
+    }, breakCondition: breakCondition);
   }
 }
 
