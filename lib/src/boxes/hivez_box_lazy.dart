@@ -14,7 +14,7 @@ class HivezLazyBox<K, T> extends AbstractHivezBox<K, T, LazyBox<T>> {
   });
 
   @override
-  Future<LazyBox<T>> _ceateBoxInHive() => Hive.openLazyBox<T>(
+  Future<LazyBox<T>> _openBox() => Hive.openLazyBox<T>(
         name,
         encryptionCipher: encryptionCipher,
         crashRecovery: crashRecovery,
@@ -23,21 +23,21 @@ class HivezLazyBox<K, T> extends AbstractHivezBox<K, T, LazyBox<T>> {
       );
 
   @override
-  LazyBox<T> _getBoxFromHive() => Hive.lazyBox<T>(name);
+  LazyBox<T> _getExistingBox() => Hive.lazyBox<T>(name);
 
   @override
   Future<T?> get(K key, {T? defaultValue}) async {
-    return _synchronizedRead(
-        () => Future.value(hiveBox.get(key, defaultValue: defaultValue)));
+    return _executeRead(
+        () => Future.value(box.get(key, defaultValue: defaultValue)));
   }
 
   @override
   Future<Iterable<T>> getAllValues() async {
-    return _synchronizedRead(() async {
-      final keys = hiveBox.keys.cast<K>();
+    return _executeRead(() async {
+      final keys = box.keys.cast<K>();
       final List<T> values = [];
       for (final key in keys) {
-        final value = await hiveBox.get(key);
+        final value = await box.get(key);
         if (value != null) values.add(value);
       }
       return values;
@@ -46,14 +46,14 @@ class HivezLazyBox<K, T> extends AbstractHivezBox<K, T, LazyBox<T>> {
 
   @override
   Future<T?> valueAt(int index) async {
-    return _synchronizedRead(() => hiveBox.getAt(index));
+    return _executeRead(() => box.getAt(index));
   }
 
   @override
   Future<T?> firstWhereOrNull(bool Function(T) condition) async {
-    return _synchronizedRead(() async {
-      for (final key in hiveBox.keys) {
-        final value = await hiveBox.get(key);
+    return _executeRead(() async {
+      for (final key in box.keys) {
+        final value = await box.get(key);
         if (value != null && condition(value)) return value;
       }
       return null;
