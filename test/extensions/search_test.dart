@@ -82,10 +82,10 @@ void main() {
   });
 
   group('HivezLazyBox search', () {
-    late HivezLazyBox<int, String> box;
+    late HivezBoxLazy<int, String> box;
 
     setUp(() async {
-      box = HivezLazyBox<int, String>('searchLazyBox');
+      box = HivezBoxLazy<int, String>('searchLazyBox');
       await box.ensureInitialized();
       await box.clear();
     });

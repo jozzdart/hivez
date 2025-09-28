@@ -1,6 +1,7 @@
 library;
 
 import 'package:hive_ce/hive.dart';
+import 'package:hivez/src/exceptions/init_exception.dart';
 import 'package:meta/meta.dart';
 import 'package:synchronized/synchronized.dart';
 

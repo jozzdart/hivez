@@ -10,10 +10,10 @@ void main() {
   });
 
   group('HivezIsolatedBox search', () {
-    late HivezIsolatedBox<int, String> box;
+    late HivezBoxIsolated<int, String> box;
 
     setUp(() async {
-      box = HivezIsolatedBox<int, String>('searchIsolatedBox');
+      box = HivezBoxIsolated<int, String>('searchIsolatedBox');
       await box.ensureInitialized();
       await box.clear();
     });
@@ -72,10 +72,10 @@ void main() {
   });
 
   group('HivezIsolatedLazyBox search', () {
-    late HivezIsolatedLazyBox<int, String> box;
+    late HivezBoxIsolatedLazy<int, String> box;
 
     setUp(() async {
-      box = HivezIsolatedLazyBox<int, String>('searchIsolatedLazyBox');
+      box = HivezBoxIsolatedLazy<int, String>('searchIsolatedLazyBox');
       await box.ensureInitialized();
       await box.clear();
     });

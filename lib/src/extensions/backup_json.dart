@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:hivez/hivez.dart';
+import 'package:hivez/src/boxes/boxes.dart';
 
-extension HivezBackupJsonExtension<K, T, B> on HivezBoxInterface<K, T, B> {
+extension BackupJsonExtension<K, T, B> on BoxInterface<K, T, B> {
   Future<String> generateBackupJson({
     String Function(K key)? keyToString,
     Object? Function(T value)? valueToJson,

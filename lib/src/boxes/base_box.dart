@@ -2,49 +2,50 @@ part of 'boxes.dart';
 
 typedef LogHandler = void Function(String message);
 
-abstract class HivezBoxInterface<K, T, BoxType>
-    implements
-        _HivezBoxFunctions,
-        _HivezBoxOperationsWrite<K, T>,
-        _HivezBoxOperationsRead<K, T>,
-        _HivezBoxOperationsDelete<K, T>,
-        _HivezBoxOperationsQuery<K, T>,
-        _HivezBoxInfoGetters,
-        _HivezBoxIdentityGetters {
-  BoxType _getExistingBox();
-  Future<BoxType> _openBox();
-  bool get _isOpenInHive;
-}
+abstract class BoxInterface<K, T, BoxType> {
+  final String name;
+  final HiveCipher? _encryptionCipher;
+  final bool _crashRecovery;
+  final String? _path;
+  final String? _collection;
 
-abstract class _HivezBoxOperationsWrite<K, T> {
+  BoxInterface(
+    this.name, {
+    HiveCipher? encryptionCipher,
+    bool crashRecovery = true,
+    String? path,
+    String? collection,
+  })  : _encryptionCipher = encryptionCipher,
+        _crashRecovery = crashRecovery,
+        _path = path,
+        _collection = collection,
+        assert(name.isNotEmpty, 'Box name cannot be empty');
+
+  bool get isOpen;
+  bool get isInitialized;
+  bool get isIsolated;
+  bool get isLazy;
+
+  BoxType get box;
+  String? get path;
+
+  Future<bool> get isEmpty;
+  Future<bool> get isNotEmpty;
+  Future<int> get length;
+  // Write operations
   Future<void> put(K key, T value);
   Future<void> putAll(Map<K, T> entries);
   Future<void> putAt(int index, T value);
   Future<int> add(T value);
   Future<void> addAll(Iterable<T> values);
-}
 
-abstract class _HivezBoxOperationsDelete<K, T> {
+  // Delete operations
   Future<void> delete(K key);
   Future<void> deleteAt(int index);
   Future<void> deleteAll(Iterable<K> keys);
   Future<void> clear();
-}
 
-abstract class _HivezBoxInfoGetters {
-  Future<bool> get isEmpty;
-  Future<bool> get isNotEmpty;
-  Future<int> get length;
-}
-
-abstract class _HivezBoxIdentityGetters {
-  bool get isOpen;
-  bool get isInitialized;
-  bool get isIsolated;
-  bool get isLazy;
-}
-
-abstract class _HivezBoxOperationsRead<K, T> {
+  // Read operations
   Future<K> keyAt(int index);
   Future<T?> valueAt(int index);
   Future<T?> getAt(int index);
@@ -53,32 +54,29 @@ abstract class _HivezBoxOperationsRead<K, T> {
   Future<T?> get(K key, {T? defaultValue});
   Future<Iterable<T>> getAllValues();
   Stream<BoxEvent> watch(K key);
-}
 
-abstract class _HivezBoxOperationsQuery<K, T> {
+  // Query operations
   Future<Iterable<T>> getValuesWhere(bool Function(T) condition);
   Future<T?> firstWhereOrNull(bool Function(T item) condition);
   Future<T?> firstWhereContains(
     String query, {
     required String Function(T item) searchableText,
   });
-}
 
-abstract class _HivezBoxFunctions {
+  // Box management operations
   Future<void> ensureInitialized();
   Future<void> deleteFromDisk();
   Future<void> closeBox();
   Future<void> flushBox();
   Future<void> compactBox();
+
+  // Helper functions
+  BoxType _getExistingBox();
+  Future<BoxType> _openBox();
+  bool get _isOpenInHive;
 }
 
-abstract class BaseHivezBox<K, T, B> implements HivezBoxInterface<K, T, B> {
-  final String name;
-  final HiveCipher? encryptionCipher;
-  final bool crashRecovery;
-  final String? path;
-  final String? collection;
-
+abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T, B> {
   final LogHandler? _logger;
   final Lock _initLock = Lock();
   final Lock _lock = Lock();
@@ -87,9 +85,10 @@ abstract class BaseHivezBox<K, T, B> implements HivezBoxInterface<K, T, B> {
   @override
   bool get isInitialized => _box != null;
 
+  @override
   B get box {
     if (_box == null) {
-      throw HivezBoxInitException(
+      throw BoxNotInitializedException(
         "Box not initialized. Call ensureInitialized() first.",
       );
     }
@@ -97,15 +96,13 @@ abstract class BaseHivezBox<K, T, B> implements HivezBoxInterface<K, T, B> {
   }
 
   BaseHivezBox(
-    this.name, {
-    this.encryptionCipher,
-    this.crashRecovery = true,
-    this.path,
-    this.collection,
+    super.name, {
+    super.encryptionCipher,
+    super.crashRecovery,
+    super.path,
+    super.collection,
     LogHandler? logger,
-  }) : _logger = logger {
-    assert(name.isNotEmpty, 'Box name cannot be empty');
-  }
+  }) : _logger = logger;
 
   @override
   Future<void> ensureInitialized() async {
@@ -178,6 +175,9 @@ abstract class AbstractHivezBox<K, T, B extends BoxBase<T>>
     if (_box == null) return false;
     return box.isOpen;
   }
+
+  @override
+  String? get path => isInitialized ? box.path : _path;
 
   AbstractHivezBox(
     super.name, {
@@ -338,6 +338,9 @@ abstract class AbstractHivezIsolatedBox<K, T, B extends IsolatedBoxBase<T>>
     return box.isOpen;
   }
 
+  @override
+  String? get path => _path;
+
   AbstractHivezIsolatedBox(
     super.name, {
     super.encryptionCipher,
@@ -486,12 +489,4 @@ abstract class AbstractHivezIsolatedBox<K, T, B extends IsolatedBoxBase<T>>
 
   @override
   bool get _isOpenInHive => IsolatedHive.isBoxOpen(name);
-}
-
-class HivezBoxInitException implements Exception {
-  final String message;
-  HivezBoxInitException(this.message);
-
-  @override
-  String toString() => 'HivezBoxInitException: $message';
 }

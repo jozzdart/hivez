@@ -6,14 +6,14 @@ import '../utils/test_setup.dart';
 import 'package:hivez/hivez.dart';
 
 void main() {
-  late HivezIsolatedLazyBox<int, int> hivezBox;
+  late HivezBoxIsolatedLazy<int, int> hivezBox;
 
   setUpAll(() async {
     await setupIsolatedHiveTest();
   });
 
   setUp(() async {
-    hivezBox = HivezIsolatedLazyBox<int, int>('isolatedLazyBoxTest');
+    hivezBox = HivezBoxIsolatedLazy<int, int>('isolatedLazyBoxTest');
     await hivezBox.ensureInitialized();
     await hivezBox.clear();
   });

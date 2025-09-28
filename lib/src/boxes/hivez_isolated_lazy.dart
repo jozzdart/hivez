@@ -1,11 +1,11 @@
 part of 'boxes.dart';
 
-class HivezIsolatedLazyBox<K, T>
+class HivezBoxIsolatedLazy<K, T>
     extends AbstractHivezIsolatedBox<K, T, IsolatedLazyBox<T>> {
   @override
   bool get isLazy => true;
 
-  HivezIsolatedLazyBox(
+  HivezBoxIsolatedLazy(
     super.name, {
     super.encryptionCipher,
     super.crashRecovery,
@@ -17,10 +17,10 @@ class HivezIsolatedLazyBox<K, T>
   @override
   Future<IsolatedLazyBox<T>> _openBox() => IsolatedHive.openLazyBox<T>(
         name,
-        encryptionCipher: encryptionCipher,
-        crashRecovery: crashRecovery,
-        path: path,
-        collection: collection,
+        encryptionCipher: _encryptionCipher,
+        crashRecovery: _crashRecovery,
+        path: _path,
+        collection: _collection,
       );
 
   @override

@@ -48,10 +48,10 @@ class HivezBox<K, T> extends AbstractHivezBox<K, T, Box<T>> {
   Future<Box<T>> _openBox() {
     return Hive.openBox<T>(
       name,
-      encryptionCipher: encryptionCipher,
-      crashRecovery: crashRecovery,
-      path: path,
-      collection: collection,
+      encryptionCipher: _encryptionCipher,
+      crashRecovery: _crashRecovery,
+      path: _path,
+      collection: _collection,
     );
   }
 

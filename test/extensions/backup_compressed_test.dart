@@ -43,10 +43,10 @@ void main() {
   });
 
   group('backup_compressed HivezLazyBox', () {
-    late HivezLazyBox<String, String> box;
+    late HivezBoxLazy<String, String> box;
 
     setUp(() async {
-      box = HivezLazyBox<String, String>('backupCompressedLazyBox');
+      box = HivezBoxLazy<String, String>('backupCompressedLazyBox');
       await box.ensureInitialized();
       await box.clear();
     });

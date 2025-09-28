@@ -10,10 +10,10 @@ void main() {
   });
 
   group('backup_json HivezIsolatedBox', () {
-    late HivezIsolatedBox<String, String> box;
+    late HivezBoxIsolated<String, String> box;
 
     setUp(() async {
-      box = HivezIsolatedBox<String, String>('backupJsonIsolatedBox');
+      box = HivezBoxIsolated<String, String>('backupJsonIsolatedBox');
       await box.ensureInitialized();
       await box.clear();
     });
@@ -42,10 +42,10 @@ void main() {
   });
 
   group('backup_json HivezIsolatedLazyBox', () {
-    late HivezIsolatedLazyBox<String, String> box;
+    late HivezBoxIsolatedLazy<String, String> box;
 
     setUp(() async {
-      box = HivezIsolatedLazyBox<String, String>('backupJsonIsolatedLazyBox');
+      box = HivezBoxIsolatedLazy<String, String>('backupJsonIsolatedLazyBox');
       await box.ensureInitialized();
       await box.clear();
     });
