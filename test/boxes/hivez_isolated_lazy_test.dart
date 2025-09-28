@@ -173,4 +173,30 @@ void main() {
     expect(await box2.length, 0);
     await box2.deleteFromDisk();
   });
+
+  test('moveKey moves value to new key and removes old key', () async {
+    await hivezBox.putAll({1: 10});
+    final ok = await hivezBox.moveKey(1, 2);
+    expect(ok, isTrue);
+    expect(await hivezBox.containsKey(1), isFalse);
+    expect(await hivezBox.get(2), 10);
+    expect(await hivezBox.length, 1);
+  });
+
+  test('moveKey returns false for missing old key', () async {
+    await hivezBox.putAll({5: 50});
+    final ok = await hivezBox.moveKey(1, 2);
+    expect(ok, isFalse);
+    expect(await hivezBox.containsKey(5), isTrue);
+    expect(await hivezBox.length, 1);
+  });
+
+  test('moveKey overwrites value if new key exists', () async {
+    await hivezBox.putAll({1: 10, 2: 99});
+    final ok = await hivezBox.moveKey(1, 2);
+    expect(ok, isTrue);
+    expect(await hivezBox.containsKey(1), isFalse);
+    expect(await hivezBox.get(2), 10);
+    expect(await hivezBox.length, 1);
+  });
 }

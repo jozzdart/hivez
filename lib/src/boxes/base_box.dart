@@ -32,12 +32,14 @@ abstract class BoxInterface<K, T, BoxType> {
   Future<bool> get isEmpty;
   Future<bool> get isNotEmpty;
   Future<int> get length;
+
   // Write operations
   Future<void> put(K key, T value);
   Future<void> putAll(Map<K, T> entries);
   Future<void> putAt(int index, T value);
   Future<int> add(T value);
   Future<void> addAll(Iterable<T> values);
+  Future<bool> moveKey(K oldKey, K newKey);
 
   // Delete operations
   Future<void> delete(K key);
@@ -80,6 +82,7 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T, B> {
   final LogHandler? _logger;
   final Lock _initLock = Lock();
   final Lock _lock = Lock();
+  final Lock _additionalLock = Lock();
   B? _box;
 
   @override
@@ -153,6 +156,23 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T, B> {
 
   @override
   Future<T?> getAt(int index) => valueAt(index);
+
+  @override
+  Future<bool> moveKey(K oldKey, K newKey) async {
+    return _additionalLock.synchronized(() async {
+      await ensureInitialized();
+
+      final oldValue = await get(oldKey);
+      if (oldValue == null) {
+        return false;
+      }
+
+      await put(newKey, oldValue);
+      await delete(oldKey);
+
+      return true;
+    });
+  }
 
   Future<R> _executeWrite<R>(Future<R> Function() action) async {
     await ensureInitialized(); // <-- ensures box is ready
