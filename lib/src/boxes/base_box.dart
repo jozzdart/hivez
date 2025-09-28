@@ -2,7 +2,7 @@ part of 'boxes.dart';
 
 typedef LogHandler = void Function(String message);
 
-abstract class BoxInterface<K, T, BoxType> {
+abstract class BoxInterface<K, T> {
   final String name;
   final HiveCipher? _encryptionCipher;
   final bool _crashRecovery;
@@ -26,7 +26,6 @@ abstract class BoxInterface<K, T, BoxType> {
   bool get isIsolated;
   bool get isLazy;
 
-  BoxType get box;
   String? get path;
 
   Future<bool> get isEmpty;
@@ -73,14 +72,17 @@ abstract class BoxInterface<K, T, BoxType> {
   Future<void> closeBox();
   Future<void> flushBox();
   Future<void> compactBox();
-
-  // Helper functions
-  BoxType _getExistingBox();
-  Future<BoxType> _openBox();
-  bool get _isOpenInHive;
 }
 
-abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T, B> {
+abstract class _BoxInterfaceHelpers<K, T, BoxType> {
+  BoxType get box;
+  bool get _isOpenInHive;
+  BoxType _getExistingBox();
+  Future<BoxType> _openBox();
+}
+
+abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
+    implements _BoxInterfaceHelpers<K, T, B> {
   final LogHandler? _logger;
   final Lock _initLock = Lock();
   final Lock _lock = Lock();
