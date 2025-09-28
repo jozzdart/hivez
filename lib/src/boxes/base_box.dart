@@ -187,24 +187,28 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T, B> {
   }
 
   @override
-  Future<void> foreachKey(Future<void> Function(K key) action) async {
+  Future<void> foreachKey(Future<void> Function(K key) action,
+      {bool Function()? breakCondition}) async {
     await _executeRead(() async {
       final keys = await getAllKeys();
       for (final key in keys) {
         await action(key);
+        if (breakCondition != null && breakCondition()) {
+          return;
+        }
       }
     });
   }
 
   @override
-  Future<void> foreachValue(
-      Future<void> Function(K key, T value) action) async {
+  Future<void> foreachValue(Future<void> Function(K key, T value) action,
+      {bool Function()? breakCondition}) async {
     await foreachKey((key) async {
       final value = await get(key);
       if (value != null) {
         await action(key, value);
       }
-    });
+    }, breakCondition: breakCondition);
   }
 }
 
