@@ -1,8 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce_flutter/adapters.dart';
-import 'package:hivez/src/boxes/hivez_box.dart';
-import 'package:hivez/src/boxes/hivez_box_lazy.dart';
-import 'package:hivez/src/extensions/search.dart';
+import 'package:hivez/hivez.dart';
 
 import '../utils/test_setup.dart';
 
@@ -84,10 +82,10 @@ void main() {
   });
 
   group('HivezLazyBox search', () {
-    late HivezLazyBox<int, String> box;
+    late HivezBoxLazy<int, String> box;
 
     setUp(() async {
-      box = HivezLazyBox<int, String>('searchLazyBox');
+      box = HivezBoxLazy<int, String>('searchLazyBox');
       await box.ensureInitialized();
       await box.clear();
     });
