@@ -64,6 +64,8 @@ abstract class BoxInterface<K, T, BoxType> {
     String query, {
     required String Function(T item) searchableText,
   });
+  Future<void> foreachValue(Future<void> Function(K key, T value) action);
+  Future<void> foreachKey(Future<void> Function(K key) action);
 
   // Box management operations
   Future<void> ensureInitialized();
@@ -182,6 +184,27 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T, B> {
   Future<R> _executeRead<R>(Future<R> Function() action) async {
     await ensureInitialized();
     return await action(); // safer if action throws
+  }
+
+  @override
+  Future<void> foreachKey(Future<void> Function(K key) action) async {
+    await _executeRead(() async {
+      final keys = await getAllKeys();
+      for (final key in keys) {
+        await action(key);
+      }
+    });
+  }
+
+  @override
+  Future<void> foreachValue(
+      Future<void> Function(K key, T value) action) async {
+    await foreachKey((key) async {
+      final value = await get(key);
+      if (value != null) {
+        await action(key, value);
+      }
+    });
   }
 }
 
