@@ -26,6 +26,11 @@ Meet `Hivez` — the smart, type-safe way to use **_Hive_** (using the [`hive_ce
   - [Examples](#examples)
 - [Setup Guide for `hive_ce`](#-setup-guide-for-hive_ce)
 - [Quick Setup `hive_ce` (no explanations)](#-quick-setup-hive_ce-no-explanations)
+- [Clean Architecture with `Hivez`](#️-clean-architecture-with-hivez)
+- [FAQ / Common Pitfalls](#-faq--common-pitfalls)
+- [Performance & Safety](#performance--safety)
+- [Why `Hivez`?](#why-hivez)
+- [More `jozz` Packages](#-more-jozz-packages)
 
 ## ✅ Features
 
@@ -239,9 +244,9 @@ box.watch(1).listen((event) {
 > ✅ This is just with `HivezBox`.  
 > The same API works for `HivezBoxLazy`, `HivezBoxIsolated`, and `HivezBoxIsolatedLazy`.
 
-_[⤴️ Back](#table-of-contents) → Table of Contents_
-
 # 🔗 Setup Guide for `hive_ce`
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
 
 To start using Hive in Dart or Flutter, you’ll need the [Hive Community Edition](https://pub.dev/packages/hive_ce) (Hive CE) and the Flutter bindings.
 I made this setup guide for you to make it easier to get started with Hive.
@@ -411,10 +416,343 @@ Future<void> main() async {
 }
 ```
 
+# 🏗️ Clean Architecture with `Hivez`
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
+
+A major strength of `Hivez` is how it **fits seamlessly into Clean Architecture**. Unlike raw Hive, where each box type (`Box`, `LazyBox`, `IsolatedBox`, etc.) exposes different APIs, all `Hivez` boxes share the **same parent interface**:
+
+```dart
+abstract class BoxInterface<K, T> { ... }
+```
+
+Every `HivezBox` variant (`HivezBox`, `HivezBoxLazy`, `HivezBoxIsolated`, `HivezBoxIsolatedLazy`) inherits this interface, which defines **35+ functions and getters**, all tested and production-grade.
+
+This makes your persistence layer **consistent, testable, and replaceable** — essential principles of Clean Architecture.
+
+### Why this matters
+
+- **Dependency Inversion**: Higher layers depend only on the abstract `BoxInterface`, not on Hive’s raw implementation.
+- **Interchangeable Implementations**: Swap `HivezBox` ↔ `HivezBoxLazy` ↔ `HivezBoxIsolated` with a one-line change, without breaking your repository or use cases.
+- **Consistency**: All boxes expose the same async-safe, type-safe API. No branching logic depending on box type.
+- **Testability**: You can mock or fake `BoxInterface` in unit tests easily.
+- **Future-proof**: Scaling from a simple `Box` to an `IsolatedBox` in production requires no changes in your business logic.
+
+### Example: Clean Architecture Repository
+
+With raw Hive:
+
+```dart
+class UserRepository {
+  final Box _box;
+
+  UserRepository(this._box);
+
+  Future<User?> getUser(int id) async {
+    return _box.get(id) as User?;
+  }
+}
+```
+
+Problems:
+
+- `Box` ties your repository to Hive’s low-level API
+- Type safety is weak (`dynamic` everywhere)
+- Changing to `LazyBox` breaks this class
+
+With Hivez:
+
+```dart
+class UserRepository {
+  final BoxInterface<int, User> _box;
+
+  UserRepository(this._box);
+
+  Future<User?> getUser(int id) => _box.get(id);
+}
+```
+
+Advantages:
+
+- `BoxInterface<int, User>` guarantees type safety
+- Repository is **decoupled** from the persistence detail
+- Can inject any `HivezBox` variant (regular, lazy, isolated) without changing logic
+- Perfectly aligns with **dependency inversion** in Clean Architecture
+
+### In Practice
+
+- Define repositories and services against `BoxInterface<K, T>`
+- Swap implementations (`HivezBox`, `HivezBoxLazy`, etc.) depending on environment
+- Unit test with a mock `BoxInterface` — no Hive needed in tests
+
+> In short: **Hivez enforces Clean Architecture by design**.
+> All boxes inherit from a single, production-ready `BoxInterface` with 35+ consistent, type-safe methods — so you can build scalable, testable, and maintainable apps without worrying about low-level Hive details.
+
+# ❓ FAQ / Common Pitfalls
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
+
+#### Do I still need to call `Hive.openBox`?
+
+**No.** All `HivezBox` types auto-initialize on first use with `ensureInitialized()`.  
+You don’t need to worry about `Hive.isBoxOpen` checks or manual setup.
+
+#### Does Hivez replace Hive?
+
+**No.** Hivez is a **safe wrapper** around [`hive_ce`](https://pub.dev/packages/hive_ce).  
+You still use Hive adapters, types, and storage — Hivez just enforces **type safety**, **clean architecture**, and **concurrency safety**.
+
+#### What’s the difference between `HivezBox`, `Lazy`, and `Isolated`?
+
+- `HivezBox` → Default, fast in-memory reads + async writes
+- `HivezBoxLazy` → Loads values on-demand, better for **large datasets**
+- `HivezBoxIsolated` → Safe across isolates, for **background workers**
+- `HivezBoxIsolatedLazy` → Combines isolate safety + lazy loading
+
+All share the **same API** (`BoxInterface` with 35+ methods), so you can swap them with a single line.
+
+#### Do I still need to register adapters?
+
+**Yes.** Hive always requires `TypeAdapter`s for custom objects and enums.  
+Hivez does not remove this requirement, but provides [a quick setup guide](#-setup-guide-for-hive_ce).
+
+#### Is it concurrency-safe?
+
+**Yes.** All writes use internal locks, ensuring atomicity. Reads are async-safe.  
+You can safely call multiple operations in parallel without corrupting data.
+
+#### Can I use Hivez in unit tests?
+
+**Yes.** Since every box implements the same `BoxInterface<K, T>`, you can:
+
+- inject a real `HivezBox`
+- or mock/fake the interface for fast, Hive-free tests
+
+#### When should I use isolated boxes?
+
+- Heavy background isolates (e.g., parsing, sync engines)
+- Multi-isolate apps where multiple isolates may open the same box  
+  If you’re not familiar with isolate setup, stick to `HivezBox` or `HivezBoxLazy`.
+
+#### Do lazy boxes support `values` like normal boxes?
+
+No. Lazy boxes only load values **on demand**.  
+Use `getAllValues()` instead — Hivez implements this for you safely.
+
+### Can I migrate between box types later?
+
+**Yes.** Since all boxes share the same API, changing from:
+
+```dart
+final box = HivezBox<int, User>('users');
+```
+
+to
+
+```dart
+final box = HivezBoxIsolated<int, User>('users');
+```
+
+is a **single-line change**, with no code breakage.
+Here’s the added paragraph for adapter troubleshooting:
+
+#### How do I troubleshoot errors when generating adapters?
+
+If you get errors while running `build_runner` (for example, after adding a new model), double-check that **all the models and enums you want adapters for are included in your `hive_adapters.dart` file**.  
+If something still doesn’t work, try deleting the previously generated files (`.g.dart`, `.g.yaml`) and re-running:
+
+```sh
+dart run build_runner build --delete-conflicting-outputs
+```
+
+This forces Hive CE to regenerate fresh adapters for all the registered types.
+
+#### What if I run into other Hive-related issues?
+
+If you encounter a bug or limitation that comes from Hive itself, please note that Hivez is only a **wrapper around [`hive_ce`](https://pub.dev/packages/hive_ce)**.  
+That means such issues can’t be solved in Hivez. For those cases, head over to the [hive_ce repository](https://github.com/isar/hive), it’s actively maintained, very stable, and the right place for core Hive questions or bug reports.
+
+# Performance & Safety
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
+
+One of the core design goals of **Hivez** is to stay **as fast as raw Hive**, while adding safety, type guarantees, and architectural consistency.
+
+### Practically Zero Overhead
+
+Although all boxes in Hivez share the same `BoxInterface`, there are **no runtime type checks on each operation**.  
+Every method call is compiled down to direct Hive operations — engineered to be as **fast, easy, and safe** as possible.
+
+- **No overhead on reads/writes** — same performance as Hive CE
+- **Hundreds of tests** across all 35+ methods and box types ensure production safety
+- **Engineered concurrency** — built-in locks guarantee atomic writes and safe reads
+
+### Enforced Type Safety
+
+Raw Hive exposes `dynamic` APIs, which can lead to runtime type errors.  
+Hivez enforces **compile-time safety** for both keys and values:
+
+```dart
+// Hivez: compile-time type safety
+final users = HivezBox<int, User>('users');
+await users.put(1, User('Alice'));   // ✅ Valid
+await users.put('wrongKey', 'test'); // ❌ Compile error
+```
+
+This prevents silent data corruption and eliminates the need for manual casting.
+
+### Safe Switching Between Box Types
+
+In Hive, switching between `Box`, `LazyBox`, or `IsolatedBox` often **breaks your code** because each exposes different APIs.
+
+```dart
+Box<User> box = await Hive.openBox<User>('users');
+LazyBox<User> lazy = await Hive.openLazyBox<User>('users');
+// ❌ LazyBox doesn't have the same API as Box
+```
+
+With Hivez, all boxes (`HivezBox`, `HivezBoxLazy`, `HivezBoxIsolated`, `HivezBoxIsolatedLazy`) share the **same API**:
+
+```dart
+BoxInterface<int, User> box = HivezBox<int, User>('users');
+BoxInterface<int, User> box = HivezBoxLazy<int, User>('users');
+```
+
+Your repositories and services remain untouched — a **single-line change** swaps the underlying storage strategy.
+
+> In short: **Hivez delivers Hive performance with added guarantees** — zero runtime overhead, full type safety, safe concurrency, and seamless box switching — all tested and ready for production.
+
+# Why `Hivez`?
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
+
+Over the years, while building projects both large and small, I noticed a recurring pattern: every time I reached for Hive, I ended up writing the same wrapper code to make it safer, more predictable, and easier to use.
+
+Hive is fast and lightweight, but out-of-the-box it comes with challenges:
+
+- **Initialization boilerplate** – You always need to call `openBox` and check if the box is open.
+- **Type safety gaps** – By default, Hive uses `dynamic`, leaving room for runtime errors.
+- **Inconsistent APIs** – `Box`, `LazyBox`, and `IsolatedBox` all have slightly different behaviors.
+- **Concurrency risks** – Without locks, concurrent writes can corrupt data.
+- **Limited tooling** – You only get basic CRUD; features like backup, search, or iteration helpers are missing.
+
+For every new project, I found myself solving the same problems in the same way:
+
+- Add **type parameters** to enforce compile-time guarantees.
+- Write **synchronized access** to prevent corruption.
+- Create **utility extensions** for backup, restore, and search.
+- Wrap Hive APIs in a **cleaner interface** to fit Clean Architecture principles.
+
+That’s when I decided to create Hivez: instead of repeating this codebase after codebase, I could create a **production-ready wrapper** that solves these problems once — not just for me, but for the community.
+
+### What makes Hivez different?
+
+Hivez is not just a thin wrapper; it’s a **designed architecture layer** on top of Hive CE:
+
+- **Unified API across all box types**
+  Every box — `HivezBox`, `HivezBoxLazy`, `HivezBoxIsolated`, `HivezBoxIsolatedLazy` — inherits from the same parent, **`BoxInterface`**.
+  That means **35+ functions and getters** are guaranteed, tested, and production-grade.
+
+- **Type safety, enforced**
+  No more `dynamic` or runtime casting:
+
+  ```dart
+  final users = HivezBox<int, User>('users');
+  await users.put(1, User('Alice'));
+  final u = await users.get(1); // returns User, not dynamic
+  ```
+
+- **Zero setup required**
+  No more boilerplate `openBox`. Each Hivez box automatically initializes on first use:
+
+  ```dart
+  final settings = HivezBox<String, bool>('settings');
+  await settings.put('darkMode', true);
+  ```
+
+- **Clean Architecture, by design**
+  Because every box implements the same interface, your repositories and services depend only on **`BoxInterface<K, T>`**, not Hive internals. That makes your code more modular, testable, and future-proof.
+
+- **Utility-rich**
+  Out of the box, you get:
+
+  - Backup/restore (JSON or compressed binary)
+  - Full-text search with pagination
+  - Iteration helpers (`foreachKey`, `foreachValue`)
+  - Safe compaction and flushing
+  - Concurrency locks for atomic operations
+
+### Why this matters in real projects
+
+When deadlines are tight and projects grow, you don’t want to debug concurrency issues, write boilerplate initialization code, or figure out how to migrate from a `Box` to a `LazyBox`.
+
+With Hivez:
+
+- Switching between box types is a **one-line change**.
+- Your persistence layer always has **the same reliable API**.
+- Your business logic is **shielded from Hive’s low-level quirks**.
+- You can safely scale from small apps to production-grade systems without rewriting storage code.
+
+**Hivez was born out of necessity** — the necessity to write less boilerplate, avoid bugs, and follow best practices without fighting the storage layer.
+
+# 📦 More `jozz` Packages
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
+
+I’m Jozz — and my packages share a simple philosophy: **developer experience first**.
+I try to avoid boilerplate wherever possible, and most of these packages were born out of real needs in my own projects. Each one comes with clear documentation, minimal setup, and APIs that are easy to pick up without surprises.
+
+They’re built to be lightweight, reliable, and ready for production, always with simplicity in mind. There are more packages in the works, following the same approach.
+If you find them useful and feel like supporting, you’re welcome to do so (:
+
+<p>
+  <a href="https://buymeacoffee.com/yosefd99v" target="https://buymeacoffee.com/yosefd99v">
+    ☕ Buy me a coffee
+  </a>
+</p>
+
+- [shrink](#-shrink--compress-anything-in-one-line) – Compress Anything in One Line
+- [track](#-track--persistent-streaks-counters--records) – Persistent Streaks, Counters & Records
+- [prf](#-prf--sharedpreferences-without-the-pain) – SharedPreferences, Without the Pain
+- [time_plus](#-time_plus--smarter-datetime--duration-extensions) – Smarter DateTime & Duration Extensions
+- [exui](#-exui--supercharge-your-flutter-ui) – Supercharge Your Flutter UI
+- [limit](#-limit--cooldowns--rate-limits-simplified) – Cooldowns & Rate Limits, Simplified
+- [jozz_events](#-jozz_events--strongly-typed-events-for-clean-architecture) – Strongly-Typed Events for Clean Architecture
+
+### 🔽 [shrink](https://pub.dev/packages/shrink) – Compress Anything in One Line
+
+Because every byte counts. `shrink` makes data compression effortless with a **one-line API** and fully lossless results. It auto-detects the best method, often cutting size by **5× to 40×** (and up to **1,000×+** for structured data). Perfect for **Firestore, local storage, or bandwidth-sensitive apps**. Backed by clear docs and real-world benchmarks.
+
+### 📊 [track](https://pub.dev/packages/track) – Persistent Streaks, Counters & Records
+
+Define once, track forever. `track` gives you plug-and-play tools for **streaks, counters, activity logs, and records** — all persisted safely across sessions and isolates. From **daily streaks** to **rolling counters** to **best-ever records**, it handles resets, history, and storage automatically. Clean APIs, zero boilerplate, and deeply detailed documentation.
+
+### ⚡ [prf](https://pub.dev/packages/prf) – SharedPreferences, Without the Pain
+
+No strings, no boilerplate, no setup. `prf` lets you define variables once, then `get()` and `set()` them anywhere with a **type-safe API**. It fully replaces raw `SharedPreferences` with support for **20+ built-in types** (including `DateTime`, `Duration`, `Uint8List`, JSON, and enums). Every variable is cached, test-friendly, and isolate-safe with a `.isolated` mode. Designed for **clarity, scale, and zero friction**, with docs that make local persistence finally headache-free.
+
+### ⏱ [time_plus](https://pub.dev/packages/time_plus) – Smarter DateTime & Duration Extensions
+
+Stop wrestling with `DateTime` and `Duration`. `time_plus` adds the missing tools you wish Dart had built in: **add and subtract time units**, **start/end of day/week/month**, **compare by precision**, **yesterday/tomorrow**, **fractional durations**, and more. Built with **128+ extensions**, **700+ tests**, and **zero dependencies**, it’s faster, more precise, and more reliable than the classic `time` package — while keeping APIs clear and intuitive. Ideal for **scheduling, analytics, or any app where every microsecond counts**.
+
+### 🎨 [exui](https://pub.dev/packages/exui) – Supercharge Your Flutter UI
+
+Everything your widgets wish they had. `exui` is a **zero-dependency extension library** for Flutter with **200+ chainable utilities** for padding, margin, centering, gaps, visibility, constraints, gestures, buttons, text styling, and more — all while keeping your widget tree fully native.
+
+No wrappers. No boilerplate. Just concise, expressive methods that feel built into Flutter itself. Backed by **hundreds of unit tests** and **exceptional documentation**, `exui` makes UI code cleaner, faster, and easier to maintain.
+
+### ⏲ [limit](https://pub.dev/packages/limit) – Cooldowns & Rate Limits, Simplified
+
+One line. No boilerplate. No setup. `limit` gives you **persistent cooldowns** and **token-bucket rate limiting** across sessions, isolates, and restarts. Perfect for **daily rewards**, **retry delays**, **API quotas**, or **chat limits**. Define once, automate forever — the system handles the timing, persistence, and safety behind the scenes. Clear docs and practical examples included.
+
+### 📢 [jozz_events](https://pub.dev/packages/jozz_events) – Strongly-Typed Events for Clean Architecture
+
+A **domain-first, framework-agnostic event bus** built for scalable apps. `jozz_events` enables **decoupled, strongly-typed communication** between features and layers — without the spaghetti. It’s lightweight, dependency-free, lifecycle-aware, and integrates naturally with **Clean Architecture**. Ideal for Flutter or pure Dart projects where modularity, testability, and clarity matter most.
+
 ## 🔗 License MIT © Jozz
 
 <p align="center">
   <a href="https://buymeacoffee.com/yosefd99v" target="https://buymeacoffee.com/yosefd99v">
-    ☕ Enjoying this package? You can support it here.
+    ☕ Enjoying this package? You can support it here (:
   </a>
 </p>
