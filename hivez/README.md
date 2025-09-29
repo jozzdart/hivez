@@ -258,14 +258,14 @@ I made this setup guide for you to make it easier to get started with Hive.
 One line command to add all packages:
 
 ```sh
-flutter pub add hivez dev:hive_ce_generator dev:build_runner
+flutter pub add hivez_flutter dev:hive_ce_generator dev:build_runner
 ```
 
 or add the following to your `pubspec.yaml` with the _latest_ versions:
 
 ```yaml
 dependencies:
-  hivez: ^1.0.0
+  hivez_flutter: ^1.0.0
 
 dev_dependencies:
   build_runner: ^2.4.7
