@@ -1,3 +1,7 @@
+## 1.0.1
+
+- Added example file for pub.dev
+
 ## 1.0.0
 
 - Added proper API comments and documentation
