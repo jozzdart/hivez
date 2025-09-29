@@ -1,3 +1,8 @@
+## 1.0.0
+
+- `Hivez` is now at version `1.0.0` stable release
+- Updated the version of `hivez` to `1.0.0`
+
 ## 0.0.2
 
 - Added exports from `hive_ce` to the `hivez_flutter` package
