@@ -26,7 +26,6 @@ Meet `Hivez` — the smart, type-safe way to use **_Hive_** (using the [`hive_ce
   - [Examples](#examples)
 - [Setup Guide for `hive_ce`](#-setup-guide-for-hive_ce)
 - [Quick Setup `hive_ce` (no explanations)](#-quick-setup-hive_ce-no-explanations)
-- [Clean architecture with `Hivez`](#-clean-architecture-with-hivez)
 
 ## ✅ Features
 
@@ -411,8 +410,6 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 ```
-
-## 👋🏻 Introduction
 
 ## 🔗 License MIT © Jozz
 
