@@ -1,3 +1,8 @@
+## Unreleased
+
+- Removed unnecessary `hive_ce` export inside the `hivez` package
+- Added exports from `hive_ce` to the `hivez_flutter` package
+
 ## 0.0.11
 
 - Created `hivez_flutter` package for Flutter usage to easily import all additional `hive_ce` dependencies. Now all you need is to import `hivez_flutter` instead of `hivez` and `hive_ce_flutter` and `hive_ce` in your Flutter projects (If you don't need to use them directly).
