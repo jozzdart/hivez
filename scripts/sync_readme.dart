@@ -13,19 +13,9 @@ void main() async {
   final content = await source.readAsString();
 
   final result = '''
-# hivez_flutter
 
-🧩 Flutter utilities for [`hivez`](https://pub.dev/packages/hivez), including Hivez and Hive CE Flutter bindings.
+## Flutter utilities for [`hivez` package. Click for the full documentation.](https://pub.dev/packages/hivez)
 
----
-
-The following is adapted from the main [`hivez`](https://pub.dev/packages/hivez) documentation:
-
-<!-- hivez:sync-start -->
-
-$content
-
-<!-- hivez:sync-end -->
 ''';
 
   await flutterTarget.writeAsString(result);
