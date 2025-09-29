@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:hive_ce_flutter/adapters.dart';
 import '../utils/test_setup.dart';
 
 import 'package:hivez/hivez.dart';
