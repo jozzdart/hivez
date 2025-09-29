@@ -25,7 +25,7 @@ Meet `Hivez` — the smart, type-safe way to use **_Hive_** (using the [`hive_ce
   - [Available Methods](#-available-methods)
   - [Examples](#examples)
 - [Setup Guide for `hive_ce`](#-setup-guide-for-hive_ce)
-- [Clean architecture with `Hivez`](#-clean-architecture-with-hivez)
+- [Quick Setup `hive_ce` (no explanations)](#-quick-setup-hive_ce-no-explanations)
 
 ## ✅ Features
 
@@ -160,7 +160,7 @@ All `HivezBox` types share the same complete API:
 ## Examples
 
 > Before diving in — make sure you’ve set up Hive correctly with adapters.  
-> The setup takes **less than 2 minutes** and is explained here: [Setup Guide](#-setup-guide-for-hive_ce).  
+> The setup takes **less than 1 minute** and is explained here: [Setup Guide](#-setup-guide-for-hive_ce).  
 > Once Hive is set up, you can use `Hivez` right away:
 
 #### ➕ Put & Get
@@ -251,21 +251,21 @@ I made this setup guide for you to make it easier to get started with Hive.
 - [3. Registering Adapters](#3-registering-adapters)
 - [4. When Updating/Adding Types](#️-4-when-updatingadding-types)
 
-**It takes less than 2 minutes.**
+**It takes less than 1 minute.**
 
 ## 1. Add the packages
 
 One line command to add all packages:
 
 ```sh
-flutter pub add hivez dev:hive_ce_generator dev:build_runner
+flutter pub add hivez_flutter dev:hive_ce_generator dev:build_runner
 ```
 
 or add the following to your `pubspec.yaml` with the _latest_ versions:
 
 ```yaml
 dependencies:
-  hivez: ^1.0.0
+  hivez_flutter: ^1.0.0
 
 dev_dependencies:
   build_runner: ^2.4.7
@@ -305,7 +305,7 @@ To generate the adapters, you need to:
 
 ```dart
 // hive/hive_adapters.dart
-import 'package:hive_ce/hive.dart';
+import 'package:hivez_flutter/hivez_flutter.dart';
 import '../product.dart';
 
 part 'hive_adapters.g.dart';
@@ -338,7 +338,7 @@ Register adapters **before running the app**:
 
 ```dart
 import 'package:flutter/material.dart';
-import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:hivez_flutter/hivez_flutter.dart';
 import 'hive/hive_registrar.g.dart'; // generated
 import 'product.dart';
 
@@ -362,9 +362,54 @@ dart run build_runner build --delete-conflicting-outputs
 
 That’s it — Hive will regenerate the adapters automatically.
 
+## ⚡ Quick Setup `hive_ce` (no explanations)
+
 _[⤴️ Back](#table-of-contents) → Table of Contents_
 
-## 👋🏻 Introduction
+> For all returning users, you can use the following quick setup to get started quickly.
+
+1. Add the packages
+
+```sh
+flutter pub add hivez_flutter dev:hive_ce_generator dev:build_runner
+```
+
+2. Setting Up Adapters in the file `lib/hive/hive_adapters.dart`
+
+```dart
+// lib/hive/hive_adapters.dart
+import 'package:hivez_flutter/hivez_flutter.dart';
+import '../product.dart';
+
+part 'hive_adapters.g.dart';
+
+@GenerateAdapters([
+  AdapterSpec<Product>(),
+  AdapterSpec<Category>(),
+])
+class HiveAdapters {}
+```
+
+3. Run the build command
+
+```sh
+dart run build_runner build --delete-conflicting-outputs
+```
+
+4. Registering Adapters in the file `main.dart`
+
+```dart
+// main.dart
+import 'package:flutter/material.dart';
+import 'package:hivez_flutter/hivez_flutter.dart';
+import 'hive/hive_registrar.g.dart';
+
+Future<void> main() async {
+  await Hive.initFlutter();
+  Hive.registerAdapters();
+  runApp(const MyApp());
+}
+```
 
 ## 🔗 License MIT © Jozz
 

@@ -1,3 +1,8 @@
+## 0.0.2
+
+- Added exports from `hive_ce` to the `hivez_flutter` package
+- Made the exports more specific and slim
+
 ## 0.0.1
 
 - Created a new package for using Hivez with Flutter.
