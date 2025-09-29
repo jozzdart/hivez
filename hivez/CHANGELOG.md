@@ -1,7 +1,9 @@
-## Unreleased
+## 1.0.0
 
+- Added proper API comments and documentation
 - Removed unnecessary `hive_ce` export inside the `hivez` package
 - Added exports from `hive_ce` to the `hivez_flutter` package
+- Completed all essential documentation
 
 ## 0.0.11
 
