@@ -1,3 +1,7 @@
+## 0.0.11
+
+- Created `hivez_flutter` package for Flutter usage to easily import all additional `hive_ce` dependencies. Now all you need is to import `hivez_flutter` instead of `hivez` and `hive_ce_flutter` and `hive_ce` in your Flutter projects (If you don't need to use them directly).
+
 ## 0.0.10
 
 - Added `moveKey` method to reassign a value from one key to another (renames the key while preserving the value).
