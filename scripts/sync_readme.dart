@@ -3,7 +3,7 @@ import 'dart:io';
 void main() async {
   final source = File('README.md');
   final flutterTarget = File('hivez_flutter/README.md');
-  final rootTarget = File('README.md'); // ✅ root-level README
+  final rootTarget = File('hivez/README.md'); // ✅ root-level README
 
   if (!await source.exists()) {
     stderr.writeln('❌ hivez_flutter/README.md not found.');
