@@ -1,3 +1,8 @@
+## 1.0.1
+
+- Added example file for pub.dev
+- Updated README.md with more detailed examples and sections
+
 ## 1.0.0
 
 - Added proper API comments and documentation
