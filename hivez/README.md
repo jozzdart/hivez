@@ -76,7 +76,7 @@ _[⤴️ Back](#table-of-contents) → Table of Contents_
 | **Type Safety**     | `dynamic` with manual casts              | `HivezBox<int, User>` guarantees correct types                  |
 | **Initialization**  | Must call `Hive.openBox` and check state | Auto-initializes on first use, no boilerplate                   |
 | **API Consistency** | Different APIs for Box types             | Unified async API, switch with a single line                    |
-| **Concurrency**     | Not concurrency-safe                     | Built-in locks: atomic writes, safe reads                       |
+| **Concurrency**     | Not concurrency-safe (in original Hive)  | Built-in locks: atomic writes, safe reads                       |
 | **Architecture**    | Logic tied to raw boxes                  | Abstracted interface, fits Clean Architecture & DI              |
 | **Utilities**       | Basic CRUD only                          | Backup/restore, search helpers, iteration, box management       |
 | **Production**      | Needs extra care for scaling & safety    | Encryption, crash recovery, compaction, isolated boxes included |
