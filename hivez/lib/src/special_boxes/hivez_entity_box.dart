@@ -1,12 +1,12 @@
 import 'package:hivez/src/boxes/boxes.dart';
-import 'package:hivez/src/special_boxes/hivez_hash_index_box.dart';
+import 'hivez_hash_index_box.dart';
 import 'package:synchronized/synchronized.dart';
 
-class HivezEntityBox<T, HiveBox, DB extends BoxInterface<int, T, HiveBox>> {
+class HivezEntityBox<T> {
   final Lock _lock = Lock();
   final Lock _additionalLock = Lock();
 
-  final DB dataBox;
+  final BoxInterface<int, T> dataBox;
   final HivezHashIndexBox hashIndexBox;
 
   final String Function(T item) hashFunction;

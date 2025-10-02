@@ -2,7 +2,6 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hive_ce_flutter/adapters.dart';
 import 'package:hivez/hivez.dart';
 import 'package:hivez/src/special_boxes/hivez_entity_box.dart';
 import 'package:hivez/src/special_boxes/hivez_hash_index_box.dart';
@@ -30,7 +29,7 @@ final _testWords = [
 ];
 
 void main() {
-  late HivezEntityBox<String, Box<String>, HivezBox<int, String>> database;
+  late HivezEntityBox<String> database;
   const testItemBoxName = 'test_items';
   const testHashBoxName = 'test_hashes';
 
@@ -39,7 +38,7 @@ void main() {
   });
 
   setUp(() async {
-    database = HivezEntityBox<String, Box<String>, HivezBox<int, String>>(
+    database = HivezEntityBox<String>(
       dataBox: HivezBox<int, String>(testItemBoxName),
       hashIndexBox: HivezHashIndexBox(HivezBox(testHashBoxName)),
       hashFunction: (item) => _hashList([item]),
