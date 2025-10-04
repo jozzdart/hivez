@@ -4,21 +4,17 @@ import 'package:synchronized/synchronized.dart';
 part 'engine.dart';
 part 'journal.dart';
 part 'cache.dart';
+part 'search.dart';
 
 class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   // Engine and journal
   final IndexEngine<K, T> _engine;
   final IndexJournal _journal;
   final TokenKeyCache<K> _cache;
+  late final IndexSearcher<K, T> _searcher;
 
   // Concurrency (single-isolate)
   final Lock _writeLock = Lock();
-
-  // Tunables
-  final bool _verifyMatches;
-  final int Function(K a, K b)? _keyComparator;
-
-  // LRU token cache: token -> keys
 
   HivezBoxIndexed(
     super.config, {
@@ -28,9 +24,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     bool verifyMatches = true,
     int Function(K a, K b)? keyComparator,
     TextAnalyzer<T>? analyzer,
-  })  : _verifyMatches = verifyMatches,
-        _keyComparator = keyComparator,
-        _engine = IndexEngine<K, T>(
+  })  : _engine = IndexEngine<K, T>(
           config.copyWith(name: '${config.name}__idx'),
           analyzer: analyzer ?? BasicTextAnalyzer<T>(searchableText),
           matchAllTokens: matchAllTokens,
@@ -40,7 +34,16 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
         ),
         _cache = tokenCacheCapacity <= 0
             ? NoopTokenKeyCache<K>()
-            : LruTokenKeyCache<K>(tokenCacheCapacity.clamp(1, 10000));
+            : LruTokenKeyCache<K>(tokenCacheCapacity.clamp(1, 10000)) {
+    _searcher = IndexSearcher<K, T>(
+      engine: _engine,
+      cache: _cache,
+      analyzer: analyzer ?? BasicTextAnalyzer<T>(searchableText),
+      verifyMatches: verifyMatches,
+      ensureReady: ensureInitialized,
+      getValue: super.get,
+    );
+  }
 
   // Small helper so every write uses the same discipline.
   Future<R> _writeTxn<R>(Future<R> Function() body) =>
@@ -227,63 +230,17 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
         return moved;
       });
 
-  // -----------------------------------------------------------------------------
-  // Search API (unchanged except for helper calls)
-  // -----------------------------------------------------------------------------
-  Future<List<T>> search(String query, {int? limit, int offset = 0}) async {
-    final keys = await searchKeys(query, limit: limit, offset: offset);
-    final out = <T>[];
-    for (final k in keys) {
-      final v = await super.get(k);
-      if (v == null) continue;
-      if (_verifyMatches && !_isVerified(query, v)) continue;
-      out.add(v);
-    }
-    return out;
-  }
+  // Values
+  Future<List<T>> search(String query, {int? limit, int offset = 0}) =>
+      _searcher.values(query, limit: limit, offset: offset);
 
-  Future<List<K>> searchKeys(String query, {int? limit, int offset = 0}) async {
-    await ensureInitialized();
-    final tokens = _normalizeQuery(query);
-    if (tokens.isEmpty) return const [];
+  // Keys
+  Future<List<K>> searchKeys(String query, {int? limit, int offset = 0}) =>
+      _searcher.keys(query, limit: limit, offset: offset);
 
-    // Candidate sets per token (cached)
-    final tokenSets = <Set<K>>[];
-    for (final t in tokens) {
-      final keys = await _cache.get(t, () => _engine.readToken(t));
-      tokenSets.add(keys.toSet());
-    }
-
-    // Merge by AND/OR
-    Set<K> merged;
-    if (_engine.matchAllTokens) {
-      merged = tokenSets.isEmpty
-          ? <K>{}
-          : tokenSets.reduce((a, b) => a.intersection(b));
-    } else {
-      merged = <K>{};
-      for (final s in tokenSets) {
-        merged.addAll(s);
-      }
-    }
-
-    // Stable ordering
-    final list = merged.toList(growable: false);
-    if (_keyComparator != null) {
-      list.sort(_keyComparator);
-    } else if (list.isNotEmpty && list.first is Comparable) {
-      (list as List<Comparable>).sort();
-    } else {
-      list.sort((a, b) => a.toString().compareTo(b.toString()));
-    }
-
-    // Pagination
-    if (offset >= list.length) return const [];
-    final start = offset.clamp(0, list.length);
-    final end =
-        (limit == null) ? list.length : (start + limit).clamp(0, list.length);
-    return list.sublist(start, end);
-  }
+  // Streams
+  Stream<K> searchKeysStream(String query) => _searcher.keysStream(query);
+  Stream<T> searchStream(String query) => _searcher.valuesStream(query);
 
   // -----------------------------------------------------------------------------
   // Rebuild index (journaled)
@@ -333,17 +290,6 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     if (value == null) return;
     _cache.invalidateTokens(_analyze(value));
   }
-
-  bool _isVerified(String query, T value) {
-    final qTokens = _normalizeQuery(query);
-    if (qTokens.isEmpty) return true;
-    final vTokens = _analyze(value).toSet();
-    return _engine.matchAllTokens
-        ? qTokens.every(vTokens.contains)
-        : qTokens.any(vTokens.contains);
-  }
-
-  List<String> _normalizeQuery(String q) => IndexEngine.normalize(q);
 
   void _log(String msg) {
     config.logger?.call(msg);

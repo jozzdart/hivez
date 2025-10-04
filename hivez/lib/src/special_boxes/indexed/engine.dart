@@ -127,18 +127,23 @@ class IndexEngine<K, T> extends ConfiguredBox<String, List<K>> {
     final payload = <String, List<K>?>{};
     for (final token in tokens) {
       var set = (await get(token))?.toSet() ?? <K>{};
-      if (additions != null && additions.containsKey(token)) {
-        set.addAll(additions[token]!);
-      }
+
+      // IMPORTANT: removals first, then additions
       if (removals != null && removals.containsKey(token)) {
         set.removeAll(removals[token]!);
       }
+      if (additions != null && additions.containsKey(token)) {
+        set.addAll(additions[token]!);
+      }
+
       payload[token] = set.isEmpty ? null : set.toList(growable: false);
+
       if (payload.length >= 256) {
         await _putAllOrDeleteAll(payload);
         payload.clear();
       }
     }
+
     if (payload.isNotEmpty) await _putAllOrDeleteAll(payload);
   }
 
