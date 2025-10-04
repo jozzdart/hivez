@@ -9,3 +9,4 @@ export 'boxes/boxes.dart'
 export 'extensions/extensions.dart';
 export 'builders/builders.dart'
     show BoxCreator, BoxType, BoxConfig, BoxConfigExtensions;
+export 'special_boxes/special_boxes.dart' show HivezBoxIndexed;
