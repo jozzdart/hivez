@@ -7,3 +7,5 @@ export 'boxes/boxes.dart'
         BaseHivezBox,
         BoxInterface;
 export 'extensions/extensions.dart';
+export 'builders/builders.dart'
+    show BoxCreator, BoxType, BoxConfig, BoxConfigExtensions;

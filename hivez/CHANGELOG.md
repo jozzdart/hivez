@@ -1,3 +1,10 @@
+## Unreleased
+
+- Added `BoxConfig`, `BoxType`, and `BoxCreator` for easier box configuration and creation:
+  ```dart
+  final box = BoxConfig.lazy('users').createBox<int, User>(); // example
+  ```
+
 ## 1.0.2
 
 - **Fix:** Resolved missing exports (in `hivez_flutter`) for generated adapters (`BinaryReader`, `BinaryWriter`, `TypeAdapter`, etc.), which caused build errors when running  
