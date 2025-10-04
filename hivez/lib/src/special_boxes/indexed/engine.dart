@@ -7,7 +7,7 @@ class IndexEngine<K, T> extends ConfiguredBox<String, List<K>> {
   IndexEngine(
     super.config, {
     required this.analyzer,
-    this.matchAllTokens = false,
+    this.matchAllTokens = true,
   });
 
   Future<void> onPut(K key, T newValue, {T? oldValue}) async {
