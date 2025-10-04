@@ -23,14 +23,13 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     int tokenCacheCapacity = 512,
     bool verifyMatches = true,
     int Function(K a, K b)? keyComparator,
-    TextAnalyzer<T>? analyzer,
   })  : _engine = IndexEngine<K, T>(
-          config.copyWith(name: '${config.name}__idx'),
-          analyzer: analyzer ?? BasicTextAnalyzer<T>(searchableText),
+          config.copyWith(name: '${config.name}__idx', logger: null),
+          analyzer: BasicTextAnalyzer<T>(searchableText),
           matchAllTokens: matchAllTokens,
         ),
         _journal = BoxIndexJournal(
-          config.copyWith(name: '${config.name}__idx_meta'),
+          config.copyWith(name: '${config.name}__idx_meta', logger: null),
         ),
         _cache = tokenCacheCapacity <= 0
             ? NoopTokenKeyCache<K>()
@@ -38,7 +37,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     _searcher = IndexSearcher<K, T>(
       engine: _engine,
       cache: _cache,
-      analyzer: analyzer ?? BasicTextAnalyzer<T>(searchableText),
+      analyzer: BasicTextAnalyzer<T>(searchableText),
       verifyMatches: verifyMatches,
       ensureReady: ensureInitialized,
       getValue: super.get,
@@ -199,6 +198,17 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
       }
     });
   }
+
+  @override
+  Future<void> deleteAt(int index) => _writeTxn(() async {
+        final k = await super.keyAt(index);
+        final old = await super.get(k);
+        await super.deleteAt(index);
+        if (old != null) {
+          await _engine.onDelete(k, oldValue: old);
+          _invalidateTokensFor(old);
+        }
+      });
 
   @override
   Future<void> clear() => _writeTxn(() async {
