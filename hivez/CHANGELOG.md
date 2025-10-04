@@ -1,6 +1,9 @@
 ## Unreleased
 
-- Added `BoxDecorator` to wrap any `BoxInterface` with additional behavior
+- Added `BoxConfig`, `BoxType`, and `BoxCreator` for easier box configuration and creation:
+  ```dart
+  final box = BoxConfig.lazy('users').createBox<int, User>(); // example
+  ```
 
 ## 1.0.2
 
