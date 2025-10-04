@@ -8,6 +8,17 @@ abstract class TextAnalyzer<T> {
       .replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ')
       .split(RegExp(r'\s+', unicode: true))
       .where((t) => t.length > 1);
+
+  static TextAnalyzer<T> basic<T>(String Function(T) searchableText) =>
+      BasicTextAnalyzer<T>(searchableText);
+
+  static TextAnalyzer<T> prefix<T>(String Function(T) searchableText,
+          {int minPrefix = 2}) =>
+      PrefixTextAnalyzer<T>(searchableText, minPrefix: minPrefix);
+
+  static TextAnalyzer<T> ngram<T>(String Function(T) searchableText,
+          {int minN = 2, int maxN = 5}) =>
+      NGramTextAnalyzer<T>(searchableText, minN: minN, maxN: maxN);
 }
 
 class BasicTextAnalyzer<T> extends TextAnalyzer<T> {
