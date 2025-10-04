@@ -19,9 +19,9 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   HivezBoxIndexed(
     super.config, {
     required String Function(T) searchableText,
-    bool matchAllTokens = false,
+    bool matchAllTokens = true,
     int tokenCacheCapacity = 512,
-    bool verifyMatches = true,
+    bool verifyMatches = false,
     int Function(K a, K b)? keyComparator,
     TextAnalyzer<T>? analyzer,
   })  : _engine = IndexEngine<K, T>(
