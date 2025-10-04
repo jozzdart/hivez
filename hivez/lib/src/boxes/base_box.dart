@@ -216,6 +216,9 @@ abstract class BoxInterface<K, T> {
 
   /// Compacts the box file to reclaim unused space.
   Future<void> compactBox();
+
+  /// Returns an approximate size of the box in bytes.
+  Future<int> estimateSizeBytes();
 }
 
 /// Internal helper interface for HivezBox implementations.
@@ -392,6 +395,40 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
         await action(key, value);
       }
     }, breakCondition: breakCondition);
+  }
+
+  /// Returns approximate in-memory size (in bytes) of the entire box content.
+  ///
+  /// This includes keys and values, recursively traversing Maps, Lists,
+  /// primitives, and strings. Does *not* include Hive metadata or file overhead.
+  @override
+  Future<int> estimateSizeBytes() async => _executeRead(() async {
+        int total = 0;
+        await foreachValue((k, v) async {
+          total += _estimateAny(k) + _estimateAny(v);
+        });
+        return total;
+      });
+
+  // Internal recursive estimator.
+  static int _estimateAny(dynamic obj) {
+    if (obj == null) return 0;
+    if (obj is num || obj is bool) return 8;
+    if (obj is String) return utf8.encode(obj).length;
+    if (obj is List) {
+      return obj.fold<int>(0, (sum, e) => sum + _estimateAny(e));
+    }
+    if (obj is Map) {
+      return obj.entries.fold<int>(
+        0,
+        (sum, e) => sum + _estimateAny(e.key) + _estimateAny(e.value),
+      );
+    }
+    try {
+      return utf8.encode(obj.toString()).length;
+    } catch (_) {
+      return 0;
+    }
   }
 }
 

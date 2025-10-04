@@ -98,4 +98,6 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
   @override
   Future<void> foreachKey(Future<void> Function(K) action) =>
       _internalBox.foreachKey(action);
+  @override
+  Future<int> estimateSizeBytes() => _internalBox.estimateSizeBytes();
 }

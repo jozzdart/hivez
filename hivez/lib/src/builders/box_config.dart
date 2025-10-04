@@ -8,6 +8,16 @@ enum BoxType {
   isolatedLazy,
 }
 
+extension BoxInterfaceExtensions<K, T> on BoxInterface<K, T> {
+  BoxType get type => switch (this) {
+        HivezBox<K, T>() => BoxType.regular,
+        HivezBoxLazy<K, T>() => BoxType.lazy,
+        HivezBoxIsolated<K, T>() => BoxType.isolated,
+        HivezBoxIsolatedLazy<K, T>() => BoxType.isolatedLazy,
+        _ => throw Exception('Unknown box type'),
+      };
+}
+
 class BoxConfig {
   final String name;
   final BoxType type;
