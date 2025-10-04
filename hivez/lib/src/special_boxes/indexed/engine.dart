@@ -17,20 +17,15 @@ class BasicTextAnalyzer<T> extends TextAnalyzer<T> {
 // IndexEngine – batches token postings updates & reads from index storage.
 // Storage: token (String) -> List<K> (unique, unsorted).
 // -----------------------------------------------------------------------------
-class IndexEngine<K, T> {
+class IndexEngine<K, T> extends ConfiguredBox<String, List<K>> {
   final TextAnalyzer<T> analyzer;
-  final ConfiguredBox<String, List<K>> storage;
   final bool matchAllTokens;
 
-  IndexEngine({
+  IndexEngine(
+    super.config, {
     required this.analyzer,
-    required this.storage,
     this.matchAllTokens = false,
   });
-
-  Future<void> ensureReady() => storage.ensureInitialized();
-
-  // Single item mutations ------------------------------------------------------
 
   Future<void> onPut(K key, T newValue, {T? oldValue}) async {
     if (oldValue != null) await _removeKeyFromTokens(key, oldValue);
@@ -40,10 +35,6 @@ class IndexEngine<K, T> {
   Future<void> onDelete(K key, {T? oldValue}) async {
     if (oldValue != null) await _removeKeyFromTokens(key, oldValue);
   }
-
-  Future<void> onClear() => storage.clear();
-
-  // Batched mutations ----------------------------------------------------------
 
   Future<void> onPutMany(Map<K, T> news, {Map<K, T>? olds}) async {
     // Plan removals and additions in-memory, apply with batched putAll().
@@ -83,7 +74,7 @@ class IndexEngine<K, T> {
     if (tokens.isEmpty) return const [];
     final tokenSets = <Set<K>>[];
     for (final t in tokens) {
-      final ks = await storage.get(t) ?? <K>[];
+      final ks = await get(t) ?? <K>[];
       tokenSets.add(ks.toSet());
     }
     if (tokenSets.isEmpty) return const [];
@@ -98,22 +89,22 @@ class IndexEngine<K, T> {
   Future<void> _addKeyToTokens(K key, T value) async {
     final payload = <String, List<K>>{};
     for (final token in analyzer.analyze(value).toSet()) {
-      final existing = await storage.get(token) ?? <K>[];
+      final existing = await get(token) ?? <K>[];
       if (!existing.contains(key)) {
         payload[token] = List<K>.from(existing)..add(key);
         if (payload.length >= 256) {
-          await storage.putAll(payload);
+          await putAll(payload);
           payload.clear();
         }
       }
     }
-    if (payload.isNotEmpty) await storage.putAll(payload);
+    if (payload.isNotEmpty) await putAll(payload);
   }
 
   Future<void> _removeKeyFromTokens(K key, T value) async {
     final payload = <String, List<K>?>{};
     for (final token in analyzer.analyze(value).toSet()) {
-      final existing = await storage.get(token);
+      final existing = await get(token);
       if (existing == null) continue;
       final next = List<K>.from(existing)..remove(key);
       payload[token] = next.isEmpty ? null : next;
@@ -135,7 +126,7 @@ class IndexEngine<K, T> {
 
     final payload = <String, List<K>?>{};
     for (final token in tokens) {
-      var set = (await storage.get(token))?.toSet() ?? <K>{};
+      var set = (await get(token))?.toSet() ?? <K>{};
       if (additions != null && additions.containsKey(token)) {
         set.addAll(additions[token]!);
       }
@@ -164,17 +155,17 @@ class IndexEngine<K, T> {
     if (dels.isNotEmpty) {
       // No batch delete API; delete one-by-one is fine (usually small).
       for (final t in dels) {
-        await storage.delete(t);
+        await delete(t);
       }
     }
     if (puts.isNotEmpty) {
-      await storage.putAll(puts);
+      await putAll(puts);
     }
   }
 
   // engine.dart (add this helper)
   Future<List<K>> readToken(String token) async {
-    return (await storage.get(token)) ?? <K>[];
+    return (await get(token)) ?? <K>[];
   }
 
   // Basic ascii/latin normalization (fast). Provide your own analyzer for more.

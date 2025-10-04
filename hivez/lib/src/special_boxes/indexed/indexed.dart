@@ -29,24 +29,17 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     int tokenCacheCapacity = 512,
     bool verifyMatches = true,
     int Function(K a, K b)? keyComparator,
-    // Optional: provide your own analyzer
     TextAnalyzer<T>? analyzer,
   })  : _tokenCacheCapacity = tokenCacheCapacity.clamp(0, 10000),
         _verifyMatches = verifyMatches,
         _keyComparator = keyComparator,
         _engine = IndexEngine<K, T>(
+          config.copyWith(name: '${config.name}__idx'),
           analyzer: analyzer ?? BasicTextAnalyzer<T>(searchableText),
-          storage: config
-              .copyWith(
-                name: '${config.name}__idx',
-              )
-              .createConfiguredBox<String, List<K>>(),
           matchAllTokens: matchAllTokens,
         ),
         _journal = BoxIndexJournal(
-          config.copyWith(
-            name: '${config.name}__idx_meta',
-          ),
+          config.copyWith(name: '${config.name}__idx_meta'),
         );
 
   // Small helper so every write uses the same discipline.
@@ -59,7 +52,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   @override
   Future<void> ensureInitialized() async {
     await super.ensureInitialized(); // main box
-    await _engine.ensureReady(); // index box
+    await _engine.ensureInitialized(); // index box
     await _journal.ensureInitialized(); // meta/journal
 
     if (await _journal.isDirty()) {
@@ -75,7 +68,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   Future<void> flushBox() async {
     await _writeLock.synchronized(() async {
       try {
-        await _engine.storage.flushBox();
+        await _engine.flushBox();
       } catch (_) {}
       try {
         await _journal.flushBox();
@@ -88,7 +81,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   Future<void> compactBox() async {
     await _writeLock.synchronized(() async {
       try {
-        await _engine.storage.compactBox();
+        await _engine.compactBox();
       } catch (_) {}
       try {
         await _journal.compactBox();
@@ -101,7 +94,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   Future<void> closeBox() async {
     await _writeLock.synchronized(() async {
       try {
-        await _engine.storage.flushBox();
+        await _engine.flushBox();
       } catch (_) {}
       try {
         await _journal.flushBox();
@@ -109,7 +102,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
       await super.flushBox();
 
       try {
-        await _engine.storage.closeBox();
+        await _engine.closeBox();
       } catch (_) {}
       try {
         await _journal.closeBox();
@@ -124,7 +117,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     await _writeLock.synchronized(() async {
       _tokenCache.clear();
       try {
-        await _engine.storage.deleteFromDisk();
+        await _engine.deleteFromDisk();
       } catch (_) {}
       try {
         await _journal.deleteFromDisk();
@@ -228,7 +221,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   @override
   Future<void> clear() => _writeTxn(() async {
         await super.clear();
-        await _engine.onClear();
+        await _engine.clear();
         _tokenCache.clear();
       });
 
@@ -318,7 +311,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   // -----------------------------------------------------------------------------
   Future<void> rebuildIndex({void Function(double progress)? onProgress}) =>
       _writeTxn(() async {
-        await _engine.onClear();
+        await _engine.clear();
         _tokenCache.clear();
 
         final total = await length;
@@ -332,7 +325,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
           buffer.forEach((token, set) {
             if (set.isNotEmpty) payload[token] = set.toList(growable: false);
           });
-          if (payload.isNotEmpty) await _engine.storage.putAll(payload);
+          if (payload.isNotEmpty) await _engine.putAll(payload);
           buffer.clear();
         }
 
@@ -359,14 +352,14 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
 
   Future<List<K>> _getTokenKeysCached(String token) async {
     if (_tokenCacheCapacity <= 0) {
-      return await _engine.storage.get(token) ?? <K>[];
+      return await _engine.get(token) ?? <K>[];
     }
     final cached = _tokenCache.remove(token);
     if (cached != null) {
       _tokenCache[token] = cached; // refresh LRU position
       return cached;
     }
-    final fresh = await _engine.storage.get(token) ?? <K>[];
+    final fresh = await _engine.get(token) ?? <K>[];
     _cachePut(token, fresh);
     return fresh;
   }
