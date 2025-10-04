@@ -23,9 +23,10 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     int tokenCacheCapacity = 512,
     bool verifyMatches = true,
     int Function(K a, K b)? keyComparator,
+    TextAnalyzer<T>? analyzer,
   })  : _engine = IndexEngine<K, T>(
           config.copyWith(name: '${config.name}__idx', logger: null),
-          analyzer: BasicTextAnalyzer<T>(searchableText),
+          analyzer: analyzer ?? BasicTextAnalyzer<T>(searchableText),
           matchAllTokens: matchAllTokens,
         ),
         _journal = BoxIndexJournal(
@@ -37,7 +38,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     _searcher = IndexSearcher<K, T>(
       engine: _engine,
       cache: _cache,
-      analyzer: BasicTextAnalyzer<T>(searchableText),
+      analyzer: analyzer ?? BasicTextAnalyzer<T>(searchableText),
       verifyMatches: verifyMatches,
       ensureReady: ensureInitialized,
       getValue: super.get,
@@ -118,6 +119,14 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
       _cache.clear();
       await _journal.reset();
     });
+  }
+
+  @override
+  Future<int> estimateSizeBytes() async {
+    final size = await super.estimateSizeBytes();
+    final engineSize = await _engine.estimateSizeBytes();
+    final journalSize = await _journal.estimateSizeBytes();
+    return size + engineSize + journalSize;
   }
 
   // -----------------------------------------------------------------------------
