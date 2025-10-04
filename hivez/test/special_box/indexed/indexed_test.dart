@@ -145,6 +145,48 @@ void main() {
             'indexed_ms': tIdx.elapsedMilliseconds,
           };
         });
+        // NEW: two half-words query behavior + benchmark (same data)
+        test('two half-token search (behavior + timed)', () async {
+          // Same dataset in both boxes
+          final gen = _DeterministicData(seed: 444);
+          final entries = buildDataset(size, gen);
+          await populateWithEntries(base, entries);
+          await populateWithEntries(indexed, entries);
+
+          // Build queries like "hel wor" (halves of words)
+          final halfQueries =
+              _makeTwoHalfWordQueries(gen.wordPool, _queriesPerRun);
+
+          // Behavior: with exact-token indexing, halves should NOT match
+          // (since analyzer normalizes to whole tokens only).
+          for (final q in halfQueries.take(5)) {
+            final naive = await _naiveSearchKeys(base, q, matchAll: false);
+            final idx = await indexed.searchKeys(q);
+            expect(naive, isEmpty,
+                reason: 'Naive should not match half tokens for "$q"');
+            expect(idx, isEmpty,
+                reason:
+                    'Indexed should not match half tokens (exact-token index) for "$q"');
+          }
+
+          // Timings (still useful to see overhead)
+          final tNaive = Stopwatch()..start();
+          for (final q in halfQueries) {
+            await _naiveSearchKeys(base, q, matchAll: false);
+          }
+          tNaive.stop();
+
+          final tIdx = Stopwatch()..start();
+          for (final q in halfQueries) {
+            await indexed.searchKeys(q);
+          }
+          tIdx.stop();
+
+          results['search_2half_$size'] = {
+            'base_ms': tNaive.elapsedMilliseconds,
+            'indexed_ms': tIdx.elapsedMilliseconds,
+          };
+        });
       });
     }
   });
@@ -277,5 +319,22 @@ List<String> _makeTwoWordQueries(List<String> pool, int count) {
     final a = pool[rng.nextInt(pool.length)];
     final b = pool[rng.nextInt(pool.length)];
     return '$a $b';
+  });
+}
+
+List<String> _makeTwoHalfWordQueries(List<String> pool, int count) {
+  final rng = Random(7);
+  String takeHalf(String w) {
+    final cut = w.length ~/ 2;
+    final len = cut < 2 ? (w.length >= 2 ? 2 : w.length) : cut;
+    return w.substring(0, len);
+  }
+
+  return List.generate(count, (_) {
+    final a = pool[rng.nextInt(pool.length)];
+    final b = pool[rng.nextInt(pool.length)];
+    final ha = takeHalf(a);
+    final hb = takeHalf(b);
+    return '$ha $hb';
   });
 }
