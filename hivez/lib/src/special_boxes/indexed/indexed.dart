@@ -5,8 +5,6 @@ import 'package:synchronized/synchronized.dart';
 
 part 'engine.dart';
 part 'journal.dart';
-part 'token_cache.dart';
-part 'index_searcher.dart';
 
 class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   // Engine and journal
