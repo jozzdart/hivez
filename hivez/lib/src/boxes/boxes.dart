@@ -10,3 +10,4 @@ part 'hivez_box.dart';
 part 'hivez_box_lazy.dart';
 part 'hivez_isolated.dart';
 part 'hivez_isolated_lazy.dart';
+part 'box_decorator.dart';
