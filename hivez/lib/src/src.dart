@@ -14,4 +14,4 @@ export 'builders/builders.dart'
         BoxConfig,
         BoxConfigExtensions,
         BoxInterfaceExtensions;
-export 'special_boxes/special_boxes.dart' show HivezBoxIndexed;
+export 'special_boxes/special_boxes.dart' show HivezBoxIndexed, TextAnalyzer;
