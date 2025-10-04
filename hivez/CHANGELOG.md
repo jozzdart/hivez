@@ -4,6 +4,7 @@
   ```dart
   final box = BoxConfig.lazy('users').createBox<int, User>(); // example
   ```
+- Added `estimateSizeBytes()` to estimate approximate in-memory size of box contents (bytes).
 
 ## 1.0.2
 
