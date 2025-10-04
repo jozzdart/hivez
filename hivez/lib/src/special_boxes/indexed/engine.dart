@@ -172,6 +172,11 @@ class IndexEngine<K, T> {
     }
   }
 
+  // engine.dart (add this helper)
+  Future<List<K>> readToken(String token) async {
+    return (await storage.get(token)) ?? <K>[];
+  }
+
   // Basic ascii/latin normalization (fast). Provide your own analyzer for more.
   static List<String> normalize(String q) => q
       .toLowerCase()
