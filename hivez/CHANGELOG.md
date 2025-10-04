@@ -1,3 +1,7 @@
+## Unreleased
+
+- Added `BoxDecorator` to wrap any `BoxInterface` with additional behavior
+
 ## 1.0.2
 
 - **Fix:** Resolved missing exports (in `hivez_flutter`) for generated adapters (`BinaryReader`, `BinaryWriter`, `TypeAdapter`, etc.), which caused build errors when running  
