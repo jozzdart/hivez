@@ -26,7 +26,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     TextAnalyzer<T>? analyzer,
   })  : _engine = IndexEngine<K, T>(
           config.copyWith(name: '${config.name}__idx', logger: null),
-          analyzer: analyzer ?? BasicTextAnalyzer<T>(searchableText),
+          analyzer: analyzer ?? PrefixTextAnalyzer<T>(searchableText),
           matchAllTokens: matchAllTokens,
         ),
         _journal = BoxIndexJournal(
@@ -38,7 +38,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     _searcher = IndexSearcher<K, T>(
       engine: _engine,
       cache: _cache,
-      analyzer: analyzer ?? BasicTextAnalyzer<T>(searchableText),
+      analyzer: analyzer ?? PrefixTextAnalyzer<T>(searchableText),
       verifyMatches: verifyMatches,
       ensureReady: ensureInitialized,
       getValue: super.get,
@@ -59,6 +59,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
 
   @override
   Future<void> ensureInitialized() async {
+    if (isInitialized) return;
     await super.ensureInitialized(); // main box
     await _engine.ensureInitialized(); // index box
     await _journal.ensureInitialized(); // meta/journal
