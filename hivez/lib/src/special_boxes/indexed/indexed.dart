@@ -6,6 +6,7 @@ part 'journal.dart';
 part 'cache.dart';
 part 'search.dart';
 part 'analyzer.dart';
+part 'extensions.dart';
 
 class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   final IndexEngine<K, T> _engine;
