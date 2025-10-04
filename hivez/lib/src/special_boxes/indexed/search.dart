@@ -34,7 +34,7 @@ class IndexSearcher<K, T> {
   Future<List<K>> keys(String query, {int? limit, int offset = 0}) async {
     await _ensureReady();
 
-    final tokens = IndexEngine.normalize(query);
+    final tokens = TextAnalyzer.normalize(query);
     if (tokens.isEmpty) return const [];
 
     // Gather candidate postings per token (cached).
@@ -102,7 +102,7 @@ class IndexSearcher<K, T> {
   // --- helpers ---------------------------------------------------------------
 
   bool _verify(String query, T value) {
-    final qTokens = IndexEngine.normalize(query);
+    final qTokens = TextAnalyzer.normalize(query);
     if (qTokens.isEmpty) return true;
     final vTokens = _analyzer.analyze(value).toSet();
     return _engine.matchAllTokens

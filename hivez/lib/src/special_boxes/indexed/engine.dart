@@ -1,22 +1,5 @@
 part of 'indexed.dart';
 
-abstract class TextAnalyzer<T> {
-  const TextAnalyzer();
-  List<String> analyze(T value);
-}
-
-class BasicTextAnalyzer<T> extends TextAnalyzer<T> {
-  final String Function(T value) searchableText;
-  const BasicTextAnalyzer(this.searchableText);
-
-  @override
-  List<String> analyze(T v) => IndexEngine.normalize(searchableText(v));
-}
-
-// -----------------------------------------------------------------------------
-// IndexEngine – batches token postings updates & reads from index storage.
-// Storage: token (String) -> List<K> (unique, unsorted).
-// -----------------------------------------------------------------------------
 class IndexEngine<K, T> extends ConfiguredBox<String, List<K>> {
   final TextAnalyzer<T> analyzer;
   final bool matchAllTokens;
@@ -172,12 +155,4 @@ class IndexEngine<K, T> extends ConfiguredBox<String, List<K>> {
   Future<List<K>> readToken(String token) async {
     return (await get(token)) ?? <K>[];
   }
-
-  // Basic ascii/latin normalization (fast). Provide your own analyzer for more.
-  static List<String> normalize(String q) => q
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
-      .split(RegExp(r'\s+'))
-      .where((t) => t.length > 1)
-      .toList();
 }

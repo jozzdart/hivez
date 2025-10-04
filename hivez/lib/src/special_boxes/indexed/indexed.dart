@@ -5,9 +5,9 @@ part 'engine.dart';
 part 'journal.dart';
 part 'cache.dart';
 part 'search.dart';
+part 'analyzer.dart';
 
 class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
-  // Engine and journal
   final IndexEngine<K, T> _engine;
   final IndexJournal _journal;
   final TokenKeyCache<K> _cache;
@@ -51,6 +51,11 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   // -----------------------------------------------------------------------------
   // Lifecycle
   // -----------------------------------------------------------------------------
+
+  @override
+  bool get isInitialized =>
+      super.isInitialized && _engine.isInitialized && _journal.isInitialized;
+
   @override
   Future<void> ensureInitialized() async {
     await super.ensureInitialized(); // main box
@@ -294,7 +299,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   // -----------------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------------
-  List<String> _analyze(T v) => _engine.analyzer.analyze(v);
+  Iterable<String> _analyze(T v) => _engine.analyzer.analyze(v);
 
   void _invalidateTokensFor(T? value) {
     if (value == null) return;
