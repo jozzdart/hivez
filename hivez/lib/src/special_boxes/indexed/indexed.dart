@@ -1,4 +1,5 @@
 import 'package:hivez/src/builders/builders.dart';
+import 'package:hivez/src/exceptions/box_exception.dart';
 import 'package:synchronized/synchronized.dart';
 
 part 'engine.dart';
@@ -7,6 +8,7 @@ part 'cache.dart';
 part 'search.dart';
 part 'analyzer.dart';
 part 'extensions.dart';
+part 'exceptions.dart';
 
 class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   final IndexEngine<K, T> _engine;
@@ -78,8 +80,12 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     await super.ensureInitialized(); // main box
 
     if (await _journal.isDirty()) {
-      _log('[Indexed:${config.name}] Dirty flag detected → rebuilding index…');
-      await rebuildIndex();
+      _log('Dirty flag detected → rebuilding index');
+      try {
+        await rebuildIndex();
+      } catch (e, st) {
+        throw IndexRebuildFailed(boxName: name, cause: e, stackTrace: st);
+      }
     }
   }
 
