@@ -1,16 +1,18 @@
 ## Unreleased
 
+- Added new key and size utility methods for all box types:
+
+  - `getKeysWhere()` — returns keys matching a condition.
+  - `firstKeyWhere()` — returns the first key matching a condition.
+  - `searchKeyOf()` — returns the key for a given value.
+  - `estimateSizeBytes()` — estimates the approximate in-memory size of box contents (bytes).
+
 - Added `BoxConfig`, `BoxType`, and `BoxCreator` for easier box configuration and creation:
 
   ```dart
   final box = BoxConfig.lazy('users').createBox<int, User>(); // example
   ```
 
-- Added new key and size utility methods for all box types:
-  - `getKeysWhere()` — returns keys matching a condition.
-  - `firstKeyWhere()` — returns the first key matching a condition.
-  - `searchKeyOf()` — returns the key for a given value.
-  - `estimateSizeBytes()` — estimates the approximate in-memory size of box contents (bytes).
 - Added `HivezBoxIndexed<K, T>` — a special box that maintains a lightweight full‑text token index for extremely fast searches over your values. It wraps a regular box and keeps an auxiliary index box plus a small journal/meta box for crash‑safe updates.
   - Usage example:
     ```dart
