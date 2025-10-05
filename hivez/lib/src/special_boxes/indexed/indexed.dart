@@ -46,9 +46,22 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     );
   }
 
+  Future<R> _safeWrite<R>(String opName, Future<R> Function() body) async {
+    try {
+      return await _writeTxn(body);
+    } catch (e, st) {
+      _log(
+          '[ERROR with Indexed Box: ${config.name}] [$opName] Unexpected error: $e\n$st');
+      rethrow;
+    }
+  }
+
   // Small helper so every write uses the same discipline.
   Future<R> _writeTxn<R>(Future<R> Function() body) =>
-      _writeLock.synchronized(() => _journal.runWrite(body));
+      _writeLock.synchronized(() async {
+        await ensureInitialized();
+        return await _journal.runWrite(body);
+      });
 
   // -----------------------------------------------------------------------------
   // Lifecycle
@@ -75,7 +88,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   // -----------------------------------------------------------------------------
   @override
   Future<void> flushBox() async {
-    await _writeLock.synchronized(() async {
+    await _safeWrite('FLUSH_BOX', () async {
       await _engine.flushBox();
       await _journal.flushBox();
       await super.flushBox();
@@ -84,7 +97,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
 
   @override
   Future<void> compactBox() async {
-    await _writeLock.synchronized(() async {
+    await _safeWrite('COMPACT_BOX', () async {
       await _engine.compactBox();
       await _journal.compactBox();
       await super.compactBox();
@@ -93,7 +106,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
 
   @override
   Future<void> closeBox() async {
-    await _writeLock.synchronized(() async {
+    await _safeWrite('CLOSE_BOX', () async {
       await _engine.flushBox();
       await _journal.flushBox();
       await super.flushBox();
@@ -106,7 +119,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
 
   @override
   Future<void> deleteFromDisk() async {
-    await _writeLock.synchronized(() async {
+    await _safeWrite('DELETE_FROM_DISK', () async {
       _cache.clear();
       await _engine.deleteFromDisk();
       await _journal.deleteFromDisk();
@@ -116,7 +129,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
 
   /// Clears runtime caches + resets journal (no persistent data loss).
   Future<void> resetRuntimeState() async {
-    await _writeLock.synchronized(() async {
+    await _safeWrite('RESET_RUNTIME_STATE', () async {
       _cache.clear();
       await _journal.reset();
     });
@@ -134,7 +147,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   // Write path (all wrapped in _writeTxn)
   // -----------------------------------------------------------------------------
   @override
-  Future<void> put(K key, T value) => _writeTxn(() async {
+  Future<void> put(K key, T value) => _safeWrite('PUT', () async {
         final old = await super.get(key);
         await super.put(key, value);
         await _engine.onPut(key, value, oldValue: old);
@@ -145,7 +158,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   @override
   Future<void> putAll(Map<K, T> entries) {
     if (entries.isEmpty) return Future.value();
-    return _writeTxn(() async {
+    return _safeWrite('PUT_ALL', () async {
       final olds = <K, T>{};
       for (final e in entries.entries) {
         final v = await super.get(e.key);
@@ -163,7 +176,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   }
 
   @override
-  Future<int> add(T value) => _writeTxn(() async {
+  Future<int> add(T value) => _safeWrite('ADD', () async {
         final id = await super.add(value);
         await _engine.onPut(id as K, value);
         _invalidateTokensFor(value);
@@ -173,7 +186,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   @override
   Future<void> addAll(Iterable<T> values) {
     if (values.isEmpty) return Future.value();
-    return _writeTxn(() async {
+    return _safeWrite('ADD_ALL', () async {
       final news = <K, T>{};
       for (final v in values) {
         final id = await super.add(v);
@@ -185,7 +198,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   }
 
   @override
-  Future<void> delete(K key) => _writeTxn(() async {
+  Future<void> delete(K key) => _safeWrite('DELETE', () async {
         final old = await super.get(key);
         await super.delete(key);
         if (old != null) {
@@ -198,7 +211,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   Future<void> deleteAll(Iterable<K> keys) {
     final unique = keys is Set<K> ? keys : keys.toSet();
     if (unique.isEmpty) return Future.value();
-    return _writeTxn(() async {
+    return _safeWrite('DELETE_ALL', () async {
       final olds = <K, T>{};
       for (final k in unique) {
         final v = await super.get(k);
@@ -215,7 +228,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   }
 
   @override
-  Future<void> deleteAt(int index) => _writeTxn(() async {
+  Future<void> deleteAt(int index) => _safeWrite('DELETE_AT', () async {
         final k = await super.keyAt(index);
         final old = await super.get(k);
         await super.deleteAt(index);
@@ -226,14 +239,14 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
       });
 
   @override
-  Future<void> clear() => _writeTxn(() async {
+  Future<void> clear() => _safeWrite('CLEAR', () async {
         await super.clear();
         await _engine.clear();
         _cache.clear();
       });
 
   @override
-  Future<void> putAt(int index, T value) => _writeTxn(() async {
+  Future<void> putAt(int index, T value) => _safeWrite('PUT_AT', () async {
         final k = await super.keyAt(index);
         final old = await super.get(k);
         await super.putAt(index, value);
@@ -243,7 +256,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
       });
 
   @override
-  Future<bool> moveKey(K oldKey, K newKey) => _writeTxn(() async {
+  Future<bool> moveKey(K oldKey, K newKey) => _safeWrite('MOVE_KEY', () async {
         final v = await super.get(oldKey);
         if (v == null) return false;
         final moved = await super.moveKey(oldKey, newKey);
@@ -271,7 +284,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   // Rebuild index (journaled)
   // -----------------------------------------------------------------------------
   Future<void> rebuildIndex({void Function(double progress)? onProgress}) =>
-      _writeTxn(() async {
+      _safeWrite('REBUILD_INDEX', () async {
         await _engine.clear();
         _cache.clear();
 
