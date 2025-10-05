@@ -60,10 +60,9 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
 
   @override
   Future<void> ensureInitialized() async {
-    if (isInitialized) return;
-    await super.ensureInitialized(); // main box
     await _engine.ensureInitialized(); // index box
     await _journal.ensureInitialized(); // meta/journal
+    await super.ensureInitialized(); // main box
 
     if (await _journal.isDirty()) {
       _log('[Indexed:${config.name}] Dirty flag detected → rebuilding index…');

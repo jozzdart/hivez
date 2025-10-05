@@ -348,7 +348,7 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
   @override
   Future<Iterable<T>> getValuesWhere(bool Function(T value) condition) async {
     final values = <T>[];
-    foreachValue((k, v) async {
+    await foreachValue((k, v) async {
       if (condition(v)) {
         values.add(v);
       }
@@ -360,7 +360,7 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
   Future<Iterable<K>> getKeysWhere(
       bool Function(K key, T value) condition) async {
     final keys = <K>[];
-    foreachKey((k) async {
+    await foreachKey((k) async {
       final v = await get(k);
       if (v != null && condition(k, v)) {
         keys.add(k);
@@ -372,7 +372,7 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
   @override
   Future<K?> firstKeyWhere(bool Function(K key, T value) condition) async {
     final results = <K>[];
-    foreachValue(
+    await foreachValue(
       (k, v) async {
         if (condition(k, v)) {
           results.add(k);
