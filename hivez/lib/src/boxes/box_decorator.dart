@@ -114,4 +114,14 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
 
   @override
   Future<int> estimateSizeBytes() => _internalBox.estimateSizeBytes();
+
+  @override
+  bool operator ==(Object other) =>
+      other is BoxDecorator<K, T> && other._internalBox == _internalBox;
+
+  @override
+  int get hashCode => _internalBox.hashCode;
+
+  @override
+  String toString() => _stringBox('BoxDecorator', this);
 }

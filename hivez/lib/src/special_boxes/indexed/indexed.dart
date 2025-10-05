@@ -332,4 +332,20 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   void _log(String msg) {
     config.logger?.call(msg);
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is HivezBoxIndexed<K, T> &&
+      other._engine == _engine &&
+      other._journal == _journal &&
+      other._cache == _cache &&
+      config.name == other.config.name;
+
+  @override
+  int get hashCode =>
+      _engine.hashCode ^ _journal.hashCode ^ _cache.hashCode ^ super.hashCode;
+
+  @override
+  String toString() =>
+      '${super.toString()} <[ engine: $_engine, journal: $_journal, cache: $_cache ]>';
 }

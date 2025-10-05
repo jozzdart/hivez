@@ -119,6 +119,32 @@ class BoxConfig {
       logger: logger ?? this.logger,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    return other is BoxConfig &&
+        other.name == name &&
+        other.type == type &&
+        other.encryptionCipher == encryptionCipher &&
+        other.crashRecovery == crashRecovery &&
+        other.path == path &&
+        other.collection == collection &&
+        other.logger == logger;
+  }
+
+  @override
+  int get hashCode =>
+      name.hashCode ^
+      type.hashCode ^
+      encryptionCipher.hashCode ^
+      crashRecovery.hashCode ^
+      path.hashCode ^
+      collection.hashCode ^
+      logger.hashCode;
+
+  @override
+  String toString() =>
+      'BoxConfig($name, $type, cRec: $crashRecovery, pth: $path, col: $collection, log: $logger)';
 }
 
 extension BoxConfigExtensions on BoxConfig {

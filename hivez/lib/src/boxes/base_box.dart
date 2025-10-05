@@ -228,7 +228,26 @@ abstract class BoxInterface<K, T> {
 
   /// Returns an approximate size of the box in bytes.
   Future<int> estimateSizeBytes();
+
+  @override
+  bool operator ==(Object other) {
+    return other is BoxInterface<K, T> &&
+        other.name == name &&
+        other.isIsolated == isIsolated &&
+        other.isLazy == isLazy &&
+        other._path == _path;
+  }
+
+  @override
+  int get hashCode =>
+      name.hashCode ^ isIsolated.hashCode ^ isLazy.hashCode ^ _path.hashCode;
+
+  @override
+  String toString() => _stringBox('BoxInterface', this);
 }
+
+String _stringBox<K, T>(String boxType, BoxInterface<K, T> box) =>
+    '$boxType [$K - $T] [${box.name}] (${box.isIsolated ? 'isolated, ' : ''}${box.isLazy ? 'lazy ' : ''}pth: ${box._path}) [${box.isInitialized ? 'initialized' : 'not initialized'}, ${box.isOpen ? 'open' : 'closed'}]';
 
 /// Internal helper interface for HivezBox implementations.
 ///
@@ -475,6 +494,9 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
       return 0;
     }
   }
+
+  @override
+  String toString() => _stringBox('BaseHivezBox', this);
 }
 
 abstract class AbstractHivezBox<K, T, B extends BoxBase<T>>
