@@ -1,3 +1,4 @@
+import 'package:hivez/src/exceptions/exceptions.dart';
 import 'package:meta/meta.dart';
 
 /// {@template box_not_initialized_exception}
@@ -23,15 +24,11 @@ import 'package:meta/meta.dart';
 ///
 /// {@endtemplate}
 @internal
-class BoxNotInitializedException implements Exception {
-  /// A human-readable message describing the error.
-  final String message;
-
+class BoxNotInitializedException extends HivezBoxException {
   /// Creates a new [BoxNotInitializedException] with the provided [message].
   ///
   /// The [message] should describe the context or reason for the exception.
-  BoxNotInitializedException(this.message);
-
-  @override
-  String toString() => 'HivezBoxInitException: $message';
+  BoxNotInitializedException(
+      {required super.boxName, super.cause, super.stackTrace})
+      : super(message: 'Box not initialized. Call ensureInitialized() first.');
 }

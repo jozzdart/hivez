@@ -294,7 +294,7 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
   B get box {
     if (_box == null) {
       throw BoxNotInitializedException(
-        "Box not initialized. Call ensureInitialized() first.",
+        boxName: name,
       );
     }
     return _box!;
