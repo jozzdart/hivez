@@ -85,6 +85,11 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
   @override
   Future<Iterable<T>> getValuesWhere(bool Function(T) condition) =>
       _internalBox.getValuesWhere(condition);
+
+  @override
+  Future<Iterable<K>> getKeysWhere(bool Function(K key, T value) condition) =>
+      _internalBox.getKeysWhere(condition);
+
   @override
   Future<T?> firstWhereOrNull(bool Function(T) condition) =>
       _internalBox.firstWhereOrNull(condition);
@@ -92,12 +97,21 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
   Future<T?> firstWhereContains(String query,
           {required String Function(T) searchableText}) =>
       _internalBox.firstWhereContains(query, searchableText: searchableText);
+
   @override
   Future<void> foreachValue(Future<void> Function(K, T) action) =>
       _internalBox.foreachValue(action);
   @override
   Future<void> foreachKey(Future<void> Function(K) action) =>
       _internalBox.foreachKey(action);
+
+  @override
+  Future<K?> firstKeyWhere(bool Function(K key, T value) condition) =>
+      _internalBox.firstKeyWhere(condition);
+
+  @override
+  Future<K?> searchKeyOf(T value) => _internalBox.searchKeyOf(value);
+
   @override
   Future<int> estimateSizeBytes() => _internalBox.estimateSizeBytes();
 }

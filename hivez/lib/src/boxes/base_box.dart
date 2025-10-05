@@ -181,6 +181,9 @@ abstract class BoxInterface<K, T> {
   /// Returns all values matching the given [condition] predicate.
   Future<Iterable<T>> getValuesWhere(bool Function(T) condition);
 
+  /// Returns all keys matching the given [condition] predicate.
+  Future<Iterable<K>> getKeysWhere(bool Function(K key, T value) condition);
+
   /// Returns the first value matching [condition], or `null` if none found.
   Future<T?> firstWhereOrNull(bool Function(T item) condition);
 
@@ -195,6 +198,12 @@ abstract class BoxInterface<K, T> {
 
   /// Iterates asynchronously over all keys, invoking [action] for each.
   Future<void> foreachKey(Future<void> Function(K key) action);
+
+  /// Returns the key for the given [value], or `null` if not found.
+  Future<K?> searchKeyOf(T value);
+
+  /// Returns the first key matching [condition], or `null` if none found.
+  Future<K?> firstKeyWhere(bool Function(K key, T value) condition);
 
   // ---------------------------------------------------------------------------
   // Box Management Operations
@@ -337,10 +346,46 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
   }
 
   @override
-  Future<Iterable<T>> getValuesWhere(bool Function(T) condition) async {
-    final values = await getAllValues();
-    return values.where(condition);
+  Future<Iterable<T>> getValuesWhere(bool Function(T value) condition) async {
+    final values = <T>[];
+    foreachValue((k, v) async {
+      if (condition(v)) {
+        values.add(v);
+      }
+    });
+    return values;
   }
+
+  @override
+  Future<Iterable<K>> getKeysWhere(
+      bool Function(K key, T value) condition) async {
+    final keys = <K>[];
+    foreachKey((k) async {
+      final v = await get(k);
+      if (v != null && condition(k, v)) {
+        keys.add(k);
+      }
+    });
+    return keys;
+  }
+
+  @override
+  Future<K?> firstKeyWhere(bool Function(K key, T value) condition) async {
+    final results = <K>[];
+    foreachValue(
+      (k, v) async {
+        if (condition(k, v)) {
+          results.add(k);
+          return;
+        }
+      },
+      breakCondition: () => results.isNotEmpty,
+    );
+    return results.firstOrNull;
+  }
+
+  @override
+  Future<K?> searchKeyOf(T value) => firstKeyWhere((k, v) => v == value);
 
   @override
   Future<T?> getAt(int index) => valueAt(index);
