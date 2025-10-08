@@ -162,7 +162,7 @@ All `HivezBox` types share the same complete API:
   - `restoreBackupJson()` — Import all data from JSON
   - `generateBackupCompressed()` — Export all data as compressed binary
   - `restoreBackupCompressed()` — Import all data from compressed binary
-  - `toMap()` — Convert full box to `Map<K, T>` (non-lazy boxes)
+  - `toMap()` — Convert full box to `Map<K, T>`
   - `estimateSizeBytes()` — Approximate in-memory size of all keys and values (bytes)
   - `search(query, searchableText, {page, pageSize, sortBy})` — Full-text search with optional pagination & sorting
 

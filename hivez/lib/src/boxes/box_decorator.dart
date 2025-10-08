@@ -124,4 +124,7 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
 
   @override
   String toString() => _stringBox('BoxDecorator', this);
+
+  @override
+  Future<Map<K, T>> toMap() => _internalBox.toMap();
 }

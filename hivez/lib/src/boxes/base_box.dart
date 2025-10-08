@@ -174,6 +174,9 @@ abstract class BoxInterface<K, T> {
   /// Emits [BoxEvent]s when the value changes.
   Stream<BoxEvent> watch(K key);
 
+  /// Returns a map containing all key-value pairs in the box.
+  Future<Map<K, T>> toMap();
+
   // ---------------------------------------------------------------------------
   // Query Operations
   // ---------------------------------------------------------------------------

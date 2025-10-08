@@ -93,6 +93,21 @@ class HivezBoxLazy<K, T> extends AbstractHivezBox<K, T, LazyBox<T>> {
   }
 
   @override
+  Future<Map<K, T>> toMap() async {
+    return _executeRead(
+      () async {
+        final keys = box.keys.cast<K>();
+        final Map<K, T> map = {};
+        for (final key in keys) {
+          final value = await box.get(key);
+          if (value != null) map[key] = value;
+        }
+        return map;
+      },
+    );
+  }
+
+  @override
   Future<T?> valueAt(int index) async {
     return _executeRead(() => box.getAt(index));
   }
