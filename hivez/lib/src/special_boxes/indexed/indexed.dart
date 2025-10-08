@@ -3,7 +3,6 @@ import 'package:hivez/src/boxes/boxes.dart';
 import 'package:hivez/src/builders/builders.dart';
 import 'package:hivez/src/exceptions/box_exception.dart';
 import 'package:hivez/src/special_boxes/configured/configured_box.dart';
-import 'package:synchronized/synchronized.dart';
 
 part 'engine.dart';
 part 'journal.dart';
@@ -12,15 +11,14 @@ part 'search.dart';
 part 'analyzer.dart';
 part 'extensions.dart';
 part 'exceptions.dart';
+part 'lock.dart';
 
 class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   final IndexEngine<K, T> _engine;
   final IndexJournal _journal;
   final TokenKeyCache<K> _cache;
+  late final IndexedBoxLocker _lock;
   late final IndexSearcher<K, T> _searcher;
-
-  // Concurrency (single-isolate)
-  final Lock _writeLock = Lock();
 
   IndexedBox(
     super.config, {
@@ -49,6 +47,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
       ensureReady: ensureInitialized,
       getValue: super.get,
     );
+    _lock = IndexedBoxLocker(this);
   }
 
   factory IndexedBox.create(
@@ -84,23 +83,6 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
         keyComparator: keyComparator,
       );
 
-  Future<R> _safeWrite<R>(String opName, Future<R> Function() body) async {
-    try {
-      return await _writeTxn(body);
-    } catch (e, st) {
-      _log(
-          '[ERROR with Indexed Box: ${config.name}] [$opName] Unexpected error: $e\n$st');
-      rethrow;
-    }
-  }
-
-  // Small helper so every write uses the same discipline.
-  Future<R> _writeTxn<R>(Future<R> Function() body) =>
-      _writeLock.synchronized(() async {
-        await ensureInitialized();
-        return await _journal.runWrite(body);
-      });
-
   // -----------------------------------------------------------------------------
   // Lifecycle
   // -----------------------------------------------------------------------------
@@ -116,7 +98,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
     await super.ensureInitialized(); // main box
 
     if (await _journal.isDirty()) {
-      _log('Dirty flag detected → rebuilding index');
+      config.logger?.call('Dirty flag detected → rebuilding index');
       try {
         await rebuildIndex();
       } catch (e, st) {
@@ -130,7 +112,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   // -----------------------------------------------------------------------------
   @override
   Future<void> flushBox() async {
-    await _safeWrite('FLUSH_BOX', () async {
+    await _lock.operation("FLUSH_BOX").run(() async {
       await _engine.flushBox();
       await _journal.flushBox();
       await super.flushBox();
@@ -139,7 +121,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
 
   @override
   Future<void> compactBox() async {
-    await _safeWrite('COMPACT_BOX', () async {
+    await _lock.operation("COMPACT_BOX").run(() async {
       await _engine.compactBox();
       await _journal.compactBox();
       await super.compactBox();
@@ -148,7 +130,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
 
   @override
   Future<void> closeBox() async {
-    await _safeWrite('CLOSE_BOX', () async {
+    await _lock.operation("CLOSE_BOX").run(() async {
       await _engine.flushBox();
       await _journal.flushBox();
       await super.flushBox();
@@ -161,7 +143,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
 
   @override
   Future<void> deleteFromDisk() async {
-    await _safeWrite('DELETE_FROM_DISK', () async {
+    await _lock.operation("DELETE_FROM_DISK").run(() async {
       _cache.clear();
       await _engine.deleteFromDisk();
       await _journal.deleteFromDisk();
@@ -171,7 +153,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
 
   /// Clears runtime caches + resets journal (no persistent data loss).
   Future<void> resetRuntimeState() async {
-    await _safeWrite('RESET_RUNTIME_STATE', () async {
+    await _lock.operation("RESET_RUNTIME_STATE").run(() async {
       _cache.clear();
       await _journal.reset();
     });
@@ -189,7 +171,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   // Write path (all wrapped in _writeTxn)
   // -----------------------------------------------------------------------------
   @override
-  Future<void> put(K key, T value) => _safeWrite('PUT', () async {
+  Future<void> put(K key, T value) => _lock.operation("PUT").run(() async {
         final old = await super.get(key);
         await super.put(key, value);
         await _engine.onPut(key, value, oldValue: old);
@@ -200,7 +182,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   @override
   Future<void> putAll(Map<K, T> entries) {
     if (entries.isEmpty) return Future.value();
-    return _safeWrite('PUT_ALL', () async {
+    return _lock.operation("PUT_ALL").run(() async {
       final olds = <K, T>{};
       for (final e in entries.entries) {
         final v = await super.get(e.key);
@@ -218,7 +200,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   }
 
   @override
-  Future<int> add(T value) => _safeWrite('ADD', () async {
+  Future<int> add(T value) => _lock.operation("ADD").run(() async {
         final id = await super.add(value);
         await _engine.onPut(id as K, value);
         _invalidateTokensFor(value);
@@ -228,7 +210,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   @override
   Future<void> addAll(Iterable<T> values) {
     if (values.isEmpty) return Future.value();
-    return _safeWrite('ADD_ALL', () async {
+    return _lock.operation("ADD_ALL").run(() async {
       final news = <K, T>{};
       for (final v in values) {
         final id = await super.add(v);
@@ -240,7 +222,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   }
 
   @override
-  Future<void> delete(K key) => _safeWrite('DELETE', () async {
+  Future<void> delete(K key) => _lock.operation("DELETE").run(() async {
         final old = await super.get(key);
         await super.delete(key);
         if (old != null) {
@@ -253,7 +235,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   Future<void> deleteAll(Iterable<K> keys) {
     final unique = keys is Set<K> ? keys : keys.toSet();
     if (unique.isEmpty) return Future.value();
-    return _safeWrite('DELETE_ALL', () async {
+    return _lock.operation("DELETE_ALL").run(() async {
       final olds = <K, T>{};
       for (final k in unique) {
         final v = await super.get(k);
@@ -270,7 +252,8 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   }
 
   @override
-  Future<void> deleteAt(int index) => _safeWrite('DELETE_AT', () async {
+  Future<void> deleteAt(int index) =>
+      _lock.operation("DELETE_AT").run(() async {
         final k = await super.keyAt(index);
         final old = await super.get(k);
         await super.deleteAt(index);
@@ -281,14 +264,15 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
       });
 
   @override
-  Future<void> clear() => _safeWrite('CLEAR', () async {
+  Future<void> clear() => _lock.operation("CLEAR").run(() async {
         await super.clear();
         await _engine.clear();
         _cache.clear();
       });
 
   @override
-  Future<void> putAt(int index, T value) => _safeWrite('PUT_AT', () async {
+  Future<void> putAt(int index, T value) =>
+      _lock.operation("PUT_AT").run(() async {
         final k = await super.keyAt(index);
         final old = await super.get(k);
         await super.putAt(index, value);
@@ -298,7 +282,8 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
       });
 
   @override
-  Future<bool> moveKey(K oldKey, K newKey) => _safeWrite('MOVE_KEY', () async {
+  Future<bool> moveKey(K oldKey, K newKey) =>
+      _lock.operation("MOVE_KEY").run(() async {
         final v = await super.get(oldKey);
         if (v == null) return false;
         final moved = await super.moveKey(oldKey, newKey);
@@ -326,7 +311,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   // Rebuild index (journaled)
   // -----------------------------------------------------------------------------
   Future<void> rebuildIndex({void Function(double progress)? onProgress}) =>
-      _safeWrite('REBUILD_INDEX', () async {
+      _lock.operation("REBUILD_INDEX").run(() async {
         await _engine.clear();
         _cache.clear();
 
@@ -369,10 +354,6 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   void _invalidateTokensFor(T? value) {
     if (value == null) return;
     _cache.invalidateTokens(_analyze(value));
-  }
-
-  void _log(String msg) {
-    config.logger?.call(msg);
   }
 
   @override

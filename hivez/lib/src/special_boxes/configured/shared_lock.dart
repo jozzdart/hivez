@@ -9,12 +9,12 @@ class SharedLock {
     Lock? overrideLock,
   }) : _lock = overrideLock ?? Lock();
 
-  Future<R> runOperation<R>(Future<R> Function() body, {String? opName}) async {
+  Future<R> runOperation<R>(Future<R> Function() body, {String? name}) async {
     try {
       return await _run(body);
     } catch (e, st) {
       if (onError != null) {
-        await onError!(opName ?? 'Unknown', e, st);
+        await onError!(name ?? 'Unknown', e, st);
       }
       rethrow;
     }
