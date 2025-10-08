@@ -338,7 +338,6 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
           if (processed % chunk == 0) {
             await flush();
             onProgress?.call(total == 0 ? 1.0 : processed / total);
-            await Future<void>.delayed(Duration.zero);
           }
         });
 

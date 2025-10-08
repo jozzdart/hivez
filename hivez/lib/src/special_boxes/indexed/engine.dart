@@ -26,14 +26,14 @@ class IndexEngine<K, T> extends ConfiguredBox<String, List<K>> {
 
     if (olds != null && olds.isNotEmpty) {
       for (final e in olds.entries) {
-        for (final token in analyzer.analyze(e.value).toSet()) {
+        for (final token in analyzer.analyze(e.value)) {
           (removals[token] ??= <K>{}).add(e.key);
         }
       }
     }
     if (news.isNotEmpty) {
       for (final e in news.entries) {
-        for (final token in analyzer.analyze(e.value).toSet()) {
+        for (final token in analyzer.analyze(e.value)) {
           (additions[token] ??= <K>{}).add(e.key);
         }
       }
@@ -45,7 +45,7 @@ class IndexEngine<K, T> extends ConfiguredBox<String, List<K>> {
   Future<void> onDeleteMany(Map<K, T> olds) async {
     final removals = <String, Set<K>>{};
     for (final e in olds.entries) {
-      for (final token in analyzer.analyze(e.value).toSet()) {
+      for (final token in analyzer.analyze(e.value)) {
         (removals[token] ??= <K>{}).add(e.key);
       }
     }
@@ -71,7 +71,7 @@ class IndexEngine<K, T> extends ConfiguredBox<String, List<K>> {
 
   Future<void> _addKeyToTokens(K key, T value) async {
     final payload = <String, List<K>>{};
-    for (final token in analyzer.analyze(value).toSet()) {
+    for (final token in analyzer.analyze(value)) {
       final existing = await get(token) ?? <K>[];
       if (!existing.contains(key)) {
         payload[token] = List<K>.from(existing)..add(key);
@@ -86,7 +86,7 @@ class IndexEngine<K, T> extends ConfiguredBox<String, List<K>> {
 
   Future<void> _removeKeyFromTokens(K key, T value) async {
     final payload = <String, List<K>?>{};
-    for (final token in analyzer.analyze(value).toSet()) {
+    for (final token in analyzer.analyze(value)) {
       final existing = await get(token);
       if (existing == null) continue;
       final next = List<K>.from(existing)..remove(key);
