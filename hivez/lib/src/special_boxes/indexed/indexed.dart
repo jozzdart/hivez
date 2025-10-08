@@ -2,6 +2,7 @@ import 'package:hive_ce/hive.dart';
 import 'package:hivez/src/boxes/boxes.dart';
 import 'package:hivez/src/builders/builders.dart';
 import 'package:hivez/src/exceptions/box_exception.dart';
+import 'package:hivez/src/special_boxes/configured/configured_box.dart';
 import 'package:synchronized/synchronized.dart';
 
 part 'engine.dart';
