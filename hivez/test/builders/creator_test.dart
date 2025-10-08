@@ -101,7 +101,7 @@ void main() {
     test('should wrap the box from config', () {
       final configured = ConfiguredBox<String, int>(config);
       expect(configured.type, BoxType.lazy);
-      expect(configured.logger, config.logger);
+      expect(configured.config.logger, config.logger);
       expect(configured.config.name, 'configured');
     });
   });
