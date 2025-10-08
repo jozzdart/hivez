@@ -12,7 +12,12 @@ export 'builders/builders.dart'
         BoxCreator,
         BoxType,
         BoxConfig,
-        BoxConfigExtensions,
-        BoxInterfaceExtensions;
+        CreationExtensionsBoxConfig,
+        GetTypeOfBoxInterfaceExtension,
+        CreationExtensionsBoxType;
 export 'special_boxes/special_boxes.dart'
-    show HivezBoxIndexed, TextAnalyzer, CreateIndexedBoxExtensions;
+    show
+        HivezBoxIndexed,
+        TextAnalyzer,
+        CreateIndexedBoxFromConfig,
+        CreateIndexedBoxFromType;
