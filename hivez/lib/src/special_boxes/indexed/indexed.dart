@@ -12,7 +12,7 @@ part 'analyzer.dart';
 part 'extensions.dart';
 part 'exceptions.dart';
 
-class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
+class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   final IndexEngine<K, T> _engine;
   final IndexJournal _journal;
   final TokenKeyCache<K> _cache;
@@ -21,7 +21,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
   // Concurrency (single-isolate)
   final Lock _writeLock = Lock();
 
-  HivezBoxIndexed(
+  IndexedBox(
     super.config, {
     required String Function(T) searchableText,
     bool matchAllTokens = true,
@@ -50,7 +50,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     );
   }
 
-  factory HivezBoxIndexed.create(
+  factory IndexedBox.create(
     String name, {
     BoxType type = BoxType.regular,
     required String Function(T) searchableText,
@@ -65,7 +65,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
     bool verifyMatches = false,
     int Function(K a, K b)? keyComparator,
   }) =>
-      HivezBoxIndexed<K, T>(
+      IndexedBox<K, T>(
         BoxConfig(
           name,
           type: type,
@@ -376,7 +376,7 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
 
   @override
   bool operator ==(Object other) =>
-      other is HivezBoxIndexed<K, T> &&
+      other is IndexedBox<K, T> &&
       other._engine == _engine &&
       other._journal == _journal &&
       other._cache == _cache &&

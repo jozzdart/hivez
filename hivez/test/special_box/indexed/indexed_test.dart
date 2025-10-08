@@ -48,7 +48,7 @@ void main() {
     for (final size in _sizes) {
       group('size = $size', () {
         late HivezBoxIsolatedLazy<int, String> base;
-        late HivezBoxIndexed<int, String> indexed;
+        late IndexedBox<int, String> indexed;
 
         setUp(() async {
           base = HivezBoxIsolatedLazy<int, String>('bench_base_$size');
@@ -56,7 +56,7 @@ void main() {
           await base.clear();
 
           final config = BoxConfig.isolatedLazy('bench_idx_$size');
-          indexed = HivezBoxIndexed<int, String>(
+          indexed = IndexedBox<int, String>(
             config,
             searchableText: (s) => s,
             matchAllTokens: false,

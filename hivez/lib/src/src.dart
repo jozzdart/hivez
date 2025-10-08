@@ -17,7 +17,7 @@ export 'builders/builders.dart'
         CreationExtensionsBoxType;
 export 'special_boxes/special_boxes.dart'
     show
-        HivezBoxIndexed,
+        IndexedBox,
         TextAnalyzer,
         CreateIndexedBoxFromConfig,
         CreateIndexedBoxFromType;

@@ -1,7 +1,7 @@
 part of 'indexed.dart';
 
 extension CreateIndexedBoxFromConfig<K, T> on BoxConfig {
-  HivezBoxIndexed<K, T> indexedBox({
+  IndexedBox<K, T> indexedBox({
     required String Function(T) searchableText,
     TextAnalyzer<T>? analyzer,
     bool matchAllTokens = true,
@@ -9,7 +9,7 @@ extension CreateIndexedBoxFromConfig<K, T> on BoxConfig {
     bool verifyMatches = false,
     int Function(K a, K b)? keyComparator,
   }) {
-    return HivezBoxIndexed<K, T>(
+    return IndexedBox<K, T>(
       this,
       analyzer: analyzer,
       searchableText: searchableText,
@@ -22,7 +22,7 @@ extension CreateIndexedBoxFromConfig<K, T> on BoxConfig {
 }
 
 extension CreateIndexedBoxFromType<K, T> on BoxType {
-  HivezBoxIndexed<K, T> indexedBox(
+  IndexedBox<K, T> indexedBox(
     String name, {
     HiveCipher? encryptionCipher,
     bool crashRecovery = true,
@@ -36,7 +36,7 @@ extension CreateIndexedBoxFromType<K, T> on BoxType {
     bool verifyMatches = false,
     int Function(K a, K b)? keyComparator,
   }) =>
-      HivezBoxIndexed<K, T>(
+      IndexedBox<K, T>(
         boxConfig(
           name,
           encryptionCipher: encryptionCipher,

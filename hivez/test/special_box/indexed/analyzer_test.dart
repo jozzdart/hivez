@@ -36,7 +36,7 @@ void main() {
           final analyzer = entry.value;
 
           final config = BoxConfig.lazy('bench_${label}_$size');
-          final box = HivezBoxIndexed<int, String>(
+          final box = IndexedBox<int, String>(
             config,
             searchableText: (s) => s,
             analyzer: analyzer,
