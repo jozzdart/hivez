@@ -9,13 +9,11 @@ enum BoxType {
 }
 
 extension GetTypeOfBoxInterfaceExtension<K, T> on BoxInterface<K, T> {
-  BoxType get type => switch (this) {
-        HivezBox<K, T>() => BoxType.regular,
-        HivezBoxLazy<K, T>() => BoxType.lazy,
-        HivezBoxIsolated<K, T>() => BoxType.isolated,
-        HivezBoxIsolatedLazy<K, T>() => BoxType.isolatedLazy,
-        _ => throw Exception('Unknown box type'),
-      };
+  BoxType get type {
+    if (isIsolated) return isLazy ? BoxType.isolatedLazy : BoxType.isolated;
+    if (isLazy) return BoxType.lazy;
+    return BoxType.regular;
+  }
 }
 
 class BoxConfig {
