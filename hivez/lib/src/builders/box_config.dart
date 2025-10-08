@@ -152,3 +152,42 @@ extension BoxConfigExtensions on BoxConfig {
 
   ConfiguredBox<K, T> createConfiguredBox<K, T>() => ConfiguredBox(this);
 }
+
+extension CreationExtensionsBoxType on BoxType {
+  BoxConfig boxConfig(
+    String name, {
+    HiveCipher? encryptionCipher,
+    bool crashRecovery = true,
+    String? path,
+    String? collection,
+    LogHandler? logger,
+  }) =>
+      BoxConfig(
+        name,
+        type: this,
+        encryptionCipher: encryptionCipher,
+        crashRecovery: crashRecovery,
+        path: path,
+        collection: collection,
+        logger: logger,
+      );
+
+  BoxInterface<K, T> createBox<K, T>(
+    String name, {
+    HiveCipher? encryptionCipher,
+    bool crashRecovery = true,
+    String? path,
+    String? collection,
+    LogHandler? logger,
+  }) =>
+      BoxCreator.boxFromConfig<K, T>(
+        boxConfig(
+          name,
+          encryptionCipher: encryptionCipher,
+          crashRecovery: crashRecovery,
+          path: path,
+          collection: collection,
+          logger: logger,
+        ),
+      );
+}

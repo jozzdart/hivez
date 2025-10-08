@@ -1,3 +1,5 @@
+import 'package:hive_ce/hive.dart';
+import 'package:hivez/src/boxes/boxes.dart';
 import 'package:hivez/src/builders/builders.dart';
 import 'package:hivez/src/exceptions/box_exception.dart';
 import 'package:synchronized/synchronized.dart';
@@ -47,6 +49,39 @@ class HivezBoxIndexed<K, T> extends ConfiguredBox<K, T> {
       getValue: super.get,
     );
   }
+
+  factory HivezBoxIndexed.create(
+    String name, {
+    BoxType type = BoxType.regular,
+    required String Function(T) searchableText,
+    HiveCipher? encryptionCipher,
+    bool crashRecovery = true,
+    String? path,
+    String? collection,
+    LogHandler? logger,
+    TextAnalyzer<T>? analyzer,
+    bool matchAllTokens = true,
+    int tokenCacheCapacity = 512,
+    bool verifyMatches = false,
+    int Function(K a, K b)? keyComparator,
+  }) =>
+      HivezBoxIndexed<K, T>(
+        BoxConfig(
+          name,
+          type: type,
+          encryptionCipher: encryptionCipher,
+          crashRecovery: crashRecovery,
+          path: path,
+          collection: collection,
+          logger: logger,
+        ),
+        searchableText: searchableText,
+        analyzer: analyzer,
+        matchAllTokens: matchAllTokens,
+        tokenCacheCapacity: tokenCacheCapacity,
+        verifyMatches: verifyMatches,
+        keyComparator: keyComparator,
+      );
 
   Future<R> _safeWrite<R>(String opName, Future<R> Function() body) async {
     try {
