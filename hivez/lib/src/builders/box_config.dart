@@ -8,7 +8,7 @@ enum BoxType {
   isolatedLazy,
 }
 
-extension BoxInterfaceExtensions<K, T> on BoxInterface<K, T> {
+extension GetTypeOfBoxInterfaceExtension<K, T> on BoxInterface<K, T> {
   BoxType get type => switch (this) {
         HivezBox<K, T>() => BoxType.regular,
         HivezBoxLazy<K, T>() => BoxType.lazy,
@@ -147,7 +147,7 @@ class BoxConfig {
       'BoxConfig($name, $type, cRec: $crashRecovery, pth: $path, col: $collection, log: $logger)';
 }
 
-extension BoxConfigExtensions on BoxConfig {
+extension CreationExtensionsBoxConfig on BoxConfig {
   BoxInterface<K, T> createBox<K, T>() => BoxCreator.boxFromConfig(this);
 
   ConfiguredBox<K, T> createConfiguredBox<K, T>() => ConfiguredBox(this);

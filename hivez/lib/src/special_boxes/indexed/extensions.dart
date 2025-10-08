@@ -1,6 +1,6 @@
 part of 'indexed.dart';
 
-extension CreateIndexedBoxExtensions<K, T> on BoxConfig {
+extension CreateIndexedBoxFromConfig<K, T> on BoxConfig {
   HivezBoxIndexed<K, T> indexedBox({
     required String Function(T) searchableText,
     TextAnalyzer<T>? analyzer,
