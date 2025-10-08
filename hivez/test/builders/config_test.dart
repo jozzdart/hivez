@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:hivez/hivez.dart';
+import 'package:hivez/src/special_boxes/configured/configured_box.dart';
 
 import '../utils/test_setup.dart'; // or the correct import path for your library
 

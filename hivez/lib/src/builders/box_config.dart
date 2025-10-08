@@ -1,4 +1,3 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 part of 'builders.dart';
 
 enum BoxType {
@@ -145,10 +144,8 @@ class BoxConfig {
       'BoxConfig($name, $type, cRec: $crashRecovery, pth: $path, col: $collection, log: $logger)';
 }
 
-extension CreationExtensionsBoxConfig on BoxConfig {
+extension CreateHivezBoxFromConfig on BoxConfig {
   BoxInterface<K, T> createBox<K, T>() => BoxCreator.boxFromConfig(this);
-
-  ConfiguredBox<K, T> createConfiguredBox<K, T>() => ConfiguredBox(this);
 }
 
 extension CreationExtensionsBoxType on BoxType {
