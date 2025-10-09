@@ -37,8 +37,9 @@ extension CreateIndexedBoxFromType<K, T> on BoxType {
     int Function(K a, K b)? keyComparator,
   }) =>
       IndexedBox<K, T>(
-        boxConfig(
+        BoxConfig(
           name,
+          type: this,
           encryptionCipher: encryptionCipher,
           crashRecovery: crashRecovery,
           path: path,

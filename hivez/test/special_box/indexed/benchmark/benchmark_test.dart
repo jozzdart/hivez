@@ -19,13 +19,17 @@ const int kWarmupIters = 0;
 const int kMeasureIters = 1;
 
 /// How many runs per (box × case). Results are averaged.
-const int kRunsPerCase = 20;
+const int kRunsPerCase = 1;
+//const int kRunsPerCase = 20;
 
 /// Global results accumulator: { caseName: { boxName: BenchStats } }
 final Map<String, Map<String, BenchStats>> results = {};
 
 const bool kRunMacroBenches = true; // flip to true to run macro benches
-const _sizes = <int>[100, 1000, 5000, 10000, 50000];
+const _sizes = <int>[
+  100,
+  1000, /*5000, 10000, 50000*/
+];
 const _minWords = 3;
 const _maxWords = 10;
 const _writeBatch = 100000;

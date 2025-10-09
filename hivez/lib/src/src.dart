@@ -9,12 +9,15 @@ export 'boxes/boxes.dart'
 export 'extensions/extensions.dart';
 export 'builders/builders.dart'
     show
+        Box,
         BoxCreator,
         BoxType,
         BoxConfig,
         CreateHivezBoxFromConfig,
         GetTypeOfBoxInterfaceExtension,
-        CreationExtensionsBoxType;
+        CreationExtensionsBoxType,
+        CreateBoxFromConfigExtensions,
+        CreateBoxFromTypeExtensions;
 export 'special_boxes/special_boxes.dart'
     show
         IndexedBox,
