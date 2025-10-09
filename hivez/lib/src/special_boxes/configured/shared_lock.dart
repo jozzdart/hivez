@@ -27,3 +27,7 @@ class SharedLock {
   Future<R> _run<R>(Future<R> Function() body) =>
       _lock.synchronized(() => runner(body));
 }
+
+extension SharedLockExtension on SharedLock {
+  Lock get internalLock => _lock;
+}

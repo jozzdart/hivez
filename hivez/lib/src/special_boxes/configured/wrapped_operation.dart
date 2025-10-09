@@ -9,7 +9,6 @@ class LockedOperation {
     required SharedLock lock,
   }) : _lock = lock;
 
-  Future<T> run<T>(Future<T> Function() operation) async {
-    return _lock.runOperation(operation, name: name);
-  }
+  Future<T> run<T>(Future<T> Function() operation) =>
+      _lock.runOperation(operation, name: name);
 }
