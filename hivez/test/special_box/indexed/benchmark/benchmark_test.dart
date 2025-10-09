@@ -13,22 +13,22 @@ import 'words.dart';
 /// ─────────────────────────────────────────────────────────────────────────
 
 /// How many warmup iterations (not recorded)
-const int kWarmupIters = 1;
+const int kWarmupIters = 0;
 
 /// How many measured iterations per run
-const int kMeasureIters = 3;
+const int kMeasureIters = 1;
 
 /// How many runs per (box × case). Results are averaged.
-const int kRunsPerCase = 10;
+const int kRunsPerCase = 20;
 
 /// Global results accumulator: { caseName: { boxName: BenchStats } }
 final Map<String, Map<String, BenchStats>> results = {};
 
 const bool kRunMacroBenches = true; // flip to true to run macro benches
-const _sizes = <int>[50, 200, 500, 2000, 10000];
+const _sizes = <int>[100, 1000, 5000, 10000, 50000];
 const _minWords = 3;
 const _maxWords = 10;
-const _writeBatch = 1000;
+const _writeBatch = 100000;
 
 /// Order of boxes (for printing columns consistently)
 final List<String> boxColumnOrder = [];
@@ -39,9 +39,8 @@ class BenchStats {
   BenchStats(this.runMillis);
 
   int get totalMs => runMillis.fold(0, (a, b) => a + b);
-  double get avgMs => runMillis.isEmpty ? 0 : totalMs / runMillis.length;
-  double get avgUsPerOp =>
-      (avgMs * 1000.0) / (kMeasureIters); // microseconds per operation
+  double get avgMs =>
+      (runMillis.isEmpty ? 0 : totalMs / runMillis.length) / 1000;
 }
 
 /// A benchmark operation applied per-iteration to a box.
@@ -136,7 +135,7 @@ class BenchSuite<K, T> {
             await c.op(box, base + kWarmupIters + i);
           }
           sw.stop();
-          runMillis.add(sw.elapsedMilliseconds);
+          runMillis.add(sw.elapsedMicroseconds);
 
           // ── Reset + finalize this run ─────────────────────────────────────
           if (!config.openOnce) {
@@ -296,6 +295,7 @@ void main() {
 
   group('Macro benchmarks (populate many random items)', () {
     for (final size in _sizes) {
+      final sizeStr = (size * kMeasureIters).toString();
       test(
         'populate_putAll_$size (HivezBox vs IndexedBox)',
         () async {
@@ -311,10 +311,15 @@ void main() {
           );
 
           // One block case that does the whole populate in one timed run.
-          suite.registerCase(BlockBenchCase<int, String>(
-            name: 'Put many - n_$size',
+          suite.registerPreparedCase(PreparedBlockBenchCase<int, String>(
+            name: 'Put many - n_$sizeStr',
             description: 'putAll random $size items (batched $_writeBatch)',
-            runOnce: (box) async {
+            preparePerRun: (box) async {
+              await box.clear();
+              await box.flushBox();
+            },
+            // TIMED: run just the search
+            measured: (box) async {
               final gen = _DeterministicData(seed: 1000 + size);
               final entries = _buildDataset(size, gen);
               await _populateWithEntries(box, entries);
@@ -322,7 +327,7 @@ void main() {
           ));
 
           suite.registerPreparedCase(PreparedBlockBenchCase<int, String>(
-            name: 'Query Search - n_$size',
+            name: 'Query Search - n_$sizeStr',
             description: 'search inside $size items (search only timed)',
             // NOT TIMED: populate the dataset
             preparePerRun: (box) async {
@@ -494,7 +499,7 @@ class MacroBenchSuite<K, T> {
           final sw = Stopwatch()..start();
           await c.runOnce(box);
           sw.stop();
-          runMillis.add(sw.elapsedMilliseconds);
+          runMillis.add(sw.elapsedMicroseconds);
 
           if (!config.openOnce) {
             await _resetAfterRun(box, config.isolation);
@@ -561,7 +566,7 @@ class MacroBenchSuite<K, T> {
             await c.measured(box);
           }
           sw.stop();
-          runMillis.add(sw.elapsedMilliseconds);
+          runMillis.add(sw.elapsedMicroseconds);
 
           // Reset between runs
           if (!config.openOnce) {
@@ -643,9 +648,6 @@ Future<void> _populateWithEntries(
   BoxInterface<int, String> box,
   Map<int, String> entries,
 ) async {
-  await box.ensureInitialized();
-  await box.clear();
-
   if (entries.length <= _writeBatch) {
     await box.putAll(entries);
     return;
