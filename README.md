@@ -26,7 +26,13 @@ Meet `Hivez` — the smart, type-safe way to use **_Hive_** (using the [`hive_ce
   - [Examples](#examples)
 - [Setup Guide for `hive_ce`](#-setup-guide-for-hive_ce)
 - [Quick Setup `hive_ce` (no explanations)](#-quick-setup-hive_ce-no-explanations)
-- [Clean Architecture with `Hivez`](#️-clean-architecture-with-hivez)
+- [`IndexedBox` (Ultra Fast Searches)](#-indexedbox--ultra-fast-full-text-search-for-hive)
+  - [Benchmarks](#benchmarks)
+  - [Quick Start](#-instantly-switch-from-a-normal-box-even-from-hive)
+  - [Examples](#indexedbox---examples)
+  - [Settings & Options](#-settings--options)
+  - [Analyzers](#-analyzer--how-text-is-broken-into-tokens)
+- [Clean Architecture with `Hivez`](#clean-architecture-with-hivez)
 - [FAQ / Common Pitfalls](#-faq--common-pitfalls)
 - [Performance & Safety](#performance--safety)
 - [Why `Hivez`?](#why-hivez)
@@ -416,7 +422,534 @@ Future<void> main() async {
 }
 ```
 
-# 🏗️ Clean Architecture with `Hivez`
+# 🚀 `IndexedBox` — Ultra-Fast Full-Text Search for Hive
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
+
+**What it is:** a drop-in replacement for `HivezBox` that adds a tiny **on-disk inverted index**.
+You keep the **same API**, but get **instant keyword/prefix/substring search** with ~**`1–3 ms`** queries on thousands of items.
+
+### Why use it:
+
+- **Blazing search:** stop scanning; lookups hit the index.
+  - _50,000 items:_ **4149.60 ms → 2.46 ms** (~**1,687×** faster).
+  - _500 items:_ **125.20 ms → 1.10 ms** (~**114×** faster).
+- **Zero friction:** same `Hivez` API + `search()`/`searchKeys()` helpers.
+- **Robust by design:** journaled writes, auto-rebuild on mismatch, and an LRU cache for hot tokens.
+- **Configurable:** choose `basic`, `prefix`, or `ngram` analyzers; toggle AND/OR matching; optional result verification.
+
+```dart
+final articles = indexedBox.search('flut dart dev'); // Blazing fast search
+```
+
+> Heads-up: writes cost more than a plain box (the index is maintained on each mutation). If you do heavy bulk inserts, you can batch with `putAll` and still enjoy ultra-fast reads.
+
+- [**Benchmarks** - how fast it is](#benchmarks)
+- [**Instantly `Switch` from a Normal Box** (Even from Hive!)](#-instantly-switch-from-a-normal-box-even-from-hive)
+- [**Examples** - how to use `IndexedBox`](#indexedbox---examples)
+- [**Settings & Options** - how to tune it](#-settings--options)
+- [**Analyzers** - how text is broken into tokens](#-analyzer--how-text-is-broken-into-tokens)
+
+## Benchmarks
+
+#### 🔎 Full-text search (query)
+
+| Items in box | `Box` (avg `ms`) | `IndexedBox` (avg ms) |  Improvement |
+| ------------ | ---------------: | --------------------: | -----------: |
+| 100          |            11.50 |              **1.56** |     ≈ **7×** |
+| 1,000        |            85.14 |              **1.42** |    ≈ **60×** |
+| 5,000        |           426.87 |              **1.34** |   ≈ **319×** |
+| 10,000       |           833.39 |              **1.43** |   ≈ **583×** |
+| 50,000       |          4149.68 |              **2.46** | ≈ **1,687×** |
+
+#### 📥 Bulk inserts (put many)
+
+| Items inserted per run | `Box` (avg `ms`) | `IndexedBox` (avg `ms`) | Cost of indexing |
+| ---------------------- | ---------------: | ----------------------: | ---------------: |
+| 100                    |             1.32 |                   25.57 |        ≈ **19×** |
+| 1,000                  |             1.78 |                   32.72 |        ≈ **18×** |
+| 5,000                  |             5.92 |                   94.96 |        ≈ **16×** |
+| 10,000                 |            13.47 |                  177.99 |        ≈ **13×** |
+| 50,000                 |            56.53 |                  830.24 |        ≈ **14×** |
+
+> Writes are naturally slower on `IndexedBox` due to index maintenance — but searches are **orders of magnitude faster**, which is ideal for text-heavy or search-first workloads.
+
+### 🔄 Instantly Switch from a Normal Box (Even from Hive!)
+
+You don’t need to migrate or rebuild anything — `IndexedBox` is a **drop-in upgrade** for your existing Hive or Hivez boxes.
+It reads all your current data, keeps it fully intact, and automatically creates a search index behind the scenes.
+
+All the same CRUD functions (`put`, `get`, `delete`, `foreachValue`, etc.) still work exactly the same —
+you just gain ultra-fast search on top.
+(See [Available Methods](#-available-methods) for the full API list.)
+
+#### Example — from Hive 🐝 → IndexedBox ⚡
+
+```dart
+// Before: plain Hive or Hivez box
+final notes = Hive.box<String>('notes'); //or: HivezBox<int, Note>('notes');
+
+// After: one-line switch to IndexedBox
+final notes = IndexedBox<int, Note>.create(
+  'notes',
+  searchableText: (n) => n.content,
+);
+```
+
+> That’s it — your data is still there, no re-saving needed.  
+> When the box opens for the first time, the index is built automatically (a one-time process).  
+> After that, all writes and deletes update the index in real time.
+
+#### Now you can search instantly
+
+```dart
+final results = await notes.search('meeting notes');
+print(results); // [Note(...), Note(...)]
+```
+
+✅ Keeps all your existing data  
+✅ Works even if the box was created with raw Hive  
+✅ Same methods and API — just faster, smarter, searchable
+
+> 💡 You can freely switch back and forth between `HivezBox` and `IndexedBox`.  
+> The data always stays compatible — `IndexedBox` simply adds its own index boxes under the hood.
+
+# `IndexedBox` - Examples
+
+> _[⤴️ Back](#-indexedbox--ultra-fast-full-text-search-for-hive) → IndexedBox_
+
+### 📦 Create an `IndexedBox`
+
+This works just like a normal `HivezBox`, but adds a built-in **on-disk index** for fast text search.
+
+```dart
+final box = IndexedBox<String, Article>.create(
+  'articles',
+  searchableText: (a) => '${a.title} ${a.content}',
+);
+```
+
+That’s it — no adapters, no schema, no rebuilds.
+
+### ➕ Add some data
+
+You can insert items the same way as a normal Hive box:
+
+```dart
+await box.putAll({
+  '1': Article('Flutter and Dart', 'Cross-platform development made easy'),
+  '2': Article('Hive Indexing', 'Instant full-text search with IndexedBox'),
+  '3': Article('State Management', 'Cubit, Bloc, and Provider compared'),
+});
+```
+
+### 🔍 Search instantly
+
+Now you can query by **any keyword**, **prefix**, or even **multiple terms**:
+
+```dart
+final results = await box.search('flut dev');
+print(results); // [Article('Flutter and Dart', ...)]
+```
+
+It’s **case-insensitive**, **prefix-aware**, and **super fast** — usually **1–3 ms** per query.
+
+---
+
+### 🔑 Or just get the matching keys
+
+```dart
+final keys = await box.searchKeys('hive');
+print(keys); // ['2']
+```
+
+Perfect if you want to fetch or lazy-load values later.
+
+---
+
+### ⚙️ Tune it your way
+
+You can control how matching works:
+
+```dart
+// Match ANY term instead of all
+final relaxed = IndexedBox<String, Article>.create(
+  'articles_any',
+  searchableText: (a) => a.title,
+  matchAllTokens: false,
+);
+```
+
+Or pick a different text analyzer for **substring** or **prefix** matching:
+
+```dart
+analyzer: TextAnalyzer.ngram((a) => a.title); // "hel" matches "Hello"
+```
+
+> Done.
+> You now have a **self-maintaining**, **crash-safe**, **indexed** Hive box that supports blazing-fast search — without changing how you use Hive.
+
+# 🔧 Settings & Options
+
+_[⤴️ Back](#-indexedbox--ultra-fast-full-text-search-for-hive) → IndexedBox_
+
+`IndexedBox` is designed to be flexible — it can act like a fast keyword indexer, a prefix search engine, or even a lightweight substring matcher.
+The constructor exposes several **tunable options** that let you decide **how results are matched, cached, and verified**.
+
+- [**`matchAllTokens`** - AND vs OR Logic](#matchalltokens--and-vs-or-logic)
+- [**`tokenCacheCapacity`** - LRU Cache Size](#tokencachecapacity--lru-cache-size)
+- [**`verifyMatches`** - Guard Against Stale Index](#verifymatches--guard-against-stale-index)
+- [**`keyComparator`** - Custom Result Ordering](#keycomparator--custom-result-ordering)
+- [**`analyzer`** - How Text Is Broken into Tokens](#analyzer--how-text-is-broken-into-tokens)
+
+---
+
+### `matchAllTokens` – AND vs OR Logic
+
+**What it does:**
+Determines whether all tokens in the query must appear in a value (**AND** mode) or if any of them is enough (**OR** mode).
+
+| Mode             | Behavior             | Example Query | Matches                                                                 |
+| ---------------- | -------------------- | ------------- | ----------------------------------------------------------------------- |
+| `true` (default) | Match **all** tokens | `"flut dart"` | `"Flutter & Dart Tips"` ✅<br>`"Dart Packages"` ❌<br>`"Flutter UI"` ❌ |
+| `false`          | Match **any** token  | `"flut dart"` | `"Flutter & Dart Tips"` ✅<br>`"Dart Packages"` ✅<br>`"Flutter UI"` ✅ |
+
+**When to use:**
+
+- `true` → For precise filtering (e.g. “all words must appear”)
+- `false` → For broad suggestions or autocomplete
+
+```dart
+final strict = IndexedBox<String, Article>.create(
+  'articles',
+  searchableText: (a) => a.title,
+  matchAllTokens: true, // must contain all words
+);
+
+final loose = IndexedBox<String, Article>.create(
+  'articles_any',
+  searchableText: (a) => a.title,
+  matchAllTokens: false, // any word is enough
+);
+```
+
+---
+
+### `tokenCacheCapacity` – LRU Cache Size
+
+**What it does:**
+Controls how many **token → key sets** are cached in memory.
+Caching avoids reading from disk when the same term is searched repeatedly.
+
+| Cache Size      | Memory Use                        | Speed Benefit                               |
+| --------------- | --------------------------------- | ------------------------------------------- |
+| `0`             | No cache (every search hits disk) | 🔽 Slowest                                  |
+| `512` (default) | Moderate RAM (≈ few hundred KB)   | ⚡ 100× faster repeated queries             |
+| `5000+`         | Larger memory footprint           | 🔥 Ideal for large datasets or autocomplete |
+
+**When to use:**
+
+- Small cache (≤256) → occasional lookups, low memory
+- Default (512) → balanced for most apps
+- Large (2000–5000) → high-volume search UIs or live autocomplete
+
+```dart
+final box = IndexedBox<String, Product>.create(
+  'products',
+  searchableText: (p) => '${p.name} ${p.brand}',
+  tokenCacheCapacity: 1024, // keep up to 1024 tokens in RAM
+);
+```
+
+---
+
+### `verifyMatches` – Guard Against Stale Index
+
+**What it does:**
+Re-checks each result against the analyzer before returning it, ensuring that
+the value still contains the query terms (useful after manual box edits).
+
+**Trade-off:** adds a small CPU cost per result.
+
+| Value             | Meaning                              |
+| ----------------- | ------------------------------------ |
+| `false` (default) | Trusts the index (fastest)           |
+| `true`            | Re-verifies every hit using analyzer |
+
+**When to use:**
+
+- You manually modify Hive boxes outside the `IndexedBox` (e.g. raw `Hive.box().put()`).
+- You suspect rare mismatches after crashes or restores.
+- You need absolute correctness over speed.
+
+```dart
+final safe = IndexedBox<String, Note>.create(
+  'notes',
+  searchableText: (n) => n.content,
+  verifyMatches: true, // double-check each match
+);
+```
+
+---
+
+### `keyComparator` – Custom Result Ordering
+
+**What it does:**
+Lets you define a comparator for sorting matched keys before pagination.
+By default, `IndexedBox` sorts by `Comparable` key or string order.
+
+```dart
+final ordered = IndexedBox<int, User>.create(
+  'users',
+  searchableText: (u) => u.name,
+  keyComparator: (a, b) => b.compareTo(a), // reverse order
+);
+```
+
+Useful for:
+
+- Sorting newest IDs first
+- Alphabetical vs numerical order
+- Deterministic result ordering when keys aren’t `Comparable`
+
+---
+
+### `analyzer` – How Text Is Broken into Tokens
+
+**What it does:**
+Defines _how_ each value is tokenized and indexed.  
+Three analyzers are built in — pick one based on your search style:
+
+| Analyzer              | Example             | Matches                             |
+| --------------------- | ------------------- | ----------------------------------- |
+| `TextAnalyzer.basic`  | `"flutter dart"`    | Matches **whole words only**        |
+| `TextAnalyzer.prefix` | `"fl" → "flutter"`  | Matches **word prefixes** (default) |
+| `TextAnalyzer.ngram`  | `"utt" → "flutter"` | Matches **substrings** anywhere     |
+
+For a detailed explanation, see [**`analyzer`** - How Text Is Broken into Tokens](#-analyzer--how-text-is-broken-into-tokens).
+
+---
+
+### Example: Tuning for Real Apps
+
+#### 🧠 Autocomplete Search
+
+```dart
+final box = IndexedBox<String, City>.create(
+  'cities',
+  searchableText: (c) => c.name,
+  analyzer: TextAnalyzer.prefix((c) => c.name),
+  matchAllTokens: false,
+  tokenCacheCapacity: 2000,
+);
+```
+
+- Fast prefix matching (“new yo” → “New York”)
+- Low-latency cached results
+- Allows partial terms (OR logic)
+
+#### 🔍 Strict Multi-Term Search
+
+```dart
+final box = IndexedBox<int, Document>.create(
+  'docs',
+  searchableText: (d) => d.content,
+  analyzer: TextAnalyzer.basic((d) => d.content),
+  matchAllTokens: true,
+  verifyMatches: true,
+);
+```
+
+- Each word must appear
+- Uses basic analyzer (lightweight)
+- Re-verifies for guaranteed correctness
+
+### Summary Table
+
+| Setting              | Type               | Default              | Purpose                                    |
+| -------------------- | ------------------ | -------------------- | ------------------------------------------ |
+| `matchAllTokens`     | `bool`             | `true`               | Require all vs any words to match          |
+| `tokenCacheCapacity` | `int`              | `512`                | Speed up repeated searches                 |
+| `verifyMatches`      | `bool`             | `false`              | Re-check results for stale index           |
+| `keyComparator`      | `Function?`        | `null`               | Custom sort for results                    |
+| `analyzer`           | `TextAnalyzer<T>?` | `PrefixTextAnalyzer` | How text is tokenized (basic/prefix/ngram) |
+
+---
+
+### 🧩 `analyzer` – How Text Is Broken into Tokens
+
+_[⤴️ Back](#-indexedbox--ultra-fast-full-text-search-for-hive) → IndexedBox_
+
+**What it does:**
+Defines _how_ your data is split into tokens and stored in the index.
+Every time you `put()` a value, the analyzer breaks its searchable text into tokens — which are then mapped to the keys that contain them.
+
+Later, when you search, the query is tokenized the same way, and any key whose tokens overlap is returned.
+
+You can think of it like this:
+
+```
+value -> tokens -> saved in index
+query -> tokens -> lookup in index -> matched keys
+```
+
+There are three built-in analyzers, each with different speed/flexibility trade-offs:
+
+| Analyzer              | Behavior               | Example Match                | Speed     | Disk Size | Use Case                                |
+| --------------------- | ---------------------- | ---------------------------- | --------- | --------- | --------------------------------------- |
+| `TextAnalyzer.basic`  | Whole-word search      | `"dart"` → “Learn Dart Fast” | ⚡ Fast   | 🟢 Small  | Exact keyword search                    |
+| `TextAnalyzer.prefix` | Word prefix search     | `"flu"` → “Flutter Basics”   | ⚡ Fast   | 🟡 Medium | Autocomplete, suggestions               |
+| `TextAnalyzer.ngram`  | Any substring matching | `"utt"` → “Flutter Rocks”    | ⚡ Medium | 🔴 Large  | Fuzzy, partial, or typo-tolerant search |
+
+---
+
+#### 🧱 Basic Analyzer – Whole Words Only (smallest index, fastest writes)
+
+```dart
+analyzer: TextAnalyzer.basic((a) => a.title)
+```
+
+**How it works:**
+It only stores _normalized words_ (lowercase, alphanumeric only).
+
+**Example:**
+
+| Value                | Tokens Saved to Index        |
+| -------------------- | ---------------------------- |
+| `"Flutter and Dart"` | `["flutter", "and", "dart"]` |
+
+**So the index looks like:**
+
+```
+flutter → [key1]
+and     → [key1]
+dart    → [key1]
+```
+
+**Search results:**
+
+| Query       | Matching Values         | Why                   |
+| ----------- | ----------------------- | --------------------- |
+| `"flutter"` | ✅ `"Flutter and Dart"` | full word match       |
+| `"flu"`     | ❌                      | prefix not indexed    |
+| `"utt"`     | ❌                      | substring not indexed |
+
+> **Use this** if you want fast, strict searches like tags or exact keywords.
+
+---
+
+#### 🔠 Prefix Analyzer – Partial Word Prefixes (great for autocomplete)
+
+```dart
+analyzer: TextAnalyzer.prefix(
+  (a) => a.title,
+  minPrefix: 2,
+  maxPrefix: 8,
+)
+```
+
+**How it works:**
+Each word is split into _all prefixes_ between `minPrefix` and `maxPrefix`.
+
+**Example:**
+
+| Value       | Tokens Saved                                          |
+| ----------- | ----------------------------------------------------- |
+| `"Flutter"` | `["fl", "flu", "flut", "flutt", "flutte", "flutter"]` |
+| `"Dart"`    | `["da", "dar", "dart"]`                               |
+
+**Index snapshot:**
+
+```
+fl → [key1]
+flu → [key1]
+flut → [key1]
+...
+dart → [key1]
+```
+
+**Search results:**
+
+| Query    | Matching Values | Why                       |
+| -------- | --------------- | ------------------------- |
+| `"fl"`   | ✅ `"Flutter"`  | prefix indexed            |
+| `"flu"`  | ✅ `"Flutter"`  | prefix indexed            |
+| `"utt"`  | ❌              | substring not at start    |
+| `"dart"` | ✅ `"Dart"`     | full word or prefix match |
+
+✅ **Use this** for **autocomplete**, **live search**, or **starts-with** queries.
+
+---
+
+#### 🔍 N-Gram Analyzer – Substrings Anywhere (maximum flexibility)
+
+```dart
+analyzer: TextAnalyzer.ngram(
+  (a) => a.title,
+  minN: 2,
+  maxN: 5,
+)
+```
+
+**How it works:**
+Creates _all possible substrings_ (“n-grams”) between `minN` and `maxN` for every word.
+
+**Example:**
+
+| Value       | Tokens Saved (simplified)                                                                                      |
+| ----------- | -------------------------------------------------------------------------------------------------------------- |
+| `"Flutter"` | `["fl", "lu", "ut", "tt", "te", "er", "flu", "lut", "utt", "tte", "ter", "flut", "lutt", "utte", "tter", ...]` |
+
+_(for each length n = 2→5)_
+
+**Index snapshot (simplified):**
+
+```
+fl  → [key1]
+lu  → [key1]
+utt → [key1]
+ter → [key1]
+...
+```
+
+**Search results:**
+
+| Query   | Matching Values | Why                   |
+| ------- | --------------- | --------------------- |
+| `"fl"`  | ✅ `"Flutter"`  | substring indexed     |
+| `"utt"` | ✅ `"Flutter"`  | substring indexed     |
+| `"tte"` | ✅ `"Flutter"`  | substring indexed     |
+| `"zzz"` | ❌              | substring not present |
+
+⚠️ **Trade-off:**
+
+- Slower writes (`≈2–4×`)
+- More index data (`≈2–5× larger`)
+- But _can match anywhere in the text_ — ideal for **fuzzy**, **partial**, or **typo-tolerant** search.
+
+> **Use this** if you want “contains” behavior (`"utt"` → `"Flutter"`), not just prefixes.
+
+## ⚖️ Choosing the Right Analyzer
+
+| If you want...        | Use                                        | Example                       |
+| --------------------- | ------------------------------------------ | ----------------------------- |
+| Exact keyword search  | `TextAnalyzer.basic`                       | Searching “tag” or “category” |
+| Fast autocomplete     | `TextAnalyzer.prefix`                      | Typing “fl” → “Flutter”       |
+| “Contains” matching   | `TextAnalyzer.ngram`                       | Searching “utt” → “Flutter”   |
+| Fuzzy/tolerant search | `TextAnalyzer.ngram` (with larger n range) | “fluttr” → “Flutter”          |
+
+## 🧩 Quick Recap (All Analyzers Side-by-Side)
+
+| Value: `"Flutter and Dart"` | Basic                      | Prefix (min=2,max=8)                                                     | N-Gram (min=2,max=5)                                                        |
+| --------------------------- | -------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Tokens                      | [`flutter`, `and`, `dart`] | [`fl`, `flu`, `flut`, `flutt`, `flutte`, `flutter`, `da`, `dar`, `dart`] | [`fl`, `lu`, `ut`, `tt`, `te`, `er`, `flu`, `lut`, `utt`, `tte`, `ter`,...] |
+| Query `"flu"`               | ❌                         | ✅                                                                       | ✅                                                                          |
+| Query `"utt"`               | ❌                         | ❌                                                                       | ✅                                                                          |
+| Query `"dart"`              | ✅                         | ✅                                                                       | ✅                                                                          |
+
+---
+
+# Clean Architecture with `Hivez`
 
 _[⤴️ Back](#table-of-contents) → Table of Contents_
 
