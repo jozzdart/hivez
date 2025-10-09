@@ -11,7 +11,7 @@ const _queriesPerRun = 25;
 const _writeBatch = 1000;
 
 void main() {
-  setUpAll(() async => await setupHiveTest());
+  setUpAll(() async => await setupIsolatedHiveTest());
 
   final results = <String, Map<String, int>>{};
 
@@ -47,15 +47,15 @@ void main() {
   group('benchmarks (short sentences, int keys)', () {
     for (final size in _sizes) {
       group('size = $size', () {
-        late HivezBox<int, String> base;
+        late HivezBoxIsolated<int, String> base;
         late IndexedBox<int, String> indexed;
 
         setUp(() async {
-          base = HivezBox<int, String>('bench_base_$size');
+          base = HivezBoxIsolated<int, String>('bench_base_$size');
           await base.ensureInitialized();
           await base.clear();
 
-          final config = BoxConfig.regular('bench_idx_$size');
+          final config = BoxConfig.isolated('bench_idx_$size');
           indexed = IndexedBox<int, String>(
             config,
             searchableText: (s) => s,
@@ -150,7 +150,7 @@ void main() {
 
   tearDownAll(() {
     print('\n───────────────────────────────');
-    print('📊 Hivez Indexed Box Benchmarks');
+    print('📊 Hivez Isolated Indexed Box Benchmarks');
     print('───────────────────────────────\n');
 
     final header =
