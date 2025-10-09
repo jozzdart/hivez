@@ -1,34 +1,52 @@
-## Unreleased
+## 1.1.0
 
-- Added new key and size utility methods for all box types:
+### _New `Indexed Box`_ - Ultra-fast full-text search for Hive
 
-  - `getKeysWhere()` — returns keys matching a condition.
-  - `firstKeyWhere()` — returns the first key matching a condition.
-  - `searchKeyOf()` — returns the key for a given value.
-  - `estimateSizeBytes()` — estimates the approximate in-memory size of box contents (bytes).
+A special box that maintains a lightweight full‑text token index for extremely fast searches over your values. It wraps a regular box and keeps an auxiliary index box plus a small journal/meta box for crash‑safe updates.
 
-- Added `BoxConfig`, `BoxType`, and `BoxCreator` for easier box configuration and creation:
+- Performance: compared to a regular, non‑indexed box, searches are dramatically faster (`100x` to `3000x` in real-world benchmarks). You can tune behavior via the analyzer (`basic`, `prefix`, `ngram`), `matchAllTokens`, a custom `keyComparator`, and the token cache capacity.
+
+- Usage example:
+
+  ```dart
+  // Create an indexed box and tell it how to extract searchable text
+  final box = IndexedBox<int, Article>(
+    'articles',
+    searchableText: (a) => a.title, // or combine title + body
+  );
+
+  await box.putAll({1: articleA, 2: articleB}); // Put data as usual — the index updates automatically
+
+  final articles = await box.search('flutter dart'); // Blazing fast search
+  ```
+
+### _New `Box`_ API - Universal classes with improved functionality
+
+- A universal class that can be used to create all box types.
+
+  ```dart
+  final box = Box<int, User>('users');
+  ```
+
+  ```dart
+  final box = Box<int, User>('users', type: BoxType.lazy); // easy to switch between box types
+  final box = Box<int, User>('users', type: BoxType.isolated); // easy to switch between box types
+  ```
+
+- Comes with `BoxConfig`, `BoxType`, and `BoxCreator`, for easier box configuration and creation:
 
   ```dart
   final box = BoxConfig.lazy('users').createBox<int, User>(); // example
   final box = BoxType.lazy.createBox<int, User>('users'); // example
   ```
 
-- Added `IndexedBox<K, T>` — a special box that maintains a lightweight full‑text token index for extremely fast searches over your values. It wraps a regular box and keeps an auxiliary index box plus a small journal/meta box for crash‑safe updates.
-  - Usage example:
-    ```dart
-    // Create an indexed box and tell it how to extract searchable text
-    final box = IndexedBox<int, Article>(
-      'articles',
-      searchableText: (a) => a.title, // or combine title + body
-    );
-    // Put data as usual — the index updates automatically
-    await box.putAll({1: articleA, 2: articleB});
-    // Fast searches
-    final keys = await box.searchKeys('flutter search');
-    final hits = await box.search('flutter search', limit: 20);
-    ```
-  - Performance: compared to a regular, non‑indexed box, searches are dramatically faster (`100x` to `2000x` in our benchmarks for single/two‑token queries). Writes/initial population are slower due to maintaining the index, and the index consumes extra disk space. You can tune behavior via the analyzer (`basic`, `prefix`, `ngram`), `matchAllTokens`, a custom `keyComparator`, and the token cache capacity.
+### _New methods for all box types_
+
+- `getKeysWhere()` — returns keys matching a condition.
+- `firstKeyWhere()` — returns the first key matching a condition.
+- `searchKeyOf()` — returns the key for a given value.
+- `estimateSizeBytes()` — estimates the approximate in-memory size of box contents (bytes).
+- `toMap()` — now supports lazy boxes.
 
 ## 1.0.2
 
