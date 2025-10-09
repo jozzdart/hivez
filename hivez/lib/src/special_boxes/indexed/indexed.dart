@@ -1,7 +1,7 @@
 import 'dart:io' show File;
 import 'dart:math' as math;
 
-import 'package:hive_ce/hive.dart';
+import 'package:hive_ce/hive.dart' show HiveCipher;
 import 'package:hivez/src/boxes/boxes.dart';
 import 'package:hivez/src/builders/builders.dart';
 import 'package:hivez/src/exceptions/box_exception.dart';
@@ -16,7 +16,7 @@ part 'extensions.dart';
 part 'exceptions.dart';
 part 'lock.dart';
 
-class IndexedBox<K, T> extends ConfiguredBox<K, T> {
+class IndexedBox<K, T> extends Box<K, T> {
   final IndexEngine<K, T> _engine;
   final IndexJournal _journal;
   final TokenKeyCache<K> _cache;
@@ -24,21 +24,39 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   late final IndexSearcher<K, T> _searcher;
 
   IndexedBox(
-    super.config, {
+    super.name, {
     required String Function(T) searchableText,
+    super.type,
     Analyzer analyzer = Analyzer.prefix,
+    super.encryptionCipher,
+    super.crashRecovery,
+    super.path,
+    super.collection,
+    super.logger,
     bool matchAllTokens = true,
     int tokenCacheCapacity = 512,
     bool verifyMatches = false,
     int Function(K a, K b)? keyComparator,
     TextAnalyzer<T>? overrideAnalyzer,
   })  : _engine = IndexEngine<K, T>(
-          config.copyWith(name: '${config.name}__idx', logger: null),
+          '${name}__idx',
+          type: type,
+          encryptionCipher: encryptionCipher,
+          crashRecovery: crashRecovery,
+          path: path,
+          collection: collection,
+          logger: null,
           analyzer: overrideAnalyzer ?? analyzer.analyzer(searchableText),
           matchAllTokens: matchAllTokens,
         ),
         _journal = BoxIndexJournal(
-          config.copyWith(name: '${config.name}__idx_meta', logger: null),
+          '${name}__idx_meta',
+          type: type,
+          encryptionCipher: encryptionCipher,
+          crashRecovery: crashRecovery,
+          path: path,
+          collection: collection,
+          logger: null,
         ),
         _cache = tokenCacheCapacity <= 0
             ? NoopTokenKeyCache<K>()
@@ -55,16 +73,10 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
     _lock = IndexedBoxLock(this);
   }
 
-  factory IndexedBox.create(
-    String name, {
-    BoxType type = BoxType.regular,
+  factory IndexedBox.fromConfig(
+    BoxConfig config, {
     Analyzer analyzer = Analyzer.prefix,
     required String Function(T) searchableText,
-    HiveCipher? encryptionCipher,
-    bool crashRecovery = true,
-    String? path,
-    String? collection,
-    LogHandler? logger,
     TextAnalyzer<T>? overrideAnalyzer,
     bool matchAllTokens = true,
     int tokenCacheCapacity = 512,
@@ -72,15 +84,13 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
     int Function(K a, K b)? keyComparator,
   }) =>
       IndexedBox<K, T>(
-        BoxConfig(
-          name,
-          type: type,
-          encryptionCipher: encryptionCipher,
-          crashRecovery: crashRecovery,
-          path: path,
-          collection: collection,
-          logger: logger,
-        ),
+        config.name,
+        type: config.type,
+        encryptionCipher: config.encryptionCipher,
+        crashRecovery: config.crashRecovery,
+        path: config.path,
+        collection: config.collection,
+        logger: config.logger,
         searchableText: searchableText,
         analyzer: analyzer,
         overrideAnalyzer: overrideAnalyzer,
@@ -115,7 +125,6 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
     await _engine.ensureInitialized();
 
     if (needsRebuild) {
-      config.logger?.call('Index preflight mismatch → rebuilding index');
       try {
         await rebuildIndex();
         await _journal.reset(); // mark clean
@@ -511,7 +520,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
       other._engine == _engine &&
       other._journal == _journal &&
       other._cache == _cache &&
-      config.name == other.config.name;
+      name == other.name;
 
   @override
   int get hashCode =>

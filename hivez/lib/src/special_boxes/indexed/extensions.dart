@@ -11,7 +11,13 @@ extension CreateIndexedBoxFromConfig<K, T> on BoxConfig {
     int Function(K a, K b)? keyComparator,
   }) {
     return IndexedBox<K, T>(
-      this,
+      name,
+      type: type,
+      encryptionCipher: encryptionCipher,
+      crashRecovery: crashRecovery,
+      path: path,
+      collection: collection,
+      logger: logger,
       analyzer: analyzer,
       overrideAnalyzer: overrideAnalyzer,
       searchableText: searchableText,
@@ -40,15 +46,13 @@ extension CreateIndexedBoxFromType<K, T> on BoxType {
     int Function(K a, K b)? keyComparator,
   }) =>
       IndexedBox<K, T>(
-        BoxConfig(
-          name,
-          type: this,
-          encryptionCipher: encryptionCipher,
-          crashRecovery: crashRecovery,
-          path: path,
-          collection: collection,
-          logger: logger,
-        ),
+        name,
+        type: this,
+        encryptionCipher: encryptionCipher,
+        crashRecovery: crashRecovery,
+        path: path,
+        collection: collection,
+        logger: logger,
         searchableText: searchableText,
         analyzer: analyzer,
         overrideAnalyzer: overrideAnalyzer,

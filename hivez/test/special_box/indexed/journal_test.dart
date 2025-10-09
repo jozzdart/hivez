@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hivez/src/special_boxes/special_boxes.dart';
 
 import '../../utils/test_setup.dart';
-import 'package:hivez/hivez.dart';
 
 // If IndexJournal isn't exported publicly, use the internal path you placed it in:
 
@@ -14,13 +13,12 @@ void main() {
 
   group('BoxIndexJournal (regular meta box)', () {
     late BoxIndexJournal journal;
-    late BoxConfig metaCfg;
 
     setUp(() async {
       // Use a unique name per test run to avoid collisions in CI
       final ts = DateTime.now().millisecondsSinceEpoch;
-      metaCfg = BoxConfig.regular('journal_meta_$ts');
-      journal = BoxIndexJournal(metaCfg);
+
+      journal = BoxIndexJournal('journal_meta_$ts');
       await journal.ensureInitialized();
       await journal.clear(); // start fresh
     });
@@ -114,7 +112,7 @@ void main() {
       await journal.deleteFromDisk();
 
       // Recreate on the same name; should be clean
-      final j2 = BoxIndexJournal(metaCfg);
+      final j2 = BoxIndexJournal(journal.name);
       await j2.ensureInitialized();
       expect(await j2.isDirty(), isFalse,
           reason: 'newly created journal should start clean');

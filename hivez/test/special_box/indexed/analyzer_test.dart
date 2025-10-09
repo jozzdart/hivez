@@ -35,9 +35,9 @@ void main() {
           final label = entry.key;
           final analyzer = entry.value;
 
-          final config = BoxConfig.lazy('bench_${label}_$size');
           final box = IndexedBox<int, String>(
-            config,
+            'bench_${label}_$size',
+            type: BoxType.lazy,
             searchableText: (s) => s,
             overrideAnalyzer: analyzer,
           );

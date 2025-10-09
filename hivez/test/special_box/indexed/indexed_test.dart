@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hive_ce_flutter/adapters.dart';
 import 'package:hivez/hivez.dart';
-import 'package:hivez/src/special_boxes/special_boxes.dart';
 
 import '../../utils/test_setup.dart';
 
@@ -40,7 +39,7 @@ void main() {
 
     test('initialize, empty search and basic put/get', () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -64,7 +63,7 @@ void main() {
     test('prefix analyzer AND vs OR (matchAllTokens)', () async {
       // AND (default)
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
         // matchAllTokens is true by default
       );
@@ -82,7 +81,7 @@ void main() {
 
       // OR (union)
       final iBoxOr = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
         matchAllTokens: false,
       );
@@ -93,7 +92,7 @@ void main() {
 
     test('searchKeys order: default and with custom comparator', () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -111,7 +110,7 @@ void main() {
 
       // Custom comparator: descending by key
       final iBoxDesc = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
         keyComparator: (a, b) => b.compareTo(a),
       );
@@ -122,7 +121,7 @@ void main() {
 
     test('pagination: limit and offset', () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -147,7 +146,7 @@ void main() {
     test('streams: searchKeysStream & searchStream yield same order as search',
         () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -170,7 +169,7 @@ void main() {
 
     test('cache invalidation on put/update/delete/moveKey', () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
         tokenCacheCapacity: 2, // exercise LRU
       );
@@ -200,7 +199,7 @@ void main() {
     test('putAll/onPutMany and deleteAll/onDeleteMany keep index consistent',
         () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -224,7 +223,7 @@ void main() {
     test('rebuildIndex from scratch invokes progress and preserves results',
         () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -250,7 +249,7 @@ void main() {
     test('verifyMatches filters stale index when analyzer changes', () async {
       // 1) Build with PREFIX analyzer (default)
       final prefixBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         analyzer: Analyzer.ngram,
         searchableText: (s) => s,
       );
@@ -266,7 +265,7 @@ void main() {
 
       // 2) Re-open with BASIC analyzer + verifyMatches = true (no rebuild)
       final basicVerify = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
         analyzer: Analyzer.basic,
         verifyMatches: true,
@@ -280,7 +279,7 @@ void main() {
 
       // 3) If verifyMatches = false, stale results may leak through
       final basicNoVerify = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
         analyzer: Analyzer.basic,
         verifyMatches: false,
@@ -300,7 +299,7 @@ void main() {
         () async {
       // Seed data with a fresh index
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -319,7 +318,7 @@ void main() {
 
       // New instance: ensureInitialized should see dirty and rebuild
       final reopened = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await reopened.ensureInitialized();
@@ -333,7 +332,7 @@ void main() {
 
     test('compactBox/flushBox/closeBox keep index usable', () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -355,7 +354,7 @@ void main() {
 
     test('deleteFromDisk removes main, index, and meta boxes', () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -389,7 +388,7 @@ void main() {
 
       // IndexedBox on same data
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -400,7 +399,7 @@ void main() {
 
     test('token cache capacity = 0 works (Noop cache)', () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
         tokenCacheCapacity: 0,
       );
@@ -413,7 +412,7 @@ void main() {
 
     test('Unicode & case-insensitive normalization (e.g., Café)', () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();

@@ -1,11 +1,17 @@
 part of 'indexed.dart';
 
-class IndexEngine<K, T> extends ConfiguredBox<String, List<K>> {
+class IndexEngine<K, T> extends Box<String, List<K>> {
   final TextAnalyzer<T> analyzer;
   final bool matchAllTokens;
 
   IndexEngine(
-    super.config, {
+    super.name, {
+    super.type,
+    super.encryptionCipher,
+    super.crashRecovery,
+    super.path,
+    super.collection,
+    super.logger,
     required this.analyzer,
     this.matchAllTokens = true,
   });

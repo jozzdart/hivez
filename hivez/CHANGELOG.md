@@ -11,13 +11,14 @@
 
   ```dart
   final box = BoxConfig.lazy('users').createBox<int, User>(); // example
+  final box = BoxType.lazy.createBox<int, User>('users'); // example
   ```
 
 - Added `IndexedBox<K, T>` — a special box that maintains a lightweight full‑text token index for extremely fast searches over your values. It wraps a regular box and keeps an auxiliary index box plus a small journal/meta box for crash‑safe updates.
   - Usage example:
     ```dart
     // Create an indexed box and tell it how to extract searchable text
-    final box = IndexedBox.create<int, Article>(
+    final box = IndexedBox<int, Article>(
       'articles',
       searchableText: (a) => a.title, // or combine title + body
     );

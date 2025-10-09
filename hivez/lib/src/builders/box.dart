@@ -1,6 +1,7 @@
 part of 'builders.dart';
 
 class Box<K, T> extends BoxDecorator<K, T> {
+  final LogHandler? logger;
   Box(
     String name, {
     BoxType type = BoxType.regular,
@@ -8,7 +9,7 @@ class Box<K, T> extends BoxDecorator<K, T> {
     bool crashRecovery = true,
     String? path,
     String? collection,
-    void Function(String)? logger,
+    this.logger,
   }) : super(BoxConfig(
           name,
           type: type,

@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hivez/src/special_boxes/special_boxes.dart';
 
 import '../../utils/test_setup.dart';
-import 'package:hivez/hivez.dart';
 
 // NOTE: We test IndexEngine directly, using a simple regular index box.
 // Analyzer: BasicTextAnalyzer<String>((s) => s) so tokens come from the string itself.
@@ -15,12 +14,10 @@ void main() {
 
   group('IndexEngine<int,String> (regular index box)', () {
     late IndexEngine<int, String> engine;
-    late BoxConfig idxCfg;
 
     IndexEngine<int, String> newEngine(String name) {
-      final cfg = BoxConfig.regular(name);
       return IndexEngine<int, String>(
-        cfg,
+        name,
         analyzer: BasicTextAnalyzer<String>((s) => s),
         matchAllTokens: false,
       );
@@ -28,9 +25,8 @@ void main() {
 
     setUp(() async {
       final ts = DateTime.now().microsecondsSinceEpoch;
-      idxCfg = BoxConfig.regular('idx_engine_$ts');
       engine = IndexEngine<int, String>(
-        idxCfg,
+        'idx_engine_$ts',
         analyzer: BasicTextAnalyzer<String>((s) => s),
         matchAllTokens: false, // default OR semantics
       );
@@ -163,7 +159,7 @@ void main() {
 
       // AND engine
       final andEngine = IndexEngine<int, String>(
-        e2.config,
+        e2.name,
         analyzer: BasicTextAnalyzer<String>((s) => s),
         matchAllTokens: true, // AND
       );
@@ -255,7 +251,7 @@ void main() {
 
       // Recreate on the same name
       final e2 = IndexEngine<int, String>(
-        idxCfg,
+        engine.name,
         analyzer: BasicTextAnalyzer<String>((s) => s),
       );
       await e2.ensureInitialized();

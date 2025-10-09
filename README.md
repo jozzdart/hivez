@@ -491,13 +491,10 @@ you just gain ultra-fast search on top.
 
 ```dart
 // Before: plain Hive or Hivez box
-// final notes = Hive.box<String>('notes'); //or: HivezBox<int, Note>('notes');
+final notes = Hive.box<Note>('notes'); //or: HivezBox<int, Note>('notes');
 
 // After: one-line switch to IndexedBox
-final notes = IndexedBox<int, Note>.create(
-  'notes',
-  searchableText: (n) => n.content,
-);
+final notes = IndexedBox<int, Note>('notes', searchableText: (n) => n.content);
 ```
 
 > That’s it — your data is still there, no re-saving needed.  
@@ -527,7 +524,7 @@ print(results); // [Note(...), Note(...)]
 This works just like a normal `HivezBox`, but adds a built-in **on-disk index** for fast text search.
 
 ```dart
-final box = IndexedBox<String, Article>.create(
+final box = IndexedBox<String, Article>(
   'articles',
   searchableText: (a) => '${a.title} ${a.content}',
 );
@@ -577,7 +574,7 @@ You can control how matching works:
 
 ```dart
 // Match ANY term instead of all
-final relaxed = IndexedBox<String, Article>.create(
+final relaxed = IndexedBox<String, Article>(
   'articles_any',
   searchableText: (a) => a.title,
   matchAllTokens: false,
@@ -624,13 +621,13 @@ Determines whether all tokens in the query must appear in a value (**AND** mode)
 - `false` → For broad suggestions or autocomplete
 
 ```dart
-final strict = IndexedBox<String, Article>.create(
+final strict = IndexedBox<String, Article>(
   'articles',
   searchableText: (a) => a.title,
   matchAllTokens: true, // must contain all words
 );
 
-final loose = IndexedBox<String, Article>.create(
+final loose = IndexedBox<String, Article>(
   'articles_any',
   searchableText: (a) => a.title,
   matchAllTokens: false, // any word is enough
@@ -658,7 +655,7 @@ Caching avoids reading from disk when the same term is searched repeatedly.
 - Large (2000–5000) → high-volume search UIs or live autocomplete
 
 ```dart
-final box = IndexedBox<String, Product>.create(
+final box = IndexedBox<String, Product>(
   'products',
   searchableText: (p) => '${p.name} ${p.brand}',
   tokenCacheCapacity: 1024, // keep up to 1024 tokens in RAM
@@ -687,7 +684,7 @@ the value still contains the query terms (useful after manual box edits).
 - You need absolute correctness over speed.
 
 ```dart
-final safe = IndexedBox<String, Note>.create(
+final safe = IndexedBox<String, Note>(
   'notes',
   searchableText: (n) => n.content,
   verifyMatches: true, // double-check each match
@@ -703,7 +700,7 @@ Lets you define a comparator for sorting matched keys before pagination.
 By default, `IndexedBox` sorts by `Comparable` key or string order.
 
 ```dart
-final ordered = IndexedBox<int, User>.create(
+final ordered = IndexedBox<int, User>(
   'users',
   searchableText: (u) => u.name,
   keyComparator: (a, b) => b.compareTo(a), // reverse order
@@ -739,7 +736,7 @@ For a detailed explanation, see [**`analyzer`** - How Text Is Broken into Tokens
 #### 🧠 Autocomplete Search
 
 ```dart
-final box = IndexedBox<String, City>.create(
+final box = IndexedBox<String, City>(
   'cities',
   searchableText: (c) => c.name,
   matchAllTokens: false,
@@ -754,7 +751,7 @@ final box = IndexedBox<String, City>.create(
 #### 🔍 Strict Multi-Term Search
 
 ```dart
-final box = IndexedBox<int, Document>.create(
+final box = IndexedBox<int, Document>(
   'docs',
   searchableText: (d) => d.content,
   analyzer: Analyzer.basic,

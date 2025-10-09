@@ -18,8 +18,16 @@ class IndexSnapshot {
 
 /// Guarantees: mark-dirty before user op; mark-clean iff op completes.
 /// If the op throws, the journal remains dirty for recovery.
-abstract class IndexJournal extends ConfiguredBox<String, int> {
-  IndexJournal(super.config);
+abstract class IndexJournal extends Box<String, int> {
+  IndexJournal(
+    super.name, {
+    super.type,
+    super.encryptionCipher,
+    super.crashRecovery,
+    super.path,
+    super.collection,
+    super.logger,
+  });
 
   Future<bool> isDirty();
 
@@ -51,7 +59,15 @@ class BoxIndexJournal extends IndexJournal {
   static const _kSig = '__analyzer_sig';
   static const _kVer = '__idx_ver';
 
-  BoxIndexJournal(super.config);
+  BoxIndexJournal(
+    super.name, {
+    super.type,
+    super.encryptionCipher,
+    super.crashRecovery,
+    super.path,
+    super.collection,
+    super.logger,
+  });
 
   @override
   Future<bool> isDirty() async => (await get(_kDirtyKey)) == 1;

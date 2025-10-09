@@ -50,7 +50,7 @@ void main() {
       print('hBox initialized');
 
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
 
@@ -68,7 +68,7 @@ void main() {
 
     test('Data written by IndexedBox is readable by HivezBox', () async {
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -88,7 +88,7 @@ void main() {
         () async {
       // First create with IndexedBox
       iBox = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await iBox.ensureInitialized();
@@ -107,7 +107,7 @@ void main() {
 
       // Reopen as IndexedBox; should detect mismatch and rebuild index
       final reopened = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await reopened.ensureInitialized();
@@ -130,7 +130,7 @@ void main() {
       await box1.closeBox();
 
       final box2 = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await box2.ensureInitialized();
@@ -144,7 +144,7 @@ void main() {
       expect(await box3.get(4), 'delta');
 
       final box4 = IndexedBox<int, String>(
-        BoxConfig(boxName),
+        boxName,
         searchableText: (s) => s,
       );
       await box4.ensureInitialized();

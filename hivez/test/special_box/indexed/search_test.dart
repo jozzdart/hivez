@@ -51,7 +51,6 @@ void main() {
     late HivezBox<int, String> data; // main data box
     late IndexEngine<int, String> engine; // token -> postings
     late BoxConfig dataCfg;
-    late BoxConfig idxCfg;
 
     late IndexSearcher<int, String> searcher;
 
@@ -68,9 +67,8 @@ void main() {
       await data.ensureInitialized();
       await data.clear();
 
-      idxCfg = BoxConfig.regular('searcher_idx_$ts');
       engine = IndexEngine<int, String>(
-        idxCfg,
+        'searcher_idx_$ts',
         analyzer: BasicTextAnalyzer<String>((s) => s),
         matchAllTokens: false, // OR
       );
@@ -132,8 +130,7 @@ void main() {
 
     test('AND semantics via an AND-engine', () async {
       final e2 = IndexEngine<int, String>(
-        BoxConfig.regular(
-            'searcher_and_${DateTime.now().microsecondsSinceEpoch}'),
+        'searcher_and_${DateTime.now().microsecondsSinceEpoch}',
         analyzer: BasicTextAnalyzer<String>((s) => s),
         matchAllTokens: true, // AND
       );

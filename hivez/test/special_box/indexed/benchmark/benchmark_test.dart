@@ -370,9 +370,9 @@ void main() {
             open: () async {
               final name =
                   'macro_pop_indexed_default_${Random().nextInt(1 << 32)}';
-              final cfg = BoxConfig.lazy(name);
               final b = IndexedBox<int, String>(
-                cfg,
+                name,
+                type: BoxType.lazy,
                 searchableText: (s) => s,
               );
               await b.ensureInitialized();
