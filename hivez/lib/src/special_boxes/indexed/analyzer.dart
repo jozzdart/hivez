@@ -33,14 +33,20 @@ class BasicTextAnalyzer<T> extends TextAnalyzer<T> {
 class PrefixTextAnalyzer<T> extends TextAnalyzer<T> {
   final String Function(T) searchableText;
   final int minPrefix;
-  const PrefixTextAnalyzer(this.searchableText, {this.minPrefix = 2});
+  final int maxPrefix;
+  const PrefixTextAnalyzer(
+    this.searchableText, {
+    this.minPrefix = 2,
+    this.maxPrefix = 9,
+  });
 
   @override
   Iterable<String> analyze(T v) {
     final tokens = TextAnalyzer.normalize(searchableText(v));
     final result = <String>[];
     for (final t in tokens) {
-      for (int i = minPrefix; i <= t.length; i++) {
+      final limit = t.length.clamp(minPrefix, maxPrefix);
+      for (int i = minPrefix; i <= limit; i++) {
         result.add(t.substring(0, i));
       }
     }
