@@ -1,3 +1,6 @@
+import 'dart:io' show File;
+import 'dart:math' as math;
+
 import 'package:hive_ce/hive.dart';
 import 'package:hivez/src/boxes/boxes.dart';
 import 'package:hivez/src/builders/builders.dart';
@@ -17,7 +20,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   final IndexEngine<K, T> _engine;
   final IndexJournal _journal;
   final TokenKeyCache<K> _cache;
-  late final IndexedBoxLocker _lock;
+  late final IndexedBoxLock _lock;
   late final IndexSearcher<K, T> _searcher;
 
   IndexedBox(
@@ -46,8 +49,9 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
       verifyMatches: verifyMatches,
       ensureReady: ensureInitialized,
       getValue: super.get,
+      keyComparator: keyComparator,
     );
-    _lock = IndexedBoxLocker(this);
+    _lock = IndexedBoxLock(this);
   }
 
   factory IndexedBox.create(
@@ -93,17 +97,30 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
 
   @override
   Future<void> ensureInitialized() async {
-    await _engine.ensureInitialized(); // index box
-    await _journal.ensureInitialized(); // meta/journal
-    await super.ensureInitialized(); // main box
+    // Open main data + journal first (we need path/length and snapshot)
+    await super.ensureInitialized();
+    await _journal.ensureInitialized();
+    // Decide if we should rebuild before touching the engine.
+    var needsRebuild = await _shouldRebuild();
+    if (needsRebuild) {
+      // Optional light probe to avoid unnecessary rebuilds if desired:
+      final ok = await _quickIndexProbe(probes: 16); // set e.g. 16 to enable
+      needsRebuild = !ok;
+    }
 
-    if (await _journal.isDirty()) {
-      config.logger?.call('Dirty flag detected → rebuilding index');
+    // Now open engine (index box)
+    await _engine.ensureInitialized();
+
+    if (needsRebuild) {
+      config.logger?.call('Index preflight mismatch → rebuilding index');
       try {
         await rebuildIndex();
+        await _journal.reset(); // mark clean
+        await _stampSnapshot(); // store fresh snapshot
       } catch (e, st) {
         throw IndexRebuildFailed(boxName: name, cause: e, stackTrace: st);
       }
+      return;
     }
   }
 
@@ -143,7 +160,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
 
   @override
   Future<void> deleteFromDisk() async {
-    await _lock.operation("DELETE_FROM_DISK").run(() async {
+    await _lock.bypassJournal.operation("DELETE_FROM_DISK").run(() async {
       _cache.clear();
       await _engine.deleteFromDisk();
       await _journal.deleteFromDisk();
@@ -177,6 +194,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
         await _engine.onPut(key, value, oldValue: old);
         _invalidateTokensFor(old);
         _invalidateTokensFor(value);
+        await _stampSnapshot();
       });
 
   @override
@@ -196,6 +214,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
       for (final v in entries.values) {
         _invalidateTokensFor(v);
       }
+      await _stampSnapshot();
     });
   }
 
@@ -204,6 +223,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
         final id = await super.add(value);
         await _engine.onPut(id as K, value);
         _invalidateTokensFor(value);
+        await _stampSnapshot();
         return id;
       });
 
@@ -218,6 +238,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
         _invalidateTokensFor(v);
       }
       await _engine.onPutMany(news);
+      await _stampSnapshot();
     });
   }
 
@@ -229,6 +250,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
           await _engine.onDelete(key, oldValue: old);
           _invalidateTokensFor(old);
         }
+        await _stampSnapshot();
       });
 
   @override
@@ -248,6 +270,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
           _invalidateTokensFor(v);
         }
       }
+      await _stampSnapshot();
     });
   }
 
@@ -261,6 +284,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
           await _engine.onDelete(k, oldValue: old);
           _invalidateTokensFor(old);
         }
+        await _stampSnapshot();
       });
 
   @override
@@ -268,6 +292,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
         await super.clear();
         await _engine.clear();
         _cache.clear();
+        await _stampSnapshot();
       });
 
   @override
@@ -279,6 +304,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
         await _engine.onPut(k, value, oldValue: old);
         _invalidateTokensFor(old);
         _invalidateTokensFor(value);
+        await _stampSnapshot();
       });
 
   @override
@@ -291,6 +317,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
           await _engine.onDelete(oldKey, oldValue: v);
           await _engine.onPut(newKey, v);
           _invalidateTokensFor(v);
+          await _stampSnapshot();
         }
         return moved;
       });
@@ -310,40 +337,160 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   // -----------------------------------------------------------------------------
   // Rebuild index (journaled)
   // -----------------------------------------------------------------------------
-  Future<void> rebuildIndex({void Function(double progress)? onProgress}) =>
-      _lock.operation("REBUILD_INDEX").run(() async {
-        await _engine.clear();
-        _cache.clear();
-
-        final total = await length;
-        var processed = 0;
-        const chunk = 500;
-        final buffer = <String, Set<K>>{};
-
-        Future<void> flush() async {
-          if (buffer.isEmpty) return;
-          final payload = <String, List<K>>{};
-          buffer.forEach((token, set) {
-            if (set.isNotEmpty) payload[token] = set.toList(growable: false);
-          });
-          if (payload.isNotEmpty) await _engine.putAll(payload);
-          buffer.clear();
-        }
-
-        await foreachValue((k, v) async {
-          for (final t in _analyze(v)) {
-            (buffer[t] ??= <K>{}).add(k);
-          }
-          processed++;
-          if (processed % chunk == 0) {
-            await flush();
-            onProgress?.call(total == 0 ? 1.0 : processed / total);
-          }
-        });
-
-        await flush();
-        onProgress?.call(1.0);
+  Future<void> rebuildIndex(
+      {void Function(double progress)? onProgress}) async {
+    await _engine.clear();
+    _cache.clear();
+    final total = await length;
+    var processed = 0;
+    const chunk = 500;
+    final buffer = <String, Set<K>>{};
+    Future<void> flush() async {
+      if (buffer.isEmpty) return;
+      final payload = <String, List<K>>{};
+      buffer.forEach((token, set) {
+        if (set.isNotEmpty) payload[token] = set.toList(growable: false);
       });
+      if (payload.isNotEmpty) await _engine.putAll(payload);
+      buffer.clear();
+    }
+
+    await foreachValue((k, v) async {
+      for (final t in _analyze(v)) {
+        (buffer[t] ??= <K>{}).add(k);
+      }
+      processed++;
+      if (processed % chunk == 0) {
+        await flush();
+        onProgress?.call(total == 0 ? 1.0 : processed / total);
+      }
+    });
+    await flush();
+    onProgress?.call(1.0);
+    await _stampSnapshot();
+  }
+
+  // --- Snapshot / signature helpers ------------------------------------------
+
+  // Simple 32-bit FNV-1a to store signatures as ints in the journal.
+  static int _hash32(String s) {
+    const int fnvOffset = 0x811C9DC5;
+    const int fnvPrime = 0x01000193;
+    int hash = fnvOffset;
+    for (final codeUnit in s.codeUnits) {
+      hash ^= codeUnit;
+      hash = (hash * fnvPrime) & 0xFFFFFFFF;
+    }
+    return hash;
+  }
+
+  int _analyzerSigHash() {
+    final a = _engine.analyzer;
+    final b = StringBuffer()..write(a.runtimeType.toString());
+    // capture config knobs so index schema changes trigger rebuild
+    if (a is PrefixTextAnalyzer<T>) {
+      b
+        ..write('|minPrefix=')
+        ..write(a.minPrefix);
+    }
+    if (a is NGramTextAnalyzer<T>) {
+      b
+        ..write('|minN=')
+        ..write(a.minN)
+        ..write('|maxN=')
+        ..write(a.maxN);
+    }
+    b
+      ..write('|matchAll=')
+      ..write(_engine.matchAllTokens);
+    return _hash32(b.toString());
+  }
+
+  Future<IndexSnapshot> _currentSnapshot() async {
+    int? mtimeMs;
+    int? sizeBytes;
+    try {
+      final p = path;
+      if (p != null) {
+        final st = await File(p).stat();
+        mtimeMs = st.modified.millisecondsSinceEpoch;
+        sizeBytes = st.size;
+      }
+    } catch (_) {
+      // Platforms without File I/O or transient errors — ignore
+    }
+    final count = await length;
+    return IndexSnapshot(
+      dataMtimeMs: mtimeMs,
+      dataSizeBytes: sizeBytes,
+      entries: count,
+      analyzerSigHash: _analyzerSigHash(),
+      indexVersion: 1,
+    );
+  }
+
+  Future<void> _stampSnapshot() async {
+    final snap = await _currentSnapshot();
+    await _journal.writeSnapshot(
+      dataMtimeMs: snap.dataMtimeMs,
+      dataSizeBytes: snap.dataSizeBytes,
+      entries: snap.entries ?? 0,
+      analyzerSigHash: snap.analyzerSigHash ?? 0,
+      indexVersion: 1,
+    );
+  }
+
+  Future<bool> _shouldRebuild() async {
+    // If journal says "dirty", we must rebuild.
+    if (await _journal.isDirty()) return true;
+
+    final saved = await _journal.readSnapshot();
+    // No snapshot recorded yet => likely first run with IndexedBox
+    if (saved == null) return true;
+
+    final now = await _currentSnapshot();
+
+    // Any schema/shape changes → rebuild
+    if (saved.analyzerSigHash != now.analyzerSigHash) return true;
+
+    // Entries change with out-of-band writes; IndexedBox stamps after writes.
+    if (saved.entries != now.entries) return true;
+
+    // If file stats are present, use them as a tripwire (cheap, very reliable).
+    if (saved.dataMtimeMs != null &&
+        now.dataMtimeMs != null &&
+        saved.dataMtimeMs != now.dataMtimeMs) {
+      return true;
+    }
+    if (saved.dataSizeBytes != null &&
+        now.dataSizeBytes != null &&
+        saved.dataSizeBytes != now.dataSizeBytes) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // Optional: tiny probe to double-check before a rebuild (set probes>0 to use)
+  Future<bool> _quickIndexProbe({int probes = 0}) async {
+    if (probes <= 0) return true; // skip probe
+    final total = await length;
+    if (total == 0) return true;
+
+    final step = math.max(1, total ~/ probes);
+    for (int i = 0, seen = 0; i < total && seen < probes; i += step, seen++) {
+      final k = await keyAt(i);
+      final v = await get(k);
+      if (v == null) continue;
+      final tokens = _analyze(v).toSet();
+      for (final t in tokens.take(8)) {
+        // cap per item to keep it cheap
+        final keys = await _engine.readToken(t);
+        if (!keys.contains(k)) return false; // stale
+      }
+    }
+    return true;
+  }
 
   // -----------------------------------------------------------------------------
   // Helpers
