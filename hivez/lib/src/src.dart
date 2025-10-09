@@ -6,18 +6,18 @@ export 'boxes/boxes.dart'
         HivezBoxIsolatedLazy,
         BaseHivezBox,
         BoxInterface;
-export 'extensions/extensions.dart';
+
 export 'builders/builders.dart'
     show
-        Box,
-        BoxCreator,
         BoxType,
+        GetTypeOfBoxInterfaceExtension,
+        Box,
         BoxConfig,
         CreateHivezBoxFromConfig,
-        GetTypeOfBoxInterfaceExtension,
-        CreationExtensionsBoxType,
         CreateBoxFromConfigExtensions,
-        CreateBoxFromTypeExtensions;
+        CreateBoxFromTypeExtensions,
+        CreationExtensionsBoxType;
+
 export 'special_boxes/special_boxes.dart'
     show
         IndexedBox,
@@ -26,3 +26,5 @@ export 'special_boxes/special_boxes.dart'
         CreateTextAnalyzerExtensions,
         CreateIndexedBoxFromConfig,
         CreateIndexedBoxFromType;
+
+export 'extensions/extensions.dart';

@@ -30,7 +30,8 @@ A special box that maintains a lightweight full‑text token index for extremely
 
   ```dart
   final box = Box<int, User>('users', type: BoxType.lazy); // easy to switch between box types
-  final box = Box<int, User>('users', type: BoxType.isolated); // easy to switch between box types
+  final box = Box<int, User>('users', type: BoxType.isolated); // all types of boxes supported
+  final box = Box<int, User>.lazy('users'); // many syntax variations
   ```
 
 - Comes with `BoxConfig`, `BoxType`, and `BoxCreator`, for easier box configuration and creation:

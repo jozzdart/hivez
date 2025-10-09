@@ -282,12 +282,46 @@ abstract class _BoxInterfaceHelpers<K, T, BoxType> {
   Future<BoxType> _openBox();
 }
 
+/// Base class for all HivezBox implementations, providing core logic for
+/// initialization, locking, logging, and high-level box operations.
+///
+/// This abstract class implements [BoxInterface] and [_BoxInterfaceHelpers],
+/// and is intended to be extended by concrete HivezBox types (regular, lazy,
+/// isolated, etc.). It manages the lifecycle of the underlying Hive box,
+/// provides thread-safe access via locks, and supports custom logging.
+///
+/// Type Parameters:
+///   - [K]: The type of the keys used in the box.
+///   - [T]: The type of the values stored in the box.
+///   - [B]: The concrete type of the underlying Hive box (e.g., [Box], [LazyBox], etc.).
+///
+/// Features:
+/// - Ensures the box is initialized before any operation.
+/// - Provides thread-safe read/write operations using [Lock].
+/// - Supports custom logging via [LogHandler].
+/// - Implements common query, iteration, and utility methods.
+/// - Handles error propagation and debug logging.
+/// - Used as the foundation for all HivezBox variants.
+///
+/// Example:
+/// ```dart
+/// class MyBox extends BaseHivezBox<String, MyModel, Box<MyModel>> { ... }
+/// ```
 abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
     implements _BoxInterfaceHelpers<K, T, B> {
+  /// Optional custom logger for box operations.
   final LogHandler? _logger;
+
+  /// Lock for synchronizing box initialization.
   final Lock _initLock = Lock();
+
+  /// Lock for synchronizing write operations.
   final Lock _lock = Lock();
+
+  /// Additional lock for advanced operations (e.g., moveKey).
   final Lock _additionalLock = Lock();
+
+  /// The underlying Hive box instance, or null if not initialized.
   B? _box;
 
   @override

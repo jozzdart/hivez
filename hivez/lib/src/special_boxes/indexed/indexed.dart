@@ -16,13 +16,49 @@ part 'extensions.dart';
 part 'exceptions.dart';
 part 'lock.dart';
 
+/// A [Box] implementation that provides full-text search and secondary indexing.
+///
+/// [IndexedBox] maintains a secondary index for fast text search and token-based
+/// lookups. It automatically keeps the index in sync with the main data, and
+/// supports rebuilding the index if the schema or data changes out-of-band.
+///
+/// Type parameters:
+///   - [K]: The key type (e.g., int, String).
+///   - [T]: The value type (your data model).
+///
+/// Example usage:
+/// ```dart
+/// final box = IndexedBox<int, MyModel>(
+///   'myBox',
+///   searchableText: (m) => m.title,
+/// );
+/// final results = await box.search('query');
+/// ```
 class IndexedBox<K, T> extends Box<K, T> {
+  /// The underlying index engine responsible for token-to-key mapping.
   final IndexEngine<K, T> _engine;
+
+  /// The journal for tracking index state and snapshots.
   final IndexJournal _journal;
+
+  /// In-memory cache for token-to-key lookups.
   final TokenKeyCache<K> _cache;
-  late final IndexedBoxLock _lock;
+
+  /// Lock for synchronizing operations.
+  late final IndexedBoxLockJournal _lock;
+
+  /// Searcher for executing queries over the index.
   late final IndexSearcher<K, T> _searcher;
 
+  /// Creates an [IndexedBox] with the given configuration.
+  ///
+  /// [searchableText] extracts the text to be indexed from each value.
+  /// [analyzer] controls how text is tokenized (e.g., prefix, n-gram).
+  /// [overrideAnalyzer] can be used to provide a custom analyzer.
+  /// [matchAllTokens] requires all tokens to match for a result.
+  /// [tokenCacheCapacity] sets the LRU cache size for token lookups.
+  /// [verifyMatches] enables value verification for search results.
+  /// [keyComparator] provides a custom sort for search results.
   IndexedBox(
     super.name, {
     required String Function(T) searchableText,
@@ -70,9 +106,13 @@ class IndexedBox<K, T> extends Box<K, T> {
       getValue: super.get,
       keyComparator: keyComparator,
     );
-    _lock = IndexedBoxLock(this);
+    _lock = IndexedBoxLockJournal(this);
   }
 
+  /// Creates an [IndexedBox] from a [BoxConfig].
+  ///
+  /// This is a convenience factory for constructing an [IndexedBox] using
+  /// a configuration object.
   factory IndexedBox.fromConfig(
     BoxConfig config, {
     Analyzer analyzer = Analyzer.prefix,
@@ -108,6 +148,9 @@ class IndexedBox<K, T> extends Box<K, T> {
   bool get isInitialized =>
       super.isInitialized && _engine.isInitialized && _journal.isInitialized;
 
+  /// Ensures the box, index, and journal are initialized and up-to-date.
+  ///
+  /// If the index is out-of-date or the schema has changed, the index is rebuilt.
   @override
   Future<void> ensureInitialized() async {
     // Open main data + journal first (we need path/length and snapshot)
@@ -139,6 +182,8 @@ class IndexedBox<K, T> extends Box<K, T> {
   // -----------------------------------------------------------------------------
   // Disk / Close / Flush / Compact  (non-mutating; no dirty toggles)
   // -----------------------------------------------------------------------------
+
+  /// Flushes all data and index changes to disk.
   @override
   Future<void> flushBox() async {
     await _lock.operation("FLUSH_BOX").run(() async {
@@ -148,6 +193,7 @@ class IndexedBox<K, T> extends Box<K, T> {
     });
   }
 
+  /// Compacts the box and its index/journal to reclaim disk space.
   @override
   Future<void> compactBox() async {
     await _lock.operation("COMPACT_BOX").run(() async {
@@ -157,6 +203,7 @@ class IndexedBox<K, T> extends Box<K, T> {
     });
   }
 
+  /// Closes the box and all associated index/journal resources.
   @override
   Future<void> closeBox() async {
     await _lock.operation("CLOSE_BOX").run(() async {
@@ -170,6 +217,7 @@ class IndexedBox<K, T> extends Box<K, T> {
     });
   }
 
+  /// Deletes the box and all index/journal data from disk.
   @override
   Future<void> deleteFromDisk() async {
     await _lock.bypassJournal.operation("DELETE_FROM_DISK").run(() async {
@@ -180,7 +228,10 @@ class IndexedBox<K, T> extends Box<K, T> {
     });
   }
 
-  /// Clears runtime caches + resets journal (no persistent data loss).
+  /// Clears runtime caches and resets the journal.
+  ///
+  /// This does not delete persistent data, but resets in-memory state and
+  /// marks the index as needing a rebuild.
   Future<void> resetRuntimeState() async {
     await _lock.operation("RESET_RUNTIME_STATE").run(() async {
       _cache.clear();
@@ -188,6 +239,7 @@ class IndexedBox<K, T> extends Box<K, T> {
     });
   }
 
+  /// Estimates the total size in bytes of the box, index, and journal.
   @override
   Future<int> estimateSizeBytes() async {
     final size = await super.estimateSizeBytes();
@@ -199,6 +251,8 @@ class IndexedBox<K, T> extends Box<K, T> {
   // -----------------------------------------------------------------------------
   // Write path (all wrapped in _writeTxn)
   // -----------------------------------------------------------------------------
+
+  /// Inserts or updates a value for the given [key], updating the index.
   @override
   Future<void> put(K key, T value) => _lock.operation("PUT").run(() async {
         final old = await super.get(key);
@@ -209,6 +263,7 @@ class IndexedBox<K, T> extends Box<K, T> {
         await _stampSnapshot();
       });
 
+  /// Inserts or updates multiple entries, updating the index.
   @override
   Future<void> putAll(Map<K, T> entries) {
     if (entries.isEmpty) return Future.value();
@@ -230,6 +285,7 @@ class IndexedBox<K, T> extends Box<K, T> {
     });
   }
 
+  /// Adds a value and returns its generated key, updating the index.
   @override
   Future<int> add(T value) => _lock.operation("ADD").run(() async {
         final id = await super.add(value);
@@ -239,6 +295,7 @@ class IndexedBox<K, T> extends Box<K, T> {
         return id;
       });
 
+  /// Adds multiple values, updating the index.
   @override
   Future<void> addAll(Iterable<T> values) {
     if (values.isEmpty) return Future.value();
@@ -254,6 +311,7 @@ class IndexedBox<K, T> extends Box<K, T> {
     });
   }
 
+  /// Deletes the value for the given [key], updating the index.
   @override
   Future<void> delete(K key) => _lock.operation("DELETE").run(() async {
         final old = await super.get(key);
@@ -265,6 +323,7 @@ class IndexedBox<K, T> extends Box<K, T> {
         await _stampSnapshot();
       });
 
+  /// Deletes all values for the given [keys], updating the index.
   @override
   Future<void> deleteAll(Iterable<K> keys) {
     final unique = keys is Set<K> ? keys : keys.toSet();
@@ -286,6 +345,7 @@ class IndexedBox<K, T> extends Box<K, T> {
     });
   }
 
+  /// Deletes the value at the given [index], updating the index.
   @override
   Future<void> deleteAt(int index) =>
       _lock.operation("DELETE_AT").run(() async {
@@ -299,6 +359,7 @@ class IndexedBox<K, T> extends Box<K, T> {
         await _stampSnapshot();
       });
 
+  /// Clears all values and index data.
   @override
   Future<void> clear() => _lock.operation("CLEAR").run(() async {
         await super.clear();
@@ -307,6 +368,7 @@ class IndexedBox<K, T> extends Box<K, T> {
         await _stampSnapshot();
       });
 
+  /// Updates the value at the given [index], updating the index.
   @override
   Future<void> putAt(int index, T value) =>
       _lock.operation("PUT_AT").run(() async {
@@ -319,6 +381,9 @@ class IndexedBox<K, T> extends Box<K, T> {
         await _stampSnapshot();
       });
 
+  /// Moves a value from [oldKey] to [newKey], updating the index.
+  ///
+  /// Returns true if the move was successful.
   @override
   Future<bool> moveKey(K oldKey, K newKey) =>
       _lock.operation("MOVE_KEY").run(() async {
@@ -334,21 +399,33 @@ class IndexedBox<K, T> extends Box<K, T> {
         return moved;
       });
 
-  // Values
+  /// Searches for values matching the [query] string.
+  ///
+  /// [limit] restricts the number of results, [offset] skips the first N results.
   Future<List<T>> search(String query, {int? limit, int offset = 0}) =>
       _searcher.values(query, limit: limit, offset: offset);
 
-  // Keys
+  /// Searches for keys of values matching the [query] string.
+  ///
+  /// [limit] restricts the number of results, [offset] skips the first N results.
   Future<List<K>> searchKeys(String query, {int? limit, int offset = 0}) =>
       _searcher.keys(query, limit: limit, offset: offset);
 
-  // Streams
+  /// Returns a stream of keys matching the [query] string.
   Stream<K> searchKeysStream(String query) => _searcher.keysStream(query);
+
+  /// Returns a stream of values matching the [query] string.
   Stream<T> searchStream(String query) => _searcher.valuesStream(query);
 
   // -----------------------------------------------------------------------------
   // Rebuild index (journaled)
   // -----------------------------------------------------------------------------
+
+  /// Rebuilds the entire index from the current box contents.
+  ///
+  /// This is called automatically if the index is out-of-date or the schema
+  /// has changed. [onProgress] is called with a value between 0.0 and 1.0
+  /// to report progress.
   Future<void> rebuildIndex(
       {void Function(double progress)? onProgress}) async {
     await _engine.clear();
@@ -384,7 +461,9 @@ class IndexedBox<K, T> extends Box<K, T> {
 
   // --- Snapshot / signature helpers ------------------------------------------
 
-  // Simple 32-bit FNV-1a to store signatures as ints in the journal.
+  /// Computes a simple 32-bit FNV-1a hash for a string.
+  ///
+  /// Used to store analyzer signatures as ints in the journal.
   static int _hash32(String s) {
     const int fnvOffset = 0x811C9DC5;
     const int fnvPrime = 0x01000193;
@@ -396,6 +475,9 @@ class IndexedBox<K, T> extends Box<K, T> {
     return hash;
   }
 
+  /// Computes a signature hash for the current analyzer configuration.
+  ///
+  /// Used to detect schema changes that require index rebuilds.
   int _analyzerSigHash() {
     final a = _engine.analyzer;
     final b = StringBuffer()..write(a.runtimeType.toString());
@@ -418,6 +500,9 @@ class IndexedBox<K, T> extends Box<K, T> {
     return _hash32(b.toString());
   }
 
+  /// Returns a snapshot of the current box state for index validation.
+  ///
+  /// Includes file modification time, size, entry count, and analyzer signature.
   Future<IndexSnapshot> _currentSnapshot() async {
     int? mtimeMs;
     int? sizeBytes;
@@ -441,6 +526,7 @@ class IndexedBox<K, T> extends Box<K, T> {
     );
   }
 
+  /// Writes a new snapshot to the journal after index changes.
   Future<void> _stampSnapshot() async {
     final snap = await _currentSnapshot();
     await _journal.writeSnapshot(
@@ -452,6 +538,10 @@ class IndexedBox<K, T> extends Box<K, T> {
     );
   }
 
+  /// Determines if the index should be rebuilt based on journal and snapshot.
+  ///
+  /// Returns true if the index is dirty, schema changed, or data changed
+  /// out-of-band.
   Future<bool> _shouldRebuild() async {
     // If journal says "dirty", we must rebuild.
     if (await _journal.isDirty()) return true;
@@ -483,7 +573,10 @@ class IndexedBox<K, T> extends Box<K, T> {
     return false;
   }
 
-  // Optional: tiny probe to double-check before a rebuild (set probes>0 to use)
+  /// Optionally probes the index for consistency before a rebuild.
+  ///
+  /// If [probes] > 0, checks a sample of items to see if the index is stale.
+  /// Returns true if the index appears valid.
   Future<bool> _quickIndexProbe({int probes = 0}) async {
     if (probes <= 0) return true; // skip probe
     final total = await length;
@@ -507,8 +600,11 @@ class IndexedBox<K, T> extends Box<K, T> {
   // -----------------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------------
+
+  /// Analyzes a value [v] into its set of tokens using the configured analyzer.
   Iterable<String> _analyze(T v) => _engine.analyzer.analyze(v);
 
+  /// Invalidates cached tokens for a given [value].
   void _invalidateTokensFor(T? value) {
     if (value == null) return;
     _cache.invalidateTokens(_analyze(value));

@@ -1,8 +1,45 @@
 part of 'boxes.dart';
 
+/// {@template box_decorator}
+/// A base decorator for [BoxInterface] implementations, enabling composition,
+/// extension, and augmentation of box behaviors in a type-safe, production-grade manner.
+///
+/// The [BoxDecorator] class wraps an existing [BoxInterface] instance and delegates
+/// all method calls and property accesses to the underlying box. This allows you to
+/// transparently add cross-cutting concerns (such as logging, caching, access control,
+/// or metrics) to any box type without modifying its implementation.
+///
+/// This pattern is especially useful for advanced scenarios where you want to
+/// intercept, monitor, or enhance box operations in a modular and reusable way.
+///
+/// Type Parameters:
+///   - [K]: The type of keys used in the box.
+///   - [T]: The type of values stored in the box.
+///
+/// Example usage:
+/// ```dart
+/// class LoggingBox<K, T> extends BoxDecorator<K, T> {
+///   LoggingBox(BoxInterface<K, T> box) : super(box);
+///
+///   @override
+///   Future<void> put(K key, T value) async {
+///     print('Putting key: $key, value: $value');
+///     await super.put(key, value);
+///   }
+/// }
+/// ```
+///
+/// See also:
+/// - [BoxInterface] for the core box contract.
+/// - [Box] for the main user-facing box abstraction.
+/// {@endtemplate}
 abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
+  /// The underlying [BoxInterface] instance being decorated.
   final BoxInterface<K, T> _internalBox;
 
+  /// Creates a [BoxDecorator] that wraps the given [_internalBox].
+  ///
+  /// All method calls and property accesses are delegated to [_internalBox].
   BoxDecorator(this._internalBox)
       : super(
           _internalBox.name,
