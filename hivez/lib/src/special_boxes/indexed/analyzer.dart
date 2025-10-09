@@ -13,11 +13,12 @@ abstract class TextAnalyzer<T> {
       BasicTextAnalyzer<T>(searchableText);
 
   static TextAnalyzer<T> prefix<T>(String Function(T) searchableText,
-          {int minPrefix = 2}) =>
-      PrefixTextAnalyzer<T>(searchableText, minPrefix: minPrefix);
+          {int minPrefix = 2, int maxPrefix = 9}) =>
+      PrefixTextAnalyzer<T>(searchableText,
+          minPrefix: minPrefix, maxPrefix: maxPrefix);
 
   static TextAnalyzer<T> ngram<T>(String Function(T) searchableText,
-          {int minN = 2, int maxN = 5}) =>
+          {int minN = 2, int maxN = 6}) =>
       NGramTextAnalyzer<T>(searchableText, minN: minN, maxN: maxN);
 }
 
@@ -59,7 +60,7 @@ class NGramTextAnalyzer<T> extends TextAnalyzer<T> {
   final String Function(T) searchableText;
   final int minN;
   final int maxN;
-  const NGramTextAnalyzer(this.searchableText, {this.minN = 2, this.maxN = 5});
+  const NGramTextAnalyzer(this.searchableText, {this.minN = 2, this.maxN = 6});
 
   @override
   Iterable<String> analyze(T v) {
