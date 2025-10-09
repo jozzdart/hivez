@@ -765,13 +765,13 @@ final box = IndexedBox<int, Document>.create(
 
 ### Summary Table
 
-| Setting              | Type               | Default              | Purpose                                    |
-| -------------------- | ------------------ | -------------------- | ------------------------------------------ |
-| `matchAllTokens`     | `bool`             | `true`               | Require all vs any words to match          |
-| `tokenCacheCapacity` | `int`              | `512`                | Speed up repeated searches                 |
-| `verifyMatches`      | `bool`             | `false`              | Re-check results for stale index           |
-| `keyComparator`      | `Function?`        | `null`               | Custom sort for results                    |
-| `analyzer`           | `TextAnalyzer<T>?` | `PrefixTextAnalyzer` | How text is tokenized (basic/prefix/ngram) |
+| Setting              | Type        | Default           | Purpose                                    |
+| -------------------- | ----------- | ----------------- | ------------------------------------------ |
+| `matchAllTokens`     | `bool`      | `true`            | Require all vs any words to match          |
+| `tokenCacheCapacity` | `int`       | `512`             | Speed up repeated searches                 |
+| `verifyMatches`      | `bool`      | `false`           | Re-check results for stale index           |
+| `keyComparator`      | `Function?` | `null`            | Custom sort for results                    |
+| `analyzer`           | `Analyzer`  | `Analyzer.prefix` | How text is tokenized (basic/prefix/ngram) |
 
 ---
 
