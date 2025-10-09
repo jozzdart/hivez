@@ -1,27 +1,35 @@
 part of 'builders.dart';
 
 class Box<K, T> extends BoxDecorator<K, T> {
-  Box(BoxConfig config) : super(config.createBox<K, T>());
-
-  factory Box.create(
+  Box(
     String name, {
     BoxType type = BoxType.regular,
     HiveCipher? encryptionCipher,
     bool crashRecovery = true,
     String? path,
     String? collection,
-    LogHandler? logger,
-  }) =>
-      Box<K, T>(
-        BoxConfig(
+    void Function(String)? logger,
+  }) : super(BoxConfig(
           name,
+          type: type,
           encryptionCipher: encryptionCipher,
           crashRecovery: crashRecovery,
           path: path,
           collection: collection,
           logger: logger,
-          type: type,
-        ),
+        ).createBox<K, T>());
+
+  factory Box.fromConfig(
+    BoxConfig config,
+  ) =>
+      Box(
+        config.name,
+        type: config.type,
+        encryptionCipher: config.encryptionCipher,
+        crashRecovery: config.crashRecovery,
+        path: config.path,
+        collection: config.collection,
+        logger: config.logger,
       );
 
   factory Box.regular(
@@ -33,14 +41,13 @@ class Box<K, T> extends BoxDecorator<K, T> {
     LogHandler? logger,
   }) =>
       Box<K, T>(
-        BoxConfig.regular(
-          name,
-          encryptionCipher: encryptionCipher,
-          crashRecovery: crashRecovery,
-          path: path,
-          collection: collection,
-          logger: logger,
-        ),
+        name,
+        type: BoxType.regular,
+        encryptionCipher: encryptionCipher,
+        crashRecovery: crashRecovery,
+        path: path,
+        collection: collection,
+        logger: logger,
       );
 
   factory Box.lazy(
@@ -52,14 +59,13 @@ class Box<K, T> extends BoxDecorator<K, T> {
     LogHandler? logger,
   }) =>
       Box<K, T>(
-        BoxConfig.lazy(
-          name,
-          encryptionCipher: encryptionCipher,
-          crashRecovery: crashRecovery,
-          path: path,
-          collection: collection,
-          logger: logger,
-        ),
+        name,
+        type: BoxType.lazy,
+        encryptionCipher: encryptionCipher,
+        crashRecovery: crashRecovery,
+        path: path,
+        collection: collection,
+        logger: logger,
       );
 
   factory Box.isolated(
@@ -71,14 +77,13 @@ class Box<K, T> extends BoxDecorator<K, T> {
     LogHandler? logger,
   }) =>
       Box<K, T>(
-        BoxConfig.isolated(
-          name,
-          encryptionCipher: encryptionCipher,
-          crashRecovery: crashRecovery,
-          path: path,
-          collection: collection,
-          logger: logger,
-        ),
+        name,
+        type: BoxType.isolated,
+        encryptionCipher: encryptionCipher,
+        crashRecovery: crashRecovery,
+        path: path,
+        collection: collection,
+        logger: logger,
       );
 
   factory Box.isolatedLazy(
@@ -90,19 +95,18 @@ class Box<K, T> extends BoxDecorator<K, T> {
     LogHandler? logger,
   }) =>
       Box<K, T>(
-        BoxConfig.isolatedLazy(
-          name,
-          encryptionCipher: encryptionCipher,
-          crashRecovery: crashRecovery,
-          path: path,
-          collection: collection,
-          logger: logger,
-        ),
+        name,
+        type: BoxType.isolatedLazy,
+        encryptionCipher: encryptionCipher,
+        crashRecovery: crashRecovery,
+        path: path,
+        collection: collection,
+        logger: logger,
       );
 }
 
 extension CreateBoxFromConfigExtensions on BoxConfig {
-  Box<K, T> box<K, T>() => Box<K, T>(this);
+  Box<K, T> box<K, T>() => Box<K, T>.fromConfig(this);
 }
 
 extension CreateBoxFromTypeExtensions on BoxType {
@@ -115,14 +119,12 @@ extension CreateBoxFromTypeExtensions on BoxType {
     LogHandler? logger,
   }) =>
       Box<K, T>(
-        BoxConfig(
-          name,
-          type: this,
-          encryptionCipher: encryptionCipher,
-          crashRecovery: crashRecovery,
-          path: path,
-          collection: collection,
-          logger: logger,
-        ),
+        name,
+        type: this,
+        encryptionCipher: encryptionCipher,
+        crashRecovery: crashRecovery,
+        path: path,
+        collection: collection,
+        logger: logger,
       );
 }
