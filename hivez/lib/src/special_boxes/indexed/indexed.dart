@@ -26,14 +26,15 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   IndexedBox(
     super.config, {
     required String Function(T) searchableText,
+    Analyzer analyzer = Analyzer.prefix,
     bool matchAllTokens = true,
     int tokenCacheCapacity = 512,
     bool verifyMatches = false,
     int Function(K a, K b)? keyComparator,
-    TextAnalyzer<T>? analyzer,
+    TextAnalyzer<T>? overrideAnalyzer,
   })  : _engine = IndexEngine<K, T>(
           config.copyWith(name: '${config.name}__idx', logger: null),
-          analyzer: analyzer ?? PrefixTextAnalyzer<T>(searchableText),
+          analyzer: overrideAnalyzer ?? analyzer.analyzer(searchableText),
           matchAllTokens: matchAllTokens,
         ),
         _journal = BoxIndexJournal(
@@ -45,7 +46,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
     _searcher = IndexSearcher<K, T>(
       engine: _engine,
       cache: _cache,
-      analyzer: analyzer ?? PrefixTextAnalyzer<T>(searchableText),
+      analyzer: overrideAnalyzer ?? analyzer.analyzer(searchableText),
       verifyMatches: verifyMatches,
       ensureReady: ensureInitialized,
       getValue: super.get,
@@ -57,13 +58,14 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
   factory IndexedBox.create(
     String name, {
     BoxType type = BoxType.regular,
+    Analyzer analyzer = Analyzer.prefix,
     required String Function(T) searchableText,
     HiveCipher? encryptionCipher,
     bool crashRecovery = true,
     String? path,
     String? collection,
     LogHandler? logger,
-    TextAnalyzer<T>? analyzer,
+    TextAnalyzer<T>? overrideAnalyzer,
     bool matchAllTokens = true,
     int tokenCacheCapacity = 512,
     bool verifyMatches = false,
@@ -81,6 +83,7 @@ class IndexedBox<K, T> extends ConfiguredBox<K, T> {
         ),
         searchableText: searchableText,
         analyzer: analyzer,
+        overrideAnalyzer: overrideAnalyzer,
         matchAllTokens: matchAllTokens,
         tokenCacheCapacity: tokenCacheCapacity,
         verifyMatches: verifyMatches,

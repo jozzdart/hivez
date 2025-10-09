@@ -1,5 +1,24 @@
 part of 'indexed.dart';
 
+enum Analyzer {
+  basic,
+  prefix,
+  ngram,
+}
+
+extension CreateTextAnalyzerExtensions on Analyzer {
+  TextAnalyzer<T> analyzer<T>(String Function(T) searchableText) {
+    switch (this) {
+      case Analyzer.basic:
+        return TextAnalyzer.basic(searchableText);
+      case Analyzer.prefix:
+        return TextAnalyzer.prefix(searchableText);
+      case Analyzer.ngram:
+        return TextAnalyzer.ngram(searchableText);
+    }
+  }
+}
+
 abstract class TextAnalyzer<T> {
   const TextAnalyzer();
   Iterable<String> analyze(T value);

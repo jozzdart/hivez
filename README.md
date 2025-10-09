@@ -487,7 +487,7 @@ you just gain ultra-fast search on top.
 
 ```dart
 // Before: plain Hive or Hivez box
-final notes = Hive.box<String>('notes'); //or: HivezBox<int, Note>('notes');
+// final notes = Hive.box<String>('notes'); //or: HivezBox<int, Note>('notes');
 
 // After: one-line switch to IndexedBox
 final notes = IndexedBox<int, Note>.create(
@@ -583,7 +583,7 @@ final relaxed = IndexedBox<String, Article>.create(
 Or pick a different text analyzer for **substring** or **prefix** matching:
 
 ```dart
-analyzer: TextAnalyzer.ngram((a) => a.title); // "hel" matches "Hello"
+analyzer: Analyzer.ngram, // "hel" matches "Hello"
 ```
 
 > Done.
@@ -738,7 +738,6 @@ For a detailed explanation, see [**`analyzer`** - How Text Is Broken into Tokens
 final box = IndexedBox<String, City>.create(
   'cities',
   searchableText: (c) => c.name,
-  analyzer: TextAnalyzer.prefix((c) => c.name),
   matchAllTokens: false,
   tokenCacheCapacity: 2000,
 );
@@ -754,7 +753,7 @@ final box = IndexedBox<String, City>.create(
 final box = IndexedBox<int, Document>.create(
   'docs',
   searchableText: (d) => d.content,
-  analyzer: TextAnalyzer.basic((d) => d.content),
+  analyzer: Analyzer.basic,
   matchAllTokens: true,
   verifyMatches: true,
 );
@@ -795,18 +794,18 @@ query -> tokens -> lookup in index -> matched keys
 
 There are three built-in analyzers, each with different speed/flexibility trade-offs:
 
-| Analyzer              | Behavior               | Example Match                | Speed     | Disk Size | Use Case                                |
-| --------------------- | ---------------------- | ---------------------------- | --------- | --------- | --------------------------------------- |
-| `TextAnalyzer.basic`  | Whole-word search      | `"dart"` → “Learn Dart Fast” | ⚡ Fast   | 🟢 Small  | Exact keyword search                    |
-| `TextAnalyzer.prefix` | Word prefix search     | `"flu"` → “Flutter Basics”   | ⚡ Fast   | 🟡 Medium | Autocomplete, suggestions               |
-| `TextAnalyzer.ngram`  | Any substring matching | `"utt"` → “Flutter Rocks”    | ⚡ Medium | 🔴 Large  | Fuzzy, partial, or typo-tolerant search |
+| Analyzer          | Behavior               | Example Match                | Speed     | Disk Size | Use Case                                |
+| ----------------- | ---------------------- | ---------------------------- | --------- | --------- | --------------------------------------- |
+| `Analyzer.basic`  | Whole-word search      | `"dart"` → “Learn Dart Fast” | ⚡ Fast   | 🟢 Small  | Exact keyword search                    |
+| `Analyzer.prefix` | Word prefix search     | `"flu"` → “Flutter Basics”   | ⚡ Fast   | 🟡 Medium | Autocomplete, suggestions               |
+| `Analyzer.ngram`  | Any substring matching | `"utt"` → “Flutter Rocks”    | ⚡ Medium | 🔴 Large  | Fuzzy, partial, or typo-tolerant search |
 
 ---
 
 #### 🧱 Basic Analyzer – Whole Words Only (smallest index, fastest writes)
 
 ```dart
-analyzer: TextAnalyzer.basic((a) => a.title)
+analyzer: Analyzer.basic,
 ```
 
 **How it works:**
@@ -841,11 +840,7 @@ dart    → [key1]
 #### 🔠 Prefix Analyzer – Partial Word Prefixes (great for autocomplete)
 
 ```dart
-analyzer: TextAnalyzer.prefix(
-  (a) => a.title,
-  minPrefix: 2,
-  maxPrefix: 8,
-)
+analyzer: Analyzer.prefix,
 ```
 
 **How it works:**
@@ -884,11 +879,7 @@ dart → [key1]
 #### 🔍 N-Gram Analyzer – Substrings Anywhere (maximum flexibility)
 
 ```dart
-analyzer: TextAnalyzer.ngram(
-  (a) => a.title,
-  minN: 2,
-  maxN: 5,
-)
+analyzer: Analyzer.ngram,
 ```
 
 **How it works:**
@@ -900,7 +891,7 @@ Creates _all possible substrings_ (“n-grams”) between `minN` and `maxN` for 
 | ----------- | -------------------------------------------------------------------------------------------------------------- |
 | `"Flutter"` | `["fl", "lu", "ut", "tt", "te", "er", "flu", "lut", "utt", "tte", "ter", "flut", "lutt", "utte", "tter", ...]` |
 
-_(for each length n = 2→5)_
+_(for each length n = 2→6)_
 
 **Index snapshot (simplified):**
 
@@ -924,23 +915,23 @@ ter → [key1]
 ⚠️ **Trade-off:**
 
 - Slower writes (`≈2–4×`)
-- More index data (`≈2–5× larger`)
+- More index data (`≈2–6× larger`)
 - But _can match anywhere in the text_ — ideal for **fuzzy**, **partial**, or **typo-tolerant** search.
 
 > **Use this** if you want “contains” behavior (`"utt"` → `"Flutter"`), not just prefixes.
 
 ## ⚖️ Choosing the Right Analyzer
 
-| If you want...        | Use                                        | Example                       |
-| --------------------- | ------------------------------------------ | ----------------------------- |
-| Exact keyword search  | `TextAnalyzer.basic`                       | Searching “tag” or “category” |
-| Fast autocomplete     | `TextAnalyzer.prefix`                      | Typing “fl” → “Flutter”       |
-| “Contains” matching   | `TextAnalyzer.ngram`                       | Searching “utt” → “Flutter”   |
-| Fuzzy/tolerant search | `TextAnalyzer.ngram` (with larger n range) | “fluttr” → “Flutter”          |
+| If you want...        | Use                                    | Example                       |
+| --------------------- | -------------------------------------- | ----------------------------- |
+| Exact keyword search  | `Analyzer.basic`                       | Searching “tag” or “category” |
+| Fast autocomplete     | `Analyzer.prefix`                      | Typing “fl” → “Flutter”       |
+| “Contains” matching   | `Analyzer.ngram`                       | Searching “utt” → “Flutter”   |
+| Fuzzy/tolerant search | `Analyzer.ngram` (with larger n range) | “fluttr” → “Flutter”          |
 
 ## 🧩 Quick Recap (All Analyzers Side-by-Side)
 
-| Value: `"Flutter and Dart"` | Basic                      | Prefix (min=2,max=8)                                                     | N-Gram (min=2,max=5)                                                        |
+| Value: `"Flutter and Dart"` | Basic                      | Prefix (min=2,max=9)                                                     | N-Gram (min=2,max=6)                                                        |
 | --------------------------- | -------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
 | Tokens                      | [`flutter`, `and`, `dart`] | [`fl`, `flu`, `flut`, `flutt`, `flutte`, `flutter`, `da`, `dar`, `dart`] | [`fl`, `lu`, `ut`, `tt`, `te`, `er`, `flu`, `lut`, `utt`, `tte`, `ter`,...] |
 | Query `"flu"`               | ❌                         | ✅                                                                       | ✅                                                                          |

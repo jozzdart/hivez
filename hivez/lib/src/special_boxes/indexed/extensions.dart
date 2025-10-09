@@ -3,7 +3,8 @@ part of 'indexed.dart';
 extension CreateIndexedBoxFromConfig<K, T> on BoxConfig {
   IndexedBox<K, T> indexedBox({
     required String Function(T) searchableText,
-    TextAnalyzer<T>? analyzer,
+    Analyzer analyzer = Analyzer.prefix,
+    TextAnalyzer<T>? overrideAnalyzer,
     bool matchAllTokens = true,
     int tokenCacheCapacity = 512,
     bool verifyMatches = false,
@@ -12,6 +13,7 @@ extension CreateIndexedBoxFromConfig<K, T> on BoxConfig {
     return IndexedBox<K, T>(
       this,
       analyzer: analyzer,
+      overrideAnalyzer: overrideAnalyzer,
       searchableText: searchableText,
       matchAllTokens: matchAllTokens,
       tokenCacheCapacity: tokenCacheCapacity,
@@ -30,7 +32,8 @@ extension CreateIndexedBoxFromType<K, T> on BoxType {
     String? collection,
     LogHandler? logger,
     required String Function(T) searchableText,
-    TextAnalyzer<T>? analyzer,
+    Analyzer analyzer = Analyzer.prefix,
+    TextAnalyzer<T>? overrideAnalyzer,
     bool matchAllTokens = true,
     int tokenCacheCapacity = 512,
     bool verifyMatches = false,
@@ -48,6 +51,7 @@ extension CreateIndexedBoxFromType<K, T> on BoxType {
         ),
         searchableText: searchableText,
         analyzer: analyzer,
+        overrideAnalyzer: overrideAnalyzer,
         matchAllTokens: matchAllTokens,
         tokenCacheCapacity: tokenCacheCapacity,
         verifyMatches: verifyMatches,

@@ -39,7 +39,7 @@ void main() {
           final box = IndexedBox<int, String>(
             config,
             searchableText: (s) => s,
-            analyzer: analyzer,
+            overrideAnalyzer: analyzer,
           );
 
           // Populate and index

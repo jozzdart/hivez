@@ -251,7 +251,7 @@ void main() {
       // 1) Build with PREFIX analyzer (default)
       final prefixBox = IndexedBox<int, String>(
         BoxConfig(boxName),
-        analyzer: NGramTextAnalyzer((s) => s),
+        analyzer: Analyzer.ngram,
         searchableText: (s) => s,
       );
       await prefixBox.ensureInitialized();
@@ -268,7 +268,7 @@ void main() {
       final basicVerify = IndexedBox<int, String>(
         BoxConfig(boxName),
         searchableText: (s) => s,
-        analyzer: TextAnalyzer.basic((s) => s),
+        analyzer: Analyzer.basic,
         verifyMatches: true,
       );
       await basicVerify.ensureInitialized();
@@ -282,7 +282,7 @@ void main() {
       final basicNoVerify = IndexedBox<int, String>(
         BoxConfig(boxName),
         searchableText: (s) => s,
-        analyzer: TextAnalyzer.basic((s) => s),
+        analyzer: Analyzer.basic,
         verifyMatches: false,
       );
       await basicNoVerify.ensureInitialized();
