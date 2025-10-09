@@ -146,10 +146,13 @@ All `HivezBox` types share the same complete API:
 - **Query helpers**
 
   - `getValuesWhere(condition)` — Filter values by predicate
+  - `getKeysWhere(condition)` — Filter keys by predicate
   - `firstWhereOrNull(condition)` — Returns first matching value or `null`
+  - `firstKeyWhere(condition)` — Returns first matching key or `null`
   - `firstWhereContains(query, searchableText)` — Search string fields
   - `foreachKey(action)` — Iterate keys asynchronously
   - `foreachValue(action)` — Iterate values asynchronously
+  - `searchKeyOf(value)` — Find key for a given value
 
 - **Box management**
 
@@ -165,7 +168,8 @@ All `HivezBox` types share the same complete API:
   - `restoreBackupJson()` — Import all data from JSON
   - `generateBackupCompressed()` — Export all data as compressed binary
   - `restoreBackupCompressed()` — Import all data from compressed binary
-  - `toMap()` — Convert full box to `Map<K, T>` (non-lazy boxes)
+  - `toMap()` — Convert full box to `Map<K, T>`
+  - `estimateSizeBytes()` — Approximate in-memory size of all keys and values (bytes)
   - `search(query, searchableText, {page, pageSize, sortBy})` — Full-text search with optional pagination & sorting
 
 ## Examples
