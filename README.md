@@ -1286,7 +1286,7 @@ Although all boxes in Hivez share the same `BoxInterface`, there are **no runtim
 Every method call is compiled down to direct Hive operations — engineered to be as **fast, easy, and safe** as possible.
 
 - **No overhead on reads/writes** — same performance as Hive CE
-- **Hundreds of tests** across all 35+ methods and box types ensure production safety
+- **Heavily Tested** — **200+ tests** across all 35+ methods and box types ensure production safety
 - **Engineered concurrency** — built-in locks guarantee atomic writes and safe reads
 
 ### Enforced Type Safety
