@@ -107,6 +107,7 @@ class HivezBox<K, T> extends AbstractHivezBox<K, T, Box<T>> {
   /// final map = await myBox.toMap();
   /// print(map); // {key1: value1, key2: value2, ...}
   /// ```
+  @override
   Future<Map<K, T>> toMap() async {
     return _executeRead(() => Future.value(box.toMap().cast<K, T>()));
   }

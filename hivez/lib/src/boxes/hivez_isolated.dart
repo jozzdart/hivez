@@ -115,6 +115,7 @@ class HivezBoxIsolated<K, T>
   /// final map = await myBox.toMap();
   /// print(map); // {key1: value1, key2: value2, ...}
   /// ```
+  @override
   Future<Map<K, T>> toMap() async {
     return _executeRead(
         () async => Future.value((await box.toMap()).cast<K, T>()));

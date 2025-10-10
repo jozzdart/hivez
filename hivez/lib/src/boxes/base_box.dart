@@ -174,12 +174,18 @@ abstract class BoxInterface<K, T> {
   /// Emits [BoxEvent]s when the value changes.
   Stream<BoxEvent> watch(K key);
 
+  /// Returns a map containing all key-value pairs in the box.
+  Future<Map<K, T>> toMap();
+
   // ---------------------------------------------------------------------------
   // Query Operations
   // ---------------------------------------------------------------------------
 
   /// Returns all values matching the given [condition] predicate.
   Future<Iterable<T>> getValuesWhere(bool Function(T) condition);
+
+  /// Returns all keys matching the given [condition] predicate.
+  Future<Iterable<K>> getKeysWhere(bool Function(K key, T value) condition);
 
   /// Returns the first value matching [condition], or `null` if none found.
   Future<T?> firstWhereOrNull(bool Function(T item) condition);
@@ -195,6 +201,12 @@ abstract class BoxInterface<K, T> {
 
   /// Iterates asynchronously over all keys, invoking [action] for each.
   Future<void> foreachKey(Future<void> Function(K key) action);
+
+  /// Returns the key for the given [value], or `null` if not found.
+  Future<K?> searchKeyOf(T value);
+
+  /// Returns the first key matching [condition], or `null` if none found.
+  Future<K?> firstKeyWhere(bool Function(K key, T value) condition);
 
   // ---------------------------------------------------------------------------
   // Box Management Operations
@@ -216,7 +228,29 @@ abstract class BoxInterface<K, T> {
 
   /// Compacts the box file to reclaim unused space.
   Future<void> compactBox();
+
+  /// Returns an approximate size of the box in bytes.
+  Future<int> estimateSizeBytes();
+
+  @override
+  bool operator ==(Object other) {
+    return other is BoxInterface<K, T> &&
+        other.name == name &&
+        other.isIsolated == isIsolated &&
+        other.isLazy == isLazy &&
+        other._path == _path;
+  }
+
+  @override
+  int get hashCode =>
+      name.hashCode ^ isIsolated.hashCode ^ isLazy.hashCode ^ _path.hashCode;
+
+  @override
+  String toString() => _stringBox('BoxInterface', this);
 }
+
+String _stringBox<K, T>(String boxType, BoxInterface<K, T> box) =>
+    '$boxType [$K - $T] [${box.name}] (${box.isIsolated ? 'isolated, ' : ''}${box.isLazy ? 'lazy ' : ''}pth: ${box._path}) [${box.isInitialized ? 'initialized' : 'not initialized'}, ${box.isOpen ? 'open' : 'closed'}]';
 
 /// Internal helper interface for HivezBox implementations.
 ///
@@ -248,12 +282,46 @@ abstract class _BoxInterfaceHelpers<K, T, BoxType> {
   Future<BoxType> _openBox();
 }
 
+/// Base class for all HivezBox implementations, providing core logic for
+/// initialization, locking, logging, and high-level box operations.
+///
+/// This abstract class implements [BoxInterface] and [_BoxInterfaceHelpers],
+/// and is intended to be extended by concrete HivezBox types (regular, lazy,
+/// isolated, etc.). It manages the lifecycle of the underlying Hive box,
+/// provides thread-safe access via locks, and supports custom logging.
+///
+/// Type Parameters:
+///   - [K]: The type of the keys used in the box.
+///   - [T]: The type of the values stored in the box.
+///   - [B]: The concrete type of the underlying Hive box (e.g., [Box], [LazyBox], etc.).
+///
+/// Features:
+/// - Ensures the box is initialized before any operation.
+/// - Provides thread-safe read/write operations using [Lock].
+/// - Supports custom logging via [LogHandler].
+/// - Implements common query, iteration, and utility methods.
+/// - Handles error propagation and debug logging.
+/// - Used as the foundation for all HivezBox variants.
+///
+/// Example:
+/// ```dart
+/// class MyBox extends BaseHivezBox<String, MyModel, Box<MyModel>> { ... }
+/// ```
 abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
     implements _BoxInterfaceHelpers<K, T, B> {
+  /// Optional custom logger for box operations.
   final LogHandler? _logger;
+
+  /// Lock for synchronizing box initialization.
   final Lock _initLock = Lock();
+
+  /// Lock for synchronizing write operations.
   final Lock _lock = Lock();
+
+  /// Additional lock for advanced operations (e.g., moveKey).
   final Lock _additionalLock = Lock();
+
+  /// The underlying Hive box instance, or null if not initialized.
   B? _box;
 
   @override
@@ -263,7 +331,7 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
   B get box {
     if (_box == null) {
       throw BoxNotInitializedException(
-        "Box not initialized. Call ensureInitialized() first.",
+        boxName: name,
       );
     }
     return _box!;
@@ -334,10 +402,46 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
   }
 
   @override
-  Future<Iterable<T>> getValuesWhere(bool Function(T) condition) async {
-    final values = await getAllValues();
-    return values.where(condition);
+  Future<Iterable<T>> getValuesWhere(bool Function(T value) condition) async {
+    final values = <T>[];
+    await foreachValue((k, v) async {
+      if (condition(v)) {
+        values.add(v);
+      }
+    });
+    return values;
   }
+
+  @override
+  Future<Iterable<K>> getKeysWhere(
+      bool Function(K key, T value) condition) async {
+    final keys = <K>[];
+    await foreachKey((k) async {
+      final v = await get(k);
+      if (v != null && condition(k, v)) {
+        keys.add(k);
+      }
+    });
+    return keys;
+  }
+
+  @override
+  Future<K?> firstKeyWhere(bool Function(K key, T value) condition) async {
+    final results = <K>[];
+    await foreachValue(
+      (k, v) async {
+        if (condition(k, v)) {
+          results.add(k);
+          return;
+        }
+      },
+      breakCondition: () => results.isNotEmpty,
+    );
+    return results.firstOrNull;
+  }
+
+  @override
+  Future<K?> searchKeyOf(T value) => firstKeyWhere((k, v) => v == value);
 
   @override
   Future<T?> getAt(int index) => valueAt(index);
@@ -393,6 +497,43 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
       }
     }, breakCondition: breakCondition);
   }
+
+  /// Returns approximate in-memory size (in bytes) of the entire box content.
+  ///
+  /// This includes keys and values, recursively traversing Maps, Lists,
+  /// primitives, and strings. Does *not* include Hive metadata or file overhead.
+  @override
+  Future<int> estimateSizeBytes() async => _executeRead(() async {
+        int total = 0;
+        await foreachValue((k, v) async {
+          total += _estimateAny(k) + _estimateAny(v);
+        });
+        return total;
+      });
+
+  // Internal recursive estimator.
+  static int _estimateAny(dynamic obj) {
+    if (obj == null) return 0;
+    if (obj is num || obj is bool) return 8;
+    if (obj is String) return utf8.encode(obj).length;
+    if (obj is List) {
+      return obj.fold<int>(0, (sum, e) => sum + _estimateAny(e));
+    }
+    if (obj is Map) {
+      return obj.entries.fold<int>(
+        0,
+        (sum, e) => sum + _estimateAny(e.key) + _estimateAny(e.value),
+      );
+    }
+    try {
+      return utf8.encode(obj.toString()).length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  @override
+  String toString() => _stringBox('BaseHivezBox', this);
 }
 
 abstract class AbstractHivezBox<K, T, B extends BoxBase<T>>

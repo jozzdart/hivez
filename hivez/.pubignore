@@ -32,3 +32,4 @@ build/
 scripts/
 hivez_flutter/
 test/
+dart_test.yaml

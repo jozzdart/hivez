@@ -1,6 +1,6 @@
 ![img](https://i.imgur.com/XgI3sfn.png)
 
-<h3 align="center"><i>Hive, but safer, simpler, and smarter. Ready for production.</i></h3>
+<h3 align="center"><i>Hive, but faster, simpler, and safer. Ready for production.</i></h3>
 <p align="center">
         <img src="https://img.shields.io/codefactor/grade/github/jozzdart/hivez/main?style=flat-square">
         <img src="https://img.shields.io/github/license/jozzdart/hivez?style=flat-square">
@@ -14,19 +14,30 @@
   </a>
 </p>
 
-Meet `Hivez` — the smart, type-safe way to use **_Hive_** (using the [`hive_ce` package](https://pub.dev/packages/hive_ce)) in Dart and Flutter. With a unified API, zero setup, and built-in utilities for search, backups, and syncing, Hivez makes every box concurrency-safe, future-proof, and production-ready — while keeping full Hive compatibility.
+Meet **Hivez** — a fast, easy, and type-safe database for Dart and Flutter.
+With a **unified API**, **automatic initialization**, and **built-in utilities** for search, backups, isolation, and syncing,
+Hivez makes local data handling **effortless**, **concurrency-safe**, and **production-ready** —
+all while remaining fully compatible with **Hive** (via the [`hive_ce`](https://pub.dev/packages/hive_ce) engine).
+
+> **Migration-free upgrade:** Switching from **Hive** or **Hive CE** to **Hivez** needs no migrations or data changes — just [set up your adapters correctly](#-setup-guide-for-hive_ce) and keep the same box names and types.
 
 #### Table of Contents
 
-- [Features](#-features)
-- [Hive vs `Hivez` Comparison](#hive-vs-hivez)
 - [How to Use `Hivez`](#-how-to-use-hivez)
   - [Which `Box` Should I Use?](#which-box-should-i-use)
   - [Available Methods](#-available-methods)
+  - [Constructor & Properties](#️-constructor--properties)
   - [Examples](#examples)
 - [Setup Guide for `hive_ce`](#-setup-guide-for-hive_ce)
 - [Quick Setup `hive_ce` (no explanations)](#-quick-setup-hive_ce-no-explanations)
-- [Clean Architecture with `Hivez`](#️-clean-architecture-with-hivez)
+- [`IndexedBox` _Ultra Fast Searches_](#-indexedbox--ultra-fast-full-text-search-for-hive)
+  - [**Benchmarks** - _how fast it is_](#benchmarks)
+  - [**Quick Start**](#-instantly-switch-from-a-normal-box-even-from-hive)
+  - [Examples](#indexedbox---examples)
+  - [Settings & Options](#-settings--options)
+  - [Analyzers](#-analyzer--how-text-is-broken-into-tokens)
+- [Hive vs `Hivez` Comparison](#hive-vs-hivez)
+- [Clean Architecture with `Hivez`](#clean-architecture-with-hivez)
 - [FAQ / Common Pitfalls](#-faq--common-pitfalls)
 - [Performance & Safety](#performance--safety)
 - [Why `Hivez`?](#why-hivez)
@@ -47,7 +58,7 @@ Meet `Hivez` — the smart, type-safe way to use **_Hive_** (using the [`hive_ce
 **Type-safe** – no `dynamic`, no surprises
 
 ```dart
-final users = HivezBox<int, User>('users');
+final users = Box<int, User>('users');
 await users.put(1, User('Alice'));
 final u = await users.get(1); // User('Alice')
 ```
@@ -55,33 +66,10 @@ final u = await users.get(1); // User('Alice')
 **Zero setup** – no `openBox`, auto-init on first use
 
 ```dart
-final settings = HivezBox<String, bool>('settings');
+final settings = Box<String, bool>('settings');
 await settings.put('darkMode', true);
 final dark = await settings.get('darkMode'); // true
 ```
-
-**Unified API** – Box, Lazy, Isolated — same interface, swap with one line
-
-```dart
-final a = HivezBoxLazy<String, Article>('articles');
-final b = HivezBoxIsolated<String, Article>('articles');
-```
-
-# Hive vs `Hivez`
-
-_[⤴️ Back](#table-of-contents) → Table of Contents_
-
-| Feature / Concern   | Native Hive                              | With Hivez                                                      |
-| ------------------- | ---------------------------------------- | --------------------------------------------------------------- |
-| **Type Safety**     | `dynamic` with manual casts              | `HivezBox<int, User>` guarantees correct types                  |
-| **Initialization**  | Must call `Hive.openBox` and check state | Auto-initializes on first use, no boilerplate                   |
-| **API Consistency** | Different APIs for Box types             | Unified async API, switch with a single line                    |
-| **Concurrency**     | Not concurrency-safe (in original Hive)  | Built-in locks: atomic writes, safe reads                       |
-| **Architecture**    | Logic tied to raw boxes                  | Abstracted interface, fits Clean Architecture & DI              |
-| **Utilities**       | Basic CRUD only                          | Backup/restore, search helpers, iteration, box management       |
-| **Production**      | Needs extra care for scaling & safety    | Encryption, crash recovery, compaction, isolated boxes included |
-| **Migration**       | Switching box types requires rewrites    | Swap `HivezBox` ↔ `HivezBoxLazy`/`HivezBoxIsolated` seamlessly  |
-| **Dev Experience**  | Verbose boilerplate, error-prone         | Cleaner, safer, future-proof, less code                         |
 
 # 📦 How to Use `Hivez`
 
@@ -92,21 +80,23 @@ Unlike raw Hive, you don’t need to worry about opening/closing boxes — the A
 
 - [Which `Box` Should I Use?](#which-box-should-i-use)
 - [Available Methods](#-available-methods)
+- [Constructor & Properties](#️-constructor--properties)
 - [Examples](#examples)
 
 ### Which `Box` Should I Use?
 
-- **`HivezBox`** → Default choice. Fast, synchronous reads with async writes.
-- **`HivezBoxLazy`** → Use when working with **large datasets** where values are only loaded on demand.
-- **`HivezBoxIsolated`** → Use when you need **isolate safety** (background isolates or heavy concurrency).
-- **`HivezBoxIsolatedLazy`** → Combine **lazy loading + isolate safety** for maximum scalability.
+- **`Box`** → Default choice. Fast, synchronous reads with async writes.
+- **`Box.lazy`** → Use when working with **large datasets** where values are only loaded on demand.
+- **`Box.isolated`** → Use when you need **isolate safety** (background isolates or heavy concurrency).
+- **`Box.isolatedLazy`** → Combine **lazy loading + isolate safety** for maximum scalability.
 
-> 💡 Switching between them is a **single-line change**. Your app logic and API calls stay exactly the same — while in raw Hive, this would break your code.  
-> ⚠️ **Note on isolates:** The API is identical across all box types, but using `Isolated` boxes requires you to properly set up Hive with isolates. If you’re not familiar with isolate management in Dart/Flutter, it’s safer to stick with **`HivezBox`** or **`HivezBoxLazy`**.
+> 💡 Switching between them is a **single-line change**.  
+> Your app logic and API calls stay exactly the same — while in raw Hive, this would break your code.  
+> ⚠️ **Note on isolates:** The API is identical across all box types, but using `Isolated` boxes requires you to properly set up Hive with isolates. If you’re not familiar with isolate management in Dart/Flutter, it’s safer to stick with **`regular`** or **`lazy`** boxes.
 
 ## 🔧 Available Methods
 
-All `HivezBox` types share the same complete API:
+All `Box` types share the same complete API:
 
 - **Write operations**
 
@@ -140,10 +130,13 @@ All `HivezBox` types share the same complete API:
 - **Query helpers**
 
   - `getValuesWhere(condition)` — Filter values by predicate
+  - `getKeysWhere(condition)` — Filter keys by predicate
   - `firstWhereOrNull(condition)` — Returns first matching value or `null`
+  - `firstKeyWhere(condition)` — Returns first matching key or `null`
   - `firstWhereContains(query, searchableText)` — Search string fields
   - `foreachKey(action)` — Iterate keys asynchronously
   - `foreachValue(action)` — Iterate values asynchronously
+  - `searchKeyOf(value)` — Find key for a given value
 
 - **Box management**
 
@@ -159,8 +152,27 @@ All `HivezBox` types share the same complete API:
   - `restoreBackupJson()` — Import all data from JSON
   - `generateBackupCompressed()` — Export all data as compressed binary
   - `restoreBackupCompressed()` — Import all data from compressed binary
-  - `toMap()` — Convert full box to `Map<K, T>` (non-lazy boxes)
-  - `search(query, searchableText, {page, pageSize, sortBy})` — Full-text search with optional pagination & sorting
+  - `toMap()` — Convert full box to `Map<K, T>`
+  - `estimateSizeBytes()` — Approximate in-memory size of all keys and values (bytes)
+  - `search(query, searchableText)` — (Slow search, [use `IndexedBox` instead](#-indexedbox--ultra-fast-full-text-search-for-hive))
+
+## ⚙️ Constructor & Properties
+
+All `Box` types share the same constructor parameters and configuration pattern.  
+These let you control how your box behaves, where it stores data, and how it handles safety and encryption.
+
+- **Parameters**
+
+  - `name` — The unique name of the box. Used as the on-disk file name.
+  - `type` — The box type: `regular`, `lazy`, `isolated`, or `isolatedLazy`.
+  - `encryptionCipher` — Optional [HiveCipher] for transparent AES encryption/decryption.
+  - `crashRecovery` — Enables Hive’s built-in crash recovery mechanism. Default: `true`.
+  - `path` — Custom file system path for where this box is stored.
+  - `collection` — Logical grouping of boxes (optional). Useful for namespacing.
+  - `logger` — Optional log handler for diagnostics, warnings, or crash reports.
+
+> 💡 Tip: For datasets needing fast search, [use `IndexedBox` for blazing-fast search](#-indexedbox--ultra-fast-full-text-search-for-hive) — same API, 100× faster.
+> That’s nice if you want to keep the “Extras” section visually compact.
 
 ## Examples
 
@@ -171,7 +183,7 @@ All `HivezBox` types share the same complete API:
 #### ➕ Put & Get
 
 ```dart
-final box = HivezBox<int, String>('notes');
+final box = Box<int, String>('notes');
 await box.put(1, 'Hello');
 final note = await box.get(1); // "Hello"
 ```
@@ -241,8 +253,109 @@ box.watch(1).listen((event) {
 });
 ```
 
-> ✅ This is just with `HivezBox`.  
-> The same API works for `HivezBoxLazy`, `HivezBoxIsolated`, and `HivezBoxIsolatedLazy`.
+#### 💡 Looking for Ultra-Fast Search?
+
+If you’re doing a lot of searches, you don’t have to scan values manually —
+[use `IndexedBox` instead.](#-indexedbox--ultra-fast-full-text-search-for-hive)
+It’s a **drop-in replacement** for `Box` that automatically maintains a tiny on-disk index, giving you **instant** text queries:
+
+```dart
+final box = IndexedBox<String, Article>(
+  'articles',
+  searchableText: (a) => '${a.title} ${a.content}',
+);
+
+final results = await box.search('flutter dart');
+print(results); // [Article(...)]
+```
+
+✅ Same API as regular boxes  
+⚡ 100×–1000× faster for text lookups  
+🧠 Smart analyzers (basic / prefix / n-gram)  
+🪶 Zero setup — data stays compatible with Hive
+
+> 📘 [Learn more in the **IndexedBox Section**](#-indexedbox--ultra-fast-full-text-search-for-hive)
+
+### 🧠 BoxType Helpers
+
+You can also use fluent helpers for quick box creation:
+
+```dart
+final isoBox = BoxType.isolated.box<String, MyModel>('myIsoBox');
+final lazyConfig = BoxType.lazy.boxConfig('lazyBox');
+```
+
+### 🔒 Example with Encryption and Logging
+
+```dart
+final cipher = HiveAesCipher(my32ByteKey);
+final box = Box<int, String>(
+  'secureNotes',
+  encryptionCipher: cipher,
+  logger: (msg) => print('[HiveLog] $msg'),
+);
+```
+
+#### 🔄 Swap Box Types Instantly
+
+You can switch between any box type (`regular`, `lazy`, `isolated`, `isolatedLazy`, `indexed`)  
+**without changing your logic or data** — all share the same unified API.
+
+```dart
+// Regular box (default)
+final box = Box<int, String>('users');
+final box = Box<int, String>.lazy('users'); // lazy box
+final box = Box<int, String>.isolated('users'); // isolated box
+final box = Box<int, String>.isolatedLazy('users'); // isolated lazy box
+```
+
+or
+
+```dart
+final box = Box<int, String>('users');
+final box = Box<int, String>('users', type: BoxType.lazy);
+final box = Box<int, String>('users', type: BoxType.isolated);
+final box = Box<int, String>('users', type: BoxType.isolatedLazy);
+```
+
+Or in IndexedBox for ultra-fast search
+
+```dart
+final indexed = IndexedBox<int, String>(
+  'users',
+  searchableText: (v) => v, // define what text to index
+  type: BoxType.lazy, // or BoxType.isolated, BoxType.isolatedLazy, BoxType.regular
+);
+```
+
+No migrations, same data and file names, drop-in swap between all box types
+
+> ⚠️ **Note on isolates:** The API is identical across all box types, but using `Isolated` boxes requires you to properly set up Hive with isolates. If you’re not familiar with isolate management in Dart/Flutter, it’s safer to stick with **`regular`** or **`lazy`** boxes.
+
+### 🧰 Advanced: Box Configuration
+
+You can create or clone configurations using `BoxConfig` for advanced control.
+
+```dart
+final config = BoxConfig(
+  'myBox',
+  type: BoxType.lazy,
+  path: '/data/hive',
+  crashRecovery: true,
+  collection: 'settings',
+);
+
+final box = config.box<String, MyModel>();
+```
+
+Or duplicate and modify:
+
+```dart
+final updated = config.copyWith(
+  type: BoxType.isolated,
+  path: '/data/hive/isolated',
+);
+```
 
 # 🔗 Setup Guide for `hive_ce`
 
@@ -416,7 +529,547 @@ Future<void> main() async {
 }
 ```
 
-# 🏗️ Clean Architecture with `Hivez`
+# 🚀 `IndexedBox` — Ultra-Fast Full-Text Search for Hive
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
+
+**What it is:** a drop-in replacement for `HivezBox` that adds a tiny **on-disk inverted index**.
+You keep the **same API**, but get **instant keyword/prefix/substring search** with ~**`1–3 ms`** queries on thousands of items.
+
+### Why use it:
+
+- **Blazing search:** stop scanning; lookups hit the index.
+  - _50,000 items:_ **4149.60 ms → 2.46 ms** (~**1,687×** faster).
+  - _500 items:_ **125.20 ms → 1.10 ms** (~**114×** faster).
+- **Zero friction:** same `Hivez` API + `search()`/`searchKeys()` helpers.
+- **Robust by design:** journaled writes, auto-rebuild on mismatch, and an LRU cache for hot tokens.
+- **Configurable:** choose `basic`, `prefix`, or `ngram` analyzers; toggle AND/OR matching; optional result verification.
+
+```dart
+final articles = indexedBox.search('flut dart dev'); // Blazing fast search
+```
+
+> Heads-up: writes cost more than a plain box (the index is maintained on each mutation). If you do heavy bulk inserts, you can batch with `putAll` and still enjoy ultra-fast reads.
+
+- [**Benchmarks** - how fast it is](#benchmarks)
+- [**Instantly `Switch` from a Normal Box** (Even from Hive!)](#-instantly-switch-from-a-normal-box-even-from-hive)
+- [**Examples** - how to use `IndexedBox`](#indexedbox---examples)
+- [**Settings & Options** - how to tune it](#-settings--options)
+- [**Analyzers** - how text is broken into tokens](#-analyzer--how-text-is-broken-into-tokens)
+
+## Benchmarks
+
+#### 🔎 Full-text search (query)
+
+| Items in box | `Box` (avg `ms`) | `IndexedBox` (avg ms) |  Improvement |
+| ------------ | ---------------: | --------------------: | -----------: |
+| 100          |            11.50 |              **1.56** |     ≈ **7×** |
+| 1,000        |            85.14 |              **1.42** |    ≈ **60×** |
+| 5,000        |           426.87 |              **1.34** |   ≈ **319×** |
+| 10,000       |           833.39 |              **1.43** |   ≈ **583×** |
+| 50,000       |          4149.68 |              **2.46** | ≈ **1,687×** |
+
+#### 📥 Bulk inserts (put many)
+
+| Items inserted per run | `Box` (avg `ms`) | `IndexedBox` (avg `ms`) | Cost of indexing |
+| ---------------------- | ---------------: | ----------------------: | ---------------: |
+| 100                    |             1.32 |                   25.57 |        ≈ **19×** |
+| 1,000                  |             1.78 |                   32.72 |        ≈ **18×** |
+| 5,000                  |             5.92 |                   94.96 |        ≈ **16×** |
+| 10,000                 |            13.47 |                  177.99 |        ≈ **13×** |
+| 50,000                 |            56.53 |                  830.24 |        ≈ **14×** |
+
+> ⚡ **Still blazing fast:**  
+> Even though writes are heavier due to index maintenance, performance remains outstanding —  
+> you can still write around **10,000 items in just ~0.1 seconds**. That’s more than enough for almost any real-world workload, while searches stay **instant**.
+
+### 🔄 Instantly Switch from a Normal Box (Even from Hive!)
+
+You don’t need to migrate or rebuild anything — `IndexedBox` is a **drop-in upgrade** for your existing Hive or Hivez boxes.
+It reads all your current data, keeps it fully intact, and automatically creates a search index behind the scenes.
+
+All the same CRUD functions (`put`, `get`, `delete`, `foreachValue`, etc.) still work exactly the same —
+you just gain ultra-fast search on top.
+(See [Available Methods](#-available-methods) for the full API list.)
+
+#### Example — from Hive 🐝 → IndexedBox ⚡
+
+```dart
+// Before: plain Hive or Hivez box
+final notes = Hive.box<Note>('notes'); //or: HivezBox<int, Note>('notes');
+
+// After: one-line switch to IndexedBox
+final notes = IndexedBox<int, Note>('notes', searchableText: (n) => n.content);
+```
+
+> That’s it — your data is still there, no re-saving needed.  
+> When the box opens for the first time, the index is built automatically (a one-time process).  
+> After that, all writes and deletes update the index in real time.
+
+#### Now you can search instantly
+
+```dart
+final results = await notes.search('meeting notes');
+print(results); // [Note(...), Note(...)]
+```
+
+✅ Keeps all your existing data  
+✅ Works even if the box was created with raw Hive  
+✅ Same methods and API — just faster, smarter, searchable
+
+> 💡 You can freely switch back and forth between `Box`, `HivezBox`, and `IndexedBox`.  
+> The data always stays compatible — `IndexedBox` simply adds its own index boxes under the hood.
+
+# `IndexedBox` - Examples
+
+> _[⤴️ Back](#-indexedbox--ultra-fast-full-text-search-for-hive) → IndexedBox_
+
+### 📦 Create an `IndexedBox`
+
+This works just like a normal `HivezBox`, but adds a built-in **on-disk index** for fast text search.
+
+```dart
+final box = IndexedBox<String, Article>(
+  'articles',
+  searchableText: (a) => '${a.title} ${a.content}',
+);
+```
+
+That’s it — no adapters, no schema, no rebuilds.
+
+### ➕ Add some data
+
+You can insert items the same way as a normal Hive box:
+
+```dart
+await box.putAll({
+  '1': Article('Flutter and Dart', 'Cross-platform development made easy'),
+  '2': Article('Hive Indexing', 'Instant full-text search with IndexedBox'),
+  '3': Article('State Management', 'Cubit, Bloc, and Provider compared'),
+});
+```
+
+### 🔍 Search instantly
+
+Now you can query by **any keyword**, **prefix**, or even **multiple terms**:
+
+```dart
+final results = await box.search('flut dev');
+print(results); // [Article('Flutter and Dart', ...)]
+```
+
+It’s **case-insensitive**, **prefix-aware**, and **super fast** — usually **1–3 ms** per query.
+
+---
+
+### 🔑 Or just get the matching keys
+
+```dart
+final keys = await box.searchKeys('hive');
+print(keys); // ['2']
+```
+
+Perfect if you want to fetch or lazy-load values later.
+
+---
+
+### ⚙️ Tune it your way
+
+You can control how matching works:
+
+```dart
+// Match ANY term instead of all
+final relaxed = IndexedBox<String, Article>(
+  'articles_any',
+  searchableText: (a) => a.title,
+  matchAllTokens: false,
+);
+```
+
+Or pick a different text analyzer for **substring** or **prefix** matching:
+
+```dart
+analyzer: Analyzer.ngram, // "hel" matches "Hello"
+```
+
+> Done.
+> You now have a **self-maintaining**, **crash-safe**, **indexed** Hive box that supports blazing-fast search — without changing how you use Hive.
+
+# 🔧 Settings & Options
+
+_[⤴️ Back](#-indexedbox--ultra-fast-full-text-search-for-hive) → IndexedBox_
+
+`IndexedBox` is designed to be flexible — it can act like a fast keyword indexer, a prefix search engine, or even a lightweight substring matcher.
+The constructor exposes several **tunable options** that let you decide **how results are matched, cached, and verified**.
+
+- [**`matchAllTokens`** - AND vs OR Logic](#matchalltokens--and-vs-or-logic)
+- [**`tokenCacheCapacity`** - LRU Cache Size](#tokencachecapacity--lru-cache-size)
+- [**`verifyMatches`** - Guard Against Stale Index](#verifymatches--guard-against-stale-index)
+- [**`keyComparator`** - Custom Result Ordering](#keycomparator--custom-result-ordering)
+- [**`analyzer`** - How Text Is Broken into Tokens](#analyzer--how-text-is-broken-into-tokens)
+
+> 💡 **Same API, same power**  
+> `IndexedBox` fully supports **all existing methods** and **properties** of regular boxes —  
+> including writes, deletes, backups, queries, and iteration — so you can use it exactly like `HivezBox`.  
+> See the full [**Available Methods**](#-available-methods) and [**Constructor & Properties**](#️-constructor--properties) sections for everything you can do.  
+> The only difference? Every search is now **indexed and blazing fast**.
+
+---
+
+### `matchAllTokens` – AND vs OR Logic
+
+**What it does:**
+Determines whether all tokens in the query must appear in a value (**AND** mode) or if any of them is enough (**OR** mode).
+
+| Mode             | Behavior             | Example Query | Matches                                                                 |
+| ---------------- | -------------------- | ------------- | ----------------------------------------------------------------------- |
+| `true` (default) | Match **all** tokens | `"flut dart"` | `"Flutter & Dart Tips"` ✅<br>`"Dart Packages"` ❌<br>`"Flutter UI"` ❌ |
+| `false`          | Match **any** token  | `"flut dart"` | `"Flutter & Dart Tips"` ✅<br>`"Dart Packages"` ✅<br>`"Flutter UI"` ✅ |
+
+**When to use:**
+
+- `true` → For precise filtering (e.g. “all words must appear”)
+- `false` → For broad suggestions or autocomplete
+
+```dart
+final strict = IndexedBox<String, Article>(
+  'articles',
+  searchableText: (a) => a.title,
+  matchAllTokens: true, // must contain all words
+);
+
+final loose = IndexedBox<String, Article>(
+  'articles_any',
+  searchableText: (a) => a.title,
+  matchAllTokens: false, // any word is enough
+);
+```
+
+---
+
+### `tokenCacheCapacity` – LRU Cache Size
+
+**What it does:**
+Controls how many **token → key sets** are cached in memory.
+Caching avoids reading from disk when the same term is searched repeatedly.
+
+| Cache Size      | Memory Use                        | Speed Benefit                               |
+| --------------- | --------------------------------- | ------------------------------------------- |
+| `0`             | No cache (every search hits disk) | 🔽 Slowest                                  |
+| `512` (default) | Moderate RAM (≈ few hundred KB)   | ⚡ 100× faster repeated queries             |
+| `5000+`         | Larger memory footprint           | 🔥 Ideal for large datasets or autocomplete |
+
+**When to use:**
+
+- Small cache (≤256) → occasional lookups, low memory
+- Default (512) → balanced for most apps
+- Large (2000–5000) → high-volume search UIs or live autocomplete
+
+```dart
+final box = IndexedBox<String, Product>(
+  'products',
+  searchableText: (p) => '${p.name} ${p.brand}',
+  tokenCacheCapacity: 1024, // keep up to 1024 tokens in RAM
+);
+```
+
+---
+
+### `verifyMatches` – Guard Against Stale Index
+
+**What it does:**
+Re-checks each result against the analyzer before returning it, ensuring that
+the value still contains the query terms (useful after manual box edits).
+
+**Trade-off:** adds a small CPU cost per result.
+
+| Value             | Meaning                              |
+| ----------------- | ------------------------------------ |
+| `false` (default) | Trusts the index (fastest)           |
+| `true`            | Re-verifies every hit using analyzer |
+
+**When to use:**
+
+- You manually modify Hive boxes outside the `IndexedBox` (e.g. raw `Hive.box().put()`).
+- You suspect rare mismatches after crashes or restores.
+- You need absolute correctness over speed.
+
+```dart
+final safe = IndexedBox<String, Note>(
+  'notes',
+  searchableText: (n) => n.content,
+  verifyMatches: true, // double-check each match
+);
+```
+
+---
+
+### `keyComparator` – Custom Result Ordering
+
+**What it does:**
+Lets you define a comparator for sorting matched keys before pagination.
+By default, `IndexedBox` sorts by `Comparable` key or string order.
+
+```dart
+final ordered = IndexedBox<int, User>(
+  'users',
+  searchableText: (u) => u.name,
+  keyComparator: (a, b) => b.compareTo(a), // reverse order
+);
+```
+
+Useful for:
+
+- Sorting newest IDs first
+- Alphabetical vs numerical order
+- Deterministic result ordering when keys aren’t `Comparable`
+
+---
+
+### `analyzer` – How Text Is Broken into Tokens
+
+**What it does:**
+Defines _how_ each value is tokenized and indexed.  
+Three analyzers are built in — pick one based on your search style:
+
+| Analyzer              | Example             | Matches                             |
+| --------------------- | ------------------- | ----------------------------------- |
+| `TextAnalyzer.basic`  | `"flutter dart"`    | Matches **whole words only**        |
+| `TextAnalyzer.prefix` | `"fl" → "flutter"`  | Matches **word prefixes** (default) |
+| `TextAnalyzer.ngram`  | `"utt" → "flutter"` | Matches **substrings** anywhere     |
+
+For a detailed explanation, see [**`analyzer`** - How Text Is Broken into Tokens](#-analyzer--how-text-is-broken-into-tokens).
+
+---
+
+### Example: Tuning for Real Apps
+
+#### 🧠 Autocomplete Search
+
+```dart
+final box = IndexedBox<String, City>(
+  'cities',
+  searchableText: (c) => c.name,
+  matchAllTokens: false,
+  tokenCacheCapacity: 2000,
+);
+```
+
+- Fast prefix matching (“new yo” → “New York”)
+- Low-latency cached results
+- Allows partial terms (OR logic)
+
+#### 🔍 Strict Multi-Term Search
+
+```dart
+final box = IndexedBox<int, Document>(
+  'docs',
+  searchableText: (d) => d.content,
+  analyzer: Analyzer.basic,
+  matchAllTokens: true,
+  verifyMatches: true,
+);
+```
+
+- Each word must appear
+- Uses basic analyzer (lightweight)
+- Re-verifies for guaranteed correctness
+
+### Summary Table
+
+| Setting              | Type        | Default           | Purpose                                    |
+| -------------------- | ----------- | ----------------- | ------------------------------------------ |
+| `matchAllTokens`     | `bool`      | `true`            | Require all vs any words to match          |
+| `tokenCacheCapacity` | `int`       | `512`             | Speed up repeated searches                 |
+| `verifyMatches`      | `bool`      | `false`           | Re-check results for stale index           |
+| `keyComparator`      | `Function?` | `null`            | Custom sort for results                    |
+| `analyzer`           | `Analyzer`  | `Analyzer.prefix` | How text is tokenized (basic/prefix/ngram) |
+
+---
+
+### 🧩 `analyzer` – How Text Is Broken into Tokens
+
+_[⤴️ Back](#-indexedbox--ultra-fast-full-text-search-for-hive) → IndexedBox_
+
+**What it does:**
+Defines _how_ your data is split into tokens and stored in the index.
+Every time you `put()` a value, the analyzer breaks its searchable text into tokens — which are then mapped to the keys that contain them.
+
+Later, when you search, the query is tokenized the same way, and any key whose tokens overlap is returned.
+
+You can think of it like this:
+
+```
+value -> tokens -> saved in index
+query -> tokens -> lookup in index -> matched keys
+```
+
+There are three built-in analyzers, each with different speed/flexibility trade-offs:
+
+| Analyzer          | Behavior               | Example Match                | Speed     | Disk Size | Use Case                                |
+| ----------------- | ---------------------- | ---------------------------- | --------- | --------- | --------------------------------------- |
+| `Analyzer.basic`  | Whole-word search      | `"dart"` → “Learn Dart Fast” | ⚡ Fast   | 🟢 Small  | Exact keyword search                    |
+| `Analyzer.prefix` | Word prefix search     | `"flu"` → “Flutter Basics”   | ⚡ Fast   | 🟡 Medium | Autocomplete, suggestions               |
+| `Analyzer.ngram`  | Any substring matching | `"utt"` → “Flutter Rocks”    | ⚡ Medium | 🔴 Large  | Fuzzy, partial, or typo-tolerant search |
+
+---
+
+#### 🧱 Basic Analyzer – Whole Words Only (smallest index, fastest writes)
+
+```dart
+analyzer: Analyzer.basic,
+```
+
+**How it works:**
+It only stores _normalized words_ (lowercase, alphanumeric only).
+
+**Example:**
+
+| Value                | Tokens Saved to Index        |
+| -------------------- | ---------------------------- |
+| `"Flutter and Dart"` | `["flutter", "and", "dart"]` |
+
+**So the index looks like:**
+
+```
+flutter → [key1]
+and     → [key1]
+dart    → [key1]
+```
+
+**Search results:**
+
+| Query       | Matching Values         | Why                   |
+| ----------- | ----------------------- | --------------------- |
+| `"flutter"` | ✅ `"Flutter and Dart"` | full word match       |
+| `"flu"`     | ❌                      | prefix not indexed    |
+| `"utt"`     | ❌                      | substring not indexed |
+
+> **Use this** if you want fast, strict searches like tags or exact keywords.
+
+---
+
+#### 🔠 Prefix Analyzer – Partial Word Prefixes (great for autocomplete)
+
+```dart
+analyzer: Analyzer.prefix,
+```
+
+**How it works:**
+Each word is split into _all prefixes_ between `minPrefix` and `maxPrefix`.
+
+**Example:**
+
+| Value       | Tokens Saved                                          |
+| ----------- | ----------------------------------------------------- |
+| `"Flutter"` | `["fl", "flu", "flut", "flutt", "flutte", "flutter"]` |
+| `"Dart"`    | `["da", "dar", "dart"]`                               |
+
+**Index snapshot:**
+
+```
+fl → [key1]
+flu → [key1]
+flut → [key1]
+...
+dart → [key1]
+```
+
+**Search results:**
+
+| Query    | Matching Values | Why                       |
+| -------- | --------------- | ------------------------- |
+| `"fl"`   | ✅ `"Flutter"`  | prefix indexed            |
+| `"flu"`  | ✅ `"Flutter"`  | prefix indexed            |
+| `"utt"`  | ❌              | substring not at start    |
+| `"dart"` | ✅ `"Dart"`     | full word or prefix match |
+
+✅ **Use this** for **autocomplete**, **live search**, or **starts-with** queries.
+
+---
+
+#### 🔍 N-Gram Analyzer – Substrings Anywhere (maximum flexibility)
+
+```dart
+analyzer: Analyzer.ngram,
+```
+
+**How it works:**
+Creates _all possible substrings_ (“n-grams”) between `minN` and `maxN` for every word.
+
+**Example:**
+
+| Value       | Tokens Saved (simplified)                                                                                      |
+| ----------- | -------------------------------------------------------------------------------------------------------------- |
+| `"Flutter"` | `["fl", "lu", "ut", "tt", "te", "er", "flu", "lut", "utt", "tte", "ter", "flut", "lutt", "utte", "tter", ...]` |
+
+_(for each length n = 2→6)_
+
+**Index snapshot (simplified):**
+
+```
+fl  → [key1]
+lu  → [key1]
+utt → [key1]
+ter → [key1]
+...
+```
+
+**Search results:**
+
+| Query   | Matching Values | Why                   |
+| ------- | --------------- | --------------------- |
+| `"fl"`  | ✅ `"Flutter"`  | substring indexed     |
+| `"utt"` | ✅ `"Flutter"`  | substring indexed     |
+| `"tte"` | ✅ `"Flutter"`  | substring indexed     |
+| `"zzz"` | ❌              | substring not present |
+
+⚠️ **Trade-off:**
+
+- Slower writes (`≈2–4×`)
+- More index data (`≈2–6× larger`)
+- But _can match anywhere in the text_ — ideal for **fuzzy**, **partial**, or **typo-tolerant** search.
+
+> **Use this** if you want “contains” behavior (`"utt"` → `"Flutter"`), not just prefixes.
+
+## ⚖️ Choosing the Right Analyzer
+
+| If you want...        | Use                                    | Example                       |
+| --------------------- | -------------------------------------- | ----------------------------- |
+| Exact keyword search  | `Analyzer.basic`                       | Searching “tag” or “category” |
+| Fast autocomplete     | `Analyzer.prefix`                      | Typing “fl” → “Flutter”       |
+| “Contains” matching   | `Analyzer.ngram`                       | Searching “utt” → “Flutter”   |
+| Fuzzy/tolerant search | `Analyzer.ngram` (with larger n range) | “fluttr” → “Flutter”          |
+
+## 🧩 Quick Recap (All Analyzers Side-by-Side)
+
+| Value: `"Flutter and Dart"` | Basic                      | Prefix (min=2,max=9)                                                     | N-Gram (min=2,max=6)                                                        |
+| --------------------------- | -------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Tokens                      | [`flutter`, `and`, `dart`] | [`fl`, `flu`, `flut`, `flutt`, `flutte`, `flutter`, `da`, `dar`, `dart`] | [`fl`, `lu`, `ut`, `tt`, `te`, `er`, `flu`, `lut`, `utt`, `tte`, `ter`,...] |
+| Query `"flu"`               | ❌                         | ✅                                                                       | ✅                                                                          |
+| Query `"utt"`               | ❌                         | ❌                                                                       | ✅                                                                          |
+| Query `"dart"`              | ✅                         | ✅                                                                       | ✅                                                                          |
+
+# Hive vs `Hivez`
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
+
+| Feature / Concern   | Native Hive                              | With Hivez                                                      |
+| ------------------- | ---------------------------------------- | --------------------------------------------------------------- |
+| **Type Safety**     | `dynamic` with manual casts              | `Box<int, User>` guarantees correct types                       |
+| **Initialization**  | Must call `Hive.openBox` and check state | Auto-initializes on first use, no boilerplate                   |
+| **API Consistency** | Different APIs for Box types             | Unified async API, switch with a single line                    |
+| **Concurrency**     | Not concurrency-safe (in original Hive)  | Built-in locks: atomic writes, safe reads                       |
+| **Architecture**    | Logic tied to raw boxes                  | Abstracted interface, fits Clean Architecture & DI              |
+| **Utilities**       | Basic CRUD only                          | Backup/restore, search helpers, iteration, box management       |
+| **Production**      | Needs extra care for scaling & safety    | Encryption, crash recovery, compaction, isolated boxes included |
+| **Migration**       | Switching box types requires rewrites    | Swap `Box` ↔ `Box.lazy`/`Box.isolated` seamlessly               |
+| **Dev Experience**  | Verbose boilerplate, error-prone         | Cleaner, safer, future-proof, less code                         |
+
+> **Migration-free upgrade:**  
+> If you're already using **Hive** or **Hive CE**, you can switch to **Hivez** instantly — no migrations, no data loss, and no breaking changes. Just [set up your Hive adapters correctly](#-setup-guide-for-hive_ce) and reuse the same box names and types. Hivez will open your existing boxes automatically and continue right where you left off.
+
+# Clean Architecture with `Hivez`
 
 _[⤴️ Back](#table-of-contents) → Table of Contents_
 
@@ -494,83 +1147,132 @@ _[⤴️ Back](#table-of-contents) → Table of Contents_
 
 #### Do I still need to call `Hive.openBox`?
 
-**No.** All `HivezBox` types auto-initialize on first use with `ensureInitialized()`.  
-You don’t need to worry about `Hive.isBoxOpen` checks or manual setup.
+> **No.** All `Box` types auto-initialize on first use with `ensureInitialized()` under the hood.  
+> You don’t need to worry about `Hive.isBoxOpen` checks or manual setup.
 
-#### Does Hivez replace Hive?
+#### Does `Hivez` replace `Hive`?
 
-**No.** Hivez is a **safe wrapper** around [`hive_ce`](https://pub.dev/packages/hive_ce).  
-You still use Hive adapters, types, and storage — Hivez just enforces **type safety**, **clean architecture**, and **concurrency safety**.
+> **No.** Hivez is a **safe wrapper** around [`hive_ce`](https://pub.dev/packages/hive_ce). You still use Hive adapters, types, and storage — Hivez just enforces **type safety**, **clean architecture**, **concurrency safety**, and **search capabilities**.
 
-#### What’s the difference between `HivezBox`, `Lazy`, and `Isolated`?
+#### What’s the difference between `Box`, `Box.lazy`, `Box.isolated`, and `Box.isolatedLazy`?
 
-- `HivezBox` → Default, fast in-memory reads + async writes
-- `HivezBoxLazy` → Loads values on-demand, better for **large datasets**
-- `HivezBoxIsolated` → Safe across isolates, for **background workers**
-- `HivezBoxIsolatedLazy` → Combines isolate safety + lazy loading
+- `Box` → Default, fast in-memory reads + async writes
+- `Box.lazy` → Loads values on-demand, better for **large datasets**
+- `Box.isolated` → Safe across isolates, for **background workers**
+- `Box.isolatedLazy` → Combines isolate safety + lazy loading
+- `IndexedBox` → Fast search for text-heavy workloads (under the hood can be any of the above)
 
 All share the **same API** (`BoxInterface` with 35+ methods), so you can swap them with a single line.
 
 #### Do I still need to register adapters?
 
-**Yes.** Hive always requires `TypeAdapter`s for custom objects and enums.  
-Hivez does not remove this requirement, but provides [a quick setup guide](#-setup-guide-for-hive_ce).
+> **Yes.** Hive always requires `TypeAdapter`s for custom objects and enums.  
+> Hivez does not remove this requirement, but provides [a quick setup guide](#-setup-guide-for-hive_ce).
 
 #### Is it concurrency-safe?
 
-**Yes.** All writes use internal locks, ensuring atomicity. Reads are async-safe.  
-You can safely call multiple operations in parallel without corrupting data.
+> **Yes.** All writes use internal locks, ensuring atomicity. Reads are async-safe.  
+> You can safely call multiple operations in parallel without corrupting data.
 
 #### Can I use Hivez in unit tests?
 
-**Yes.** Since every box implements the same `BoxInterface<K, T>`, you can:
-
-- inject a real `HivezBox`
-- or mock/fake the interface for fast, Hive-free tests
+> **Yes.** Since every box implements the same `BoxInterface<K, T>`, you can:
+>
+> - inject a real `Box`
+> - or mock/fake the interface for fast, Hive-free tests
 
 #### When should I use isolated boxes?
 
-- Heavy background isolates (e.g., parsing, sync engines)
-- Multi-isolate apps where multiple isolates may open the same box  
-  If you’re not familiar with isolate setup, stick to `HivezBox` or `HivezBoxLazy`.
+> - Heavy background isolates (e.g., parsing, sync engines)
+> - Multi-isolate apps where multiple isolates may open the same box  
+>   If you’re not familiar with isolate setup, stick to `HivezBox` or `HivezBoxLazy`.
 
 #### Do lazy boxes support `values` like normal boxes?
 
-No. Lazy boxes only load values **on demand**.  
-Use `getAllValues()` instead — Hivez implements this for you safely.
+> No. Lazy boxes only load values **on demand**.  
+> Use `getAllValues()` instead — Hivez implements this for you safely.
 
 ### Can I migrate between box types later?
 
-**Yes.** Since all boxes share the same API, changing from:
+> **Yes.** Since all boxes share the same API, changing from:
 
 ```dart
-final box = HivezBox<int, User>('users');
+final box = Box<int, User>('users');
 ```
 
 to
 
 ```dart
-final box = HivezBoxIsolated<int, User>('users');
+final box = Box<int, User>.lazy('users');
 ```
 
-is a **single-line change**, with no code breakage.
-Here’s the added paragraph for adapter troubleshooting:
+or even like this (**recommended**):
 
-#### How do I troubleshoot errors when generating adapters?
-
-If you get errors while running `build_runner` (for example, after adding a new model), double-check that **all the models and enums you want adapters for are included in your `hive_adapters.dart` file**.  
-If something still doesn’t work, try deleting the previously generated files (`.g.dart`, `.g.yaml`) and re-running:
-
-```sh
-dart run build_runner build --delete-conflicting-outputs
+```dart
+final box = Box<int, User>('users', type: BoxType.lazy);
 ```
 
-This forces Hive CE to regenerate fresh adapters for all the registered types.
+> When you need to switch between box type on an IndexedBox:
 
-#### What if I run into other Hive-related issues?
+```dart
+final box = IndexedBox<int, User>('users');
+final box = IndexedBox<int, User>('users', type: BoxType.lazy);
+```
 
-If you encounter a bug or limitation that comes from Hive itself, please note that Hivez is only a **wrapper around [`hive_ce`](https://pub.dev/packages/hive_ce)**.  
-That means such issues can’t be solved in Hivez. For those cases, head over to the [hive_ce repository](https://github.com/isar/hive), it’s actively maintained, very stable, and the right place for core Hive questions or bug reports.
+> The type is a **single-word change**, with no code breakage. Across all box types.
+
+#### What about `IndexedBox`?
+
+**`IndexedBox`** is a drop-in upgrade that adds **instant full-text search**.
+It automatically builds a small on-disk index that makes queries up to **1000× faster** — while keeping your data **100% Hive-compatible**.
+
+| Operation | Speed                 | Notes                                |
+| --------- | --------------------- | ------------------------------------ |
+| Search    | ⚡ **1–3 ms**         | For 100,000+ items                   |
+| Write     | ⚙️ Slightly slower    | Index updates per write              |
+| Data      | 💾 Stored in same box | Index stored in hidden “\_idx” boxes |
+
+> You can still write **10,000 items in ~0.1 s**, which is more than enough for real-world apps.
+
+#### Can I use `IndexedBox` and regular boxes together?
+
+> Yes — they’re fully compatible.
+> You can even open an existing box as `IndexedBox` the data stays synchronized.
+> The index is just a separate lightweight companion box maintained automatically.
+
+#### What’s the difference between search helpers and `IndexedBox`?
+
+| Feature  | Regular Box (`search()`) | IndexedBox                   |
+| -------- | ------------------------ | ---------------------------- |
+| Speed    | 🐢 Scans values (`O(n)`) | ⚡ Indexed (`O(log n)`)      |
+| Storage  | No index                 | Extra `_idx` box (small)     |
+| Use Case | Simple filtering         | Large data / frequent search |
+| Accuracy | Text-based match         | Token-based (analyzer aware) |
+
+> Use `IndexedBox` if your app relies on **frequent text queries** or **user search inputs**.
+
+#### Is the extra index space big?
+
+> Not much — even an `NGram` analyzer with 10 K entries adds only a few MB.  
+> That’s a small tradeoff for millisecond search.
+
+### How do I troubleshoot errors when generating adapters?
+
+> If `build_runner` throws an error after adding a new model or enum:
+>
+> 1. Make sure every type is listed in your `hive_adapters.dart` file
+> 2. Delete old generated files (`.g.dart`, `.g.yaml`)
+> 3. Re-run the generator:
+>
+> ```sh
+> dart run build_runner build --delete-conflicting-outputs
+> ```
+>
+> This regenerates clean adapters for all your types.
+
+### What if I run into other Hive-related issues?
+
+> If you encounter a bug or limitation that comes from Hive itself, please note that Hivez is only a **wrapper around [`hive_ce`](https://pub.dev/packages/hive_ce)**. That means such issues can’t be solved in Hivez. For those cases, head over to the [hive_ce repository](https://github.com/isar/hive), it’s actively maintained, very stable, and the right place for core Hive questions or bug reports.
 
 # Performance & Safety
 
@@ -584,7 +1286,7 @@ Although all boxes in Hivez share the same `BoxInterface`, there are **no runtim
 Every method call is compiled down to direct Hive operations — engineered to be as **fast, easy, and safe** as possible.
 
 - **No overhead on reads/writes** — same performance as Hive CE
-- **Hundreds of tests** across all 35+ methods and box types ensure production safety
+- **Heavily Tested** — **200+ tests** across all 35+ methods and box types ensure production safety
 - **Engineered concurrency** — built-in locks guarantee atomic writes and safe reads
 
 ### Enforced Type Safety
@@ -594,7 +1296,7 @@ Hivez enforces **compile-time safety** for both keys and values:
 
 ```dart
 // Hivez: compile-time type safety
-final users = HivezBox<int, User>('users');
+final users = Box<int, User>('users');
 await users.put(1, User('Alice'));   // ✅ Valid
 await users.put('wrongKey', 'test'); // ❌ Compile error
 ```
@@ -611,11 +1313,11 @@ LazyBox<User> lazy = await Hive.openLazyBox<User>('users');
 // ❌ LazyBox doesn't have the same API as Box
 ```
 
-With Hivez, all boxes (`HivezBox`, `HivezBoxLazy`, `HivezBoxIsolated`, `HivezBoxIsolatedLazy`) share the **same API**:
+With Hivez, all boxes (`Box`, `Box.lazy`, `Box.isolated`, `Box.isolatedLazy`) share the **same API**:
 
 ```dart
-BoxInterface<int, User> box = HivezBox<int, User>('users');
-BoxInterface<int, User> box = HivezBoxLazy<int, User>('users');
+Box<int, User> box = Box<int, User>('users');
+Box<int, User> box = Box<int, User>.lazy('users');
 ```
 
 Your repositories and services remain untouched — a **single-line change** swaps the underlying storage strategy.
@@ -650,23 +1352,23 @@ That’s when I decided to create Hivez: instead of repeating this codebase afte
 Hivez is not just a thin wrapper; it’s a **designed architecture layer** on top of Hive CE:
 
 - **Unified API across all box types**
-  Every box — `HivezBox`, `HivezBoxLazy`, `HivezBoxIsolated`, `HivezBoxIsolatedLazy` — inherits from the same parent, **`BoxInterface`**.
+  Every box — `Box`, `Box.lazy`, `Box.isolated`, `Box.isolatedLazy` — inherits from the same parent, **`BoxInterface`**.
   That means **35+ functions and getters** are guaranteed, tested, and production-grade.
 
 - **Type safety, enforced**
   No more `dynamic` or runtime casting:
 
   ```dart
-  final users = HivezBox<int, User>('users');
+  final users = Box<int, User>('users');
   await users.put(1, User('Alice'));
   final u = await users.get(1); // returns User, not dynamic
   ```
 
 - **Zero setup required**
-  No more boilerplate `openBox`. Each Hivez box automatically initializes on first use:
+  No more boilerplate `openBox`. Each `Box` box automatically initializes on first use:
 
   ```dart
-  final settings = HivezBox<String, bool>('settings');
+  final settings = Box<String, bool>('settings');
   await settings.put('darkMode', true);
   ```
 

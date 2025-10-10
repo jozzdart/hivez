@@ -1,26 +1,25 @@
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:hive_ce_flutter/adapters.dart';
+import 'package:hive_ce/hive.dart' show BoxEvent;
 
 import '../utils/test_setup.dart';
 
 import 'package:hivez/hivez.dart';
 
 void main() {
-  late HivezBox<int, int> hivezBox;
+  late BoxInterface<int, int> hivezBox;
 
   setUpAll(() async {
     await setupHiveTest();
   });
 
   setUp(() async {
-    hivezBox = HivezBox<int, int>('boxTest');
+    hivezBox = Box.regular('boxTest');
     await hivezBox.ensureInitialized();
     await hivezBox.clear();
   });
 
   tearDownAll(() async {
-    await Hive.deleteBoxFromDisk('boxTest');
+    await hivezBox.deleteFromDisk();
   });
 
   test('put and get value', () async {
@@ -124,7 +123,7 @@ void main() {
   });
 
   test('toMap returns current key/value snapshot', () async {
-    final box = HivezBox<int, String>('mapBox');
+    final box = Box<int, String>.regular('mapBox');
     await box.ensureInitialized();
     await box.clear();
     await box.putAll({1: 'a', 2: 'b'});
@@ -175,7 +174,7 @@ void main() {
   });
 
   test('deleteFromDisk removes box data from disk', () async {
-    final box = HivezBox<int, int>('diskBox');
+    final box = Box<int, int>.regular('diskBox');
     await box.ensureInitialized();
     await box.clear();
     await box.putAll({1: 10, 2: 20});
@@ -184,7 +183,7 @@ void main() {
     await box.deleteFromDisk();
 
     // Recreate and verify empty
-    final box2 = HivezBox<int, int>('diskBox');
+    final box2 = Box<int, int>.regular('diskBox');
     await box2.ensureInitialized();
     expect(await box2.length, 0);
     await box2.deleteFromDisk();
@@ -252,7 +251,7 @@ void main() {
   });
 
   test('foreachValue skips null values for nullable box type', () async {
-    final box = HivezBox<int, String?>('nullableBox');
+    final box = Box<int, String?>.regular('nullableBox');
     await box.ensureInitialized();
     await box.clear();
     await box.putAll({

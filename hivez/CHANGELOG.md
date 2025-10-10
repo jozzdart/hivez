@@ -1,3 +1,55 @@
+## 1.1.0
+
+### _New `Indexed Box`_ - Ultra-fast full-text search for Hive
+
+A special box that maintains a lightweight full‑text token index for extremely fast searches over your values. It wraps a regular box and keeps an auxiliary index box plus a small journal/meta box for crash‑safe updates.
+
+- Performance: compared to a regular, non‑indexed box, searches are dramatically faster (`100x` to `3000x` in real-world benchmarks). You can tune behavior via the analyzer (`basic`, `prefix`, `ngram`), `matchAllTokens`, a custom `keyComparator`, and the token cache capacity.
+
+- Create an indexed box and tell it how to extract searchable text
+
+  ```dart
+  final box = IndexedBox<int, Article>(
+    'articles',
+    searchableText: (a) => "${a.title} ${a.body}", // or just a.title, it's up to you
+  );
+
+  final articles = await box.search('flutter dart'); // Blazing fast search
+  ```
+
+> 📘 **Now with complete documentation**  
+> This release includes **full, production-grade docs** featuring **detailed explanations**, **real-world examples**, and **step-by-step guides** for every feature — from basic box usage to advanced search analyzers, configuration, and clean architecture patterns.  
+> [Click here to view the complete documentation.](https://pub.dev/packages/hivez)
+
+### _New `Box`_ API - Universal classes with improved functionality
+
+- A universal class that can be used to create all box types.
+
+  ```dart
+  final box = Box<int, User>('users');
+  ```
+
+  ```dart
+  final box = Box<int, User>('users', type: BoxType.lazy); // easy to switch between box types
+  final box = Box<int, User>('users', type: BoxType.isolated); // all types of boxes supported
+  final box = Box<int, User>.lazy('users'); // many syntax variations
+  ```
+
+- Comes with `BoxConfig`, `BoxType`, and `BoxCreator`, for easier box configuration and creation:
+
+  ```dart
+  final box = BoxConfig.lazy('users').createBox<int, User>(); // example
+  final box = BoxType.lazy.createBox<int, User>('users'); // example
+  ```
+
+### _New methods for all box types_
+
+- `getKeysWhere()` — returns keys matching a condition.
+- `firstKeyWhere()` — returns the first key matching a condition.
+- `searchKeyOf()` — returns the key for a given value.
+- `estimateSizeBytes()` — estimates the approximate in-memory size of box contents (bytes).
+- `toMap()` — now supports lazy boxes.
+
 ## 1.0.2
 
 - **Fix:** Resolved missing exports (in `hivez_flutter`) for generated adapters (`BinaryReader`, `BinaryWriter`, `TypeAdapter`, etc.), which caused build errors when running  
