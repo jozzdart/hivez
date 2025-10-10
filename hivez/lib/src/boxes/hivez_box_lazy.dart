@@ -59,7 +59,19 @@ class HivezBoxLazy<K, T> extends AbstractHivezBox<K, T, LazyBox<T>> {
     super.path,
     super.collection,
     super.logger,
-  });
+  }) : super(
+          nativeBox: NativeBoxCreator.newBox(
+            name,
+            type: BoxType.lazy,
+            encryptionCipher: encryptionCipher,
+            crashRecovery: crashRecovery,
+            path: path,
+            collection: collection,
+          ),
+        );
+
+  @override
+  BoxType get boxType => BoxType.lazy;
 
   @override
   Future<LazyBox<T>> _openBox() => Hive.openLazyBox<T>(
@@ -80,10 +92,22 @@ class HivezBoxLazy<K, T> extends AbstractHivezBox<K, T, LazyBox<T>> {
   }
 
   @override
+  Future<List<T>> getMany(Iterable<K> keys) async {
+    return _executeRead(() async {
+      final values = <T>[];
+      for (final key in keys) {
+        final value = await box.get(key);
+        if (value != null) values.add(value);
+      }
+      return values;
+    });
+  }
+
+  @override
   Future<Iterable<T>> getAllValues() async {
     return _executeRead(() async {
-      final keys = box.keys.cast<K>();
-      final List<T> values = [];
+      final keys = box.keys;
+      final values = <T>[];
       for (final key in keys) {
         final value = await box.get(key);
         if (value != null) values.add(value);

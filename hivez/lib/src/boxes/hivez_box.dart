@@ -68,12 +68,36 @@ class HivezBox<K, T> extends AbstractHivezBox<K, T, Box<T>> {
     super.path,
     super.collection,
     super.logger,
-  });
+  }) : super(
+          nativeBox: NativeBoxCreator.newBox(
+            name,
+            type: BoxType.regular,
+            encryptionCipher: encryptionCipher,
+            crashRecovery: crashRecovery,
+            path: path,
+            collection: collection,
+          ),
+        );
+
+  @override
+  BoxType get boxType => BoxType.regular;
 
   @override
   Future<T?> get(K key, {T? defaultValue}) async {
     return _executeRead(
         () => Future.value(box.get(key, defaultValue: defaultValue)));
+  }
+
+  @override
+  Future<List<T>> getMany(Iterable<K> keys) {
+    return _executeRead(() async {
+      final values = <T>[];
+      for (final key in keys) {
+        final value = box.get(key);
+        if (value != null) values.add(value);
+      }
+      return values;
+    });
   }
 
   @override

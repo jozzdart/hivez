@@ -1,6 +1,7 @@
 library;
 
 import 'dart:convert' show utf8;
+import 'package:hivez/src/core/core.dart';
 import 'package:meta/meta.dart' show protected;
 import 'package:synchronized/synchronized.dart' show Lock;
 

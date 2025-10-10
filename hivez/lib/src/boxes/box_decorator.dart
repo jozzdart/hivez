@@ -50,6 +50,9 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
         );
 
   @override
+  BoxType get boxType => _internalBox.boxType;
+
+  @override
   bool get isOpen => _internalBox.isOpen;
   @override
   bool get isInitialized => _internalBox.isInitialized;
@@ -83,11 +86,18 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
   @override
   Future<void> putAll(Map<K, T> entries) => _internalBox.putAll(entries);
   @override
+  Future<void> replaceAll(Map<K, T> entries) =>
+      _internalBox.replaceAll(entries);
+  @override
   Future<void> putAt(int index, T value) => _internalBox.putAt(index, value);
+
   @override
   Future<int> add(T value) => _internalBox.add(value);
+
   @override
-  Future<void> addAll(Iterable<T> values) => _internalBox.addAll(values);
+  Future<Iterable<int>> addAll(Iterable<T> values) =>
+      _internalBox.addAll(values);
+
   @override
   Future<bool> moveKey(K oldKey, K newKey) =>
       _internalBox.moveKey(oldKey, newKey);
@@ -97,23 +107,35 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
   @override
   Future<void> deleteAt(int index) => _internalBox.deleteAt(index);
   @override
+  Future<void> deleteAtMany(Iterable<int> indices) =>
+      _internalBox.deleteAtMany(indices);
+  @override
   Future<void> deleteAll(Iterable<K> keys) => _internalBox.deleteAll(keys);
   @override
   Future<void> clear() => _internalBox.clear();
 
   @override
-  Future<K> keyAt(int index) => _internalBox.keyAt(index);
+  Future<K?> keyAt(int index) => _internalBox.keyAt(index);
+
   @override
   Future<T?> valueAt(int index) => _internalBox.valueAt(index);
+
   @override
   Future<T?> getAt(int index) => _internalBox.getAt(index);
+
   @override
   Future<bool> containsKey(K key) => _internalBox.containsKey(key);
+
   @override
   Future<Iterable<K>> getAllKeys() => _internalBox.getAllKeys();
+
   @override
   Future<T?> get(K key, {T? defaultValue}) =>
       _internalBox.get(key, defaultValue: defaultValue);
+
+  @override
+  Future<List<T>> getMany(Iterable<K> keys) => _internalBox.getMany(keys);
+
   @override
   Future<Iterable<T>> getAllValues() => _internalBox.getAllValues();
   @override

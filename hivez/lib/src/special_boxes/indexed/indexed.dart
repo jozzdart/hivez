@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:hive_ce/hive.dart' show HiveCipher;
 import 'package:hivez/src/boxes/boxes.dart';
 import 'package:hivez/src/builders/builders.dart';
+import 'package:hivez/src/core/core.dart';
 import 'package:hivez/src/exceptions/box_exception.dart';
 import 'package:hivez/src/special_boxes/configured/configured_box.dart';
 
@@ -104,6 +105,7 @@ class IndexedBox<K, T> extends Box<K, T> {
       verifyMatches: verifyMatches,
       ensureReady: ensureInitialized,
       getValue: super.get,
+      getManyValues: super.getMany,
       keyComparator: keyComparator,
     );
     _lock = IndexedBoxLockJournal(this);
@@ -285,30 +287,72 @@ class IndexedBox<K, T> extends Box<K, T> {
     });
   }
 
+  /// Replaces all data in the box with the given [entries].
+  ///
+  /// This operation clears the box and its index, then writes and re-indexes
+  /// the provided entries in a single transaction. It is much faster than
+  /// calling [clear] followed by [putAll], because it avoids any `get` calls
+  /// and minimizes index operations.
+  ///
+  /// ⚠️ Note: This is a destructive operation — all existing data will be lost.
+  @override
+  Future<void> replaceAll(Map<K, T> entries) {
+    return _lock.operation("REPLACE_ALL").run(() async {
+      await super.clear();
+      await _engine.clear();
+      _cache.clear();
+
+      if (entries.isEmpty) {
+        await _stampSnapshot();
+        return;
+      }
+
+      await super.putAll(entries);
+      await _engine.onPutMany(entries);
+
+      for (final value in entries.values) {
+        _invalidateTokensFor(value);
+      }
+
+      await _stampSnapshot();
+    });
+  }
+
   /// Adds a value and returns its generated key, updating the index.
   @override
-  Future<int> add(T value) => _lock.operation("ADD").run(() async {
+  Future<int> add(T value) {
+    if (K is int) {
+      return _lock.operation("ADD").run(() async {
         final id = await super.add(value);
         await _engine.onPut(id as K, value);
         _invalidateTokensFor(value);
         await _stampSnapshot();
         return id;
       });
+    } else {
+      throw UnsupportedError('add is not supported for non-int keys');
+    }
+  }
 
   /// Adds multiple values, updating the index.
   @override
-  Future<void> addAll(Iterable<T> values) {
-    if (values.isEmpty) return Future.value();
-    return _lock.operation("ADD_ALL").run(() async {
-      final news = <K, T>{};
-      for (final v in values) {
-        final id = await super.add(v);
-        news[id as K] = v;
-        _invalidateTokensFor(v);
-      }
-      await _engine.onPutMany(news);
-      await _stampSnapshot();
-    });
+  Future<Iterable<int>> addAll(Iterable<T> values) {
+    if (K is int) {
+      if (values.isEmpty) return Future.value(const <int>[]);
+      return _lock.operation("ADD_ALL").run(() async {
+        final news = <K, T>{};
+        for (final v in values) {
+          final id = await super.add(v);
+          news[id as K] = v;
+          _invalidateTokensFor(v);
+        }
+        await _engine.onPutMany(news);
+        await _stampSnapshot();
+        return news.keys.cast<int>();
+      });
+    } else {
+      throw UnsupportedError('addAll is not supported for non-int keys');
+    }
   }
 
   /// Deletes the value for the given [key], updating the index.
@@ -350,12 +394,20 @@ class IndexedBox<K, T> extends Box<K, T> {
   Future<void> deleteAt(int index) =>
       _lock.operation("DELETE_AT").run(() async {
         final k = await super.keyAt(index);
-        final old = await super.get(k);
+        final old = await super.valueAt(index);
         await super.deleteAt(index);
         if (old != null) {
-          await _engine.onDelete(k, oldValue: old);
+          await _engine.onDelete(k as K, oldValue: old);
           _invalidateTokensFor(old);
         }
+        await _stampSnapshot();
+      });
+
+  /// Deletes the values at the given [indices], updating the index.
+  @override
+  Future<void> deleteAtMany(Iterable<int> indices) =>
+      _lock.operation("DELETE_AT_MANY").run(() async {
+        await super.deleteAtMany(indices);
         await _stampSnapshot();
       });
 
@@ -373,7 +425,8 @@ class IndexedBox<K, T> extends Box<K, T> {
   Future<void> putAt(int index, T value) =>
       _lock.operation("PUT_AT").run(() async {
         final k = await super.keyAt(index);
-        final old = await super.get(k);
+        if (k == null) return;
+        final old = await super.getAt(index);
         await super.putAt(index, value);
         await _engine.onPut(k, value, oldValue: old);
         _invalidateTokensFor(old);
@@ -585,6 +638,7 @@ class IndexedBox<K, T> extends Box<K, T> {
     final step = math.max(1, total ~/ probes);
     for (int i = 0, seen = 0; i < total && seen < probes; i += step, seen++) {
       final k = await keyAt(i);
+      if (k == null) continue;
       final v = await get(k);
       if (v == null) continue;
       final tokens = _analyze(v).toSet();

@@ -130,3 +130,97 @@ extension CreateIndexedBoxFromType<K, T> on BoxType {
         keyComparator: keyComparator,
       );
 }
+
+extension IndexedBoxSearchExtensions<K, T> on IndexedBox<K, T> {
+  /// Performs a full-text search with optional filtering and sorting.
+  ///
+  /// [query]: Search string (empty for all values).
+  /// [filter]: Optional predicate `(T value) => bool` to filter results.
+  /// [sortBy]: Optional comparator `(T a, T b)?` for ordering.
+  /// [limit]/[offset]: For partial results.
+  Future<List<T>> searchFiltered(
+    String query, {
+    bool Function(T value)? filter,
+    int Function(T a, T b)? sortBy,
+    int? limit,
+    int offset = 0,
+  }) async {
+    await ensureInitialized();
+
+    if (filter == null && sortBy == null) {
+      return _searcher.values(query, limit: limit, offset: offset);
+    }
+
+    final keys = await _searcher.keys(query, limit: limit, offset: offset);
+    if (keys.isEmpty) return const [];
+
+    final values = <T>[];
+    for (final k in keys) {
+      final v = await get(k);
+      if (v == null) continue;
+      if (filter != null && !filter(v)) continue;
+      values.add(v);
+    }
+
+    if (sortBy != null && values.length > 1) {
+      values.sort(sortBy);
+    }
+
+    return values;
+  }
+}
+
+extension IndexedBoxPagination<K, T> on IndexedBox<K, T> {
+  /// Performs a full-text search with optional filtering, sorting, and pagination.
+  ///
+  /// - [query]: Text to search for.
+  /// - [filter]: Optional predicate to filter values.
+  /// - [sortBy]: Optional comparator for sorting values.
+  /// - [page]: Page index (0-based).
+  /// - [pageSize]: Number of items per page.
+  /// - [prePaginate]: If true, performs pagination *before* filtering/sorting.
+  ///
+  /// When [prePaginate] is true, only the current page’s candidates are loaded,
+  /// giving much faster results on large datasets — but the global order
+  /// consistency between pages is not guaranteed.
+  Future<List<T>> searchPaginated(
+    String query, {
+    bool Function(T value)? filter,
+    int Function(T a, T b)? sortBy,
+    int page = 0,
+    int pageSize = 20,
+    bool prePaginate = false,
+  }) async {
+    await ensureInitialized();
+
+    if (prePaginate) {
+      final offset = page * pageSize;
+      final keys = await _searcher.keys(query, limit: pageSize, offset: offset);
+      if (keys.isEmpty) return const [];
+
+      final values = <T>[];
+      for (final k in keys) {
+        final v = await get(k);
+        if (v == null) continue;
+        if (filter != null && !filter(v)) continue;
+        values.add(v);
+      }
+
+      if (sortBy != null && values.length > 1) {
+        values.sort(sortBy);
+      }
+      return values;
+    } else {
+      final allResults = await searchFiltered(
+        query,
+        filter: filter,
+        sortBy: sortBy,
+      );
+
+      final start = (page * pageSize).clamp(0, allResults.length);
+      final end = math.min(start + pageSize, allResults.length);
+      if (start >= allResults.length) return const [];
+      return allResults.sublist(start, end);
+    }
+  }
+}

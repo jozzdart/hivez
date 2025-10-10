@@ -23,6 +23,9 @@ class HivezBoxIsolatedLazy<K, T>
   @override
   bool get isLazy => true;
 
+  @override
+  BoxType get boxType => BoxType.isolatedLazy;
+
   /// Creates a new [HivezBoxIsolatedLazy] instance for strongly-typed, lazy Hive box access
   /// in a background isolate.
   ///
@@ -60,7 +63,16 @@ class HivezBoxIsolatedLazy<K, T>
     super.path,
     super.collection,
     super.logger,
-  });
+  }) : super(
+          nativeBox: NativeBoxCreator.newBox(
+            name,
+            type: BoxType.isolatedLazy,
+            encryptionCipher: encryptionCipher,
+            crashRecovery: crashRecovery,
+            path: path,
+            collection: collection,
+          ),
+        );
 
   @override
   Future<IsolatedLazyBox<T>> _openBox() => IsolatedHive.openLazyBox<T>(
@@ -78,6 +90,18 @@ class HivezBoxIsolatedLazy<K, T>
   Future<T?> get(K key, {T? defaultValue}) async {
     return _executeRead(
         () => Future.value(box.get(key, defaultValue: defaultValue)));
+  }
+
+  @override
+  Future<List<T>> getMany(Iterable<K> keys) async {
+    return _executeRead(() async {
+      final values = <T>[];
+      for (final key in keys) {
+        final value = await box.get(key);
+        if (value != null) values.add(value);
+      }
+      return values;
+    });
   }
 
   @override
