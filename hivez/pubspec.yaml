@@ -1,5 +1,5 @@
 name: hivez
-description: "The cleanest dart database. Fast, easy, type-safe, concurrency-safe, boilerplate-free. (Wrapped around hive_ce)"
+description: "The cleanest dart database. Blazingly fast queries, easy, type-safe, boilerplate-free. Heavily tested, production-ready. (Wrapping hive_ce with x1000 faster queries)"
 version: 1.0.2
 homepage: https://github.com/jozzdart/hivez
 repository: https://github.com/jozzdart/hivez/tree/main/hivez

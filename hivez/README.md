@@ -1,6 +1,6 @@
 ![img](https://i.imgur.com/XgI3sfn.png)
 
-<h3 align="center"><i>Hive, but safer, simpler, and smarter. Ready for production.</i></h3>
+<h3 align="center"><i>Hive, but faster, simpler, and safer. Ready for production.</i></h3>
 <p align="center">
         <img src="https://img.shields.io/codefactor/grade/github/jozzdart/hivez/main?style=flat-square">
         <img src="https://img.shields.io/github/license/jozzdart/hivez?style=flat-square">
