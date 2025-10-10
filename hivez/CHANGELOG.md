@@ -6,19 +6,20 @@ A special box that maintains a lightweight full‑text token index for extremely
 
 - Performance: compared to a regular, non‑indexed box, searches are dramatically faster (`100x` to `3000x` in real-world benchmarks). You can tune behavior via the analyzer (`basic`, `prefix`, `ngram`), `matchAllTokens`, a custom `keyComparator`, and the token cache capacity.
 
-- Usage example:
+- Create an indexed box and tell it how to extract searchable text
 
   ```dart
-  // Create an indexed box and tell it how to extract searchable text
   final box = IndexedBox<int, Article>(
     'articles',
-    searchableText: (a) => a.title, // or combine title + body
+    searchableText: (a) => "${a.title} ${a.body}", // or just a.title, it's up to you
   );
-
-  await box.putAll({1: articleA, 2: articleB}); // Put data as usual — the index updates automatically
 
   final articles = await box.search('flutter dart'); // Blazing fast search
   ```
+
+> 📘 **Now with complete documentation**  
+> This release includes **full, production-grade docs** featuring **detailed explanations**, **real-world examples**, and **step-by-step guides** for every feature — from basic box usage to advanced search analyzers, configuration, and clean architecture patterns.  
+> [Click here to view the complete documentation.](https://pub.dev/packages/hivez)
 
 ### _New `Box`_ API - Universal classes with improved functionality
 
