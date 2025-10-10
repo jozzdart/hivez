@@ -18,14 +18,7 @@ part of 'boxes.dart';
 /// - [HivezBoxLazy] for the non-isolated lazy variant.
 /// - [HivezBoxIsolated] for the non-lazy isolated variant.
 /// {@endtemplate}
-class HivezBoxIsolatedLazy<K, T>
-    extends AbstractHivezIsolatedBox<K, T, IsolatedLazyBox<T>> {
-  @override
-  bool get isLazy => true;
-
-  @override
-  BoxType get boxType => BoxType.isolatedLazy;
-
+class HivezBoxIsolatedLazy<K, T> extends BaseHivezBox<K, T> {
   /// Creates a new [HivezBoxIsolatedLazy] instance for strongly-typed, lazy Hive box access
   /// in a background isolate.
   ///
@@ -73,78 +66,4 @@ class HivezBoxIsolatedLazy<K, T>
             collection: collection,
           ),
         );
-
-  @override
-  Future<IsolatedLazyBox<T>> _openBox() => IsolatedHive.openLazyBox<T>(
-        name,
-        encryptionCipher: _encryptionCipher,
-        crashRecovery: _crashRecovery,
-        path: _path,
-        collection: _collection,
-      );
-
-  @override
-  IsolatedLazyBox<T> _getExistingBox() => IsolatedHive.lazyBox<T>(name);
-
-  @override
-  Future<T?> get(K key, {T? defaultValue}) async {
-    return _executeRead(
-        () => Future.value(box.get(key, defaultValue: defaultValue)));
-  }
-
-  @override
-  Future<List<T>> getMany(Iterable<K> keys) async {
-    return _executeRead(() async {
-      final values = <T>[];
-      for (final key in keys) {
-        final value = await box.get(key);
-        if (value != null) values.add(value);
-      }
-      return values;
-    });
-  }
-
-  @override
-  Future<Iterable<T>> getAllValues() async {
-    return _executeRead(() async {
-      final keys = (await box.keys).cast<K>();
-      final List<T> values = [];
-      for (final key in keys) {
-        final value = await box.get(key);
-        if (value != null) values.add(value);
-      }
-      return values;
-    });
-  }
-
-  @override
-  Future<Map<K, T>> toMap() async {
-    return _executeRead(
-      () async {
-        final keys = (await box.keys).cast<K>();
-        final Map<K, T> map = {};
-        for (final key in keys) {
-          final value = await box.get(key);
-          if (value != null) map[key] = value;
-        }
-        return map;
-      },
-    );
-  }
-
-  @override
-  Future<T?> valueAt(int index) async {
-    return _executeRead(() => box.getAt(index));
-  }
-
-  @override
-  Future<T?> firstWhereOrNull(bool Function(T) condition) async {
-    return _executeRead(() async {
-      for (final key in (await box.keys)) {
-        final value = await box.get(key);
-        if (value != null && condition(value)) return value;
-      }
-      return null;
-    });
-  }
 }

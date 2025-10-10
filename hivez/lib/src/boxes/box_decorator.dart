@@ -142,13 +142,15 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
   Stream<BoxEvent> watch(K key) => _internalBox.watch(key);
 
   @override
-  Future<Iterable<T>> getValuesWhere(bool Function(T) condition) =>
+  Future<List<T>> getValuesWhere(bool Function(T) condition) =>
       _internalBox.getValuesWhere(condition);
 
   @override
-  Future<Iterable<K>> getKeysWhere(bool Function(K key, T value) condition) =>
+  Future<List<K>> getKeysWhere(bool Function(K key, T value) condition) =>
       _internalBox.getKeysWhere(condition);
-
+  @override
+  Future<T?> firstValueWhere(bool Function(K key, T value) condition) =>
+      _internalBox.firstValueWhere(condition);
   @override
   Future<T?> firstWhereOrNull(bool Function(T) condition) =>
       _internalBox.firstWhereOrNull(condition);
@@ -158,11 +160,14 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
       _internalBox.firstWhereContains(query, searchableText: searchableText);
 
   @override
-  Future<void> foreachValue(Future<void> Function(K, T) action) =>
-      _internalBox.foreachValue(action);
+  Future<void> foreachValue(Future<void> Function(K, T) action,
+          {bool Function()? breakCondition}) =>
+      _internalBox.foreachValue(action, breakCondition: breakCondition);
+
   @override
-  Future<void> foreachKey(Future<void> Function(K) action) =>
-      _internalBox.foreachKey(action);
+  Future<void> foreachKey(Future<void> Function(K) action,
+          {bool Function()? breakCondition}) =>
+      _internalBox.foreachKey(action, breakCondition: breakCondition);
 
   @override
   Future<K?> firstKeyWhere(bool Function(K key, T value) condition) =>

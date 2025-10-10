@@ -71,7 +71,7 @@ void main() {
     await hivezBox.addAll([200, 300]);
     expect(await hivezBox.length, 3);
     final firstKey = await hivezBox.keyAt(0);
-    expect(await hivezBox.containsKey(firstKey), true);
+    expect(await hivezBox.containsKey(firstKey!), true);
     await hivezBox.deleteAt(0);
     expect(await hivezBox.length, 2);
   });

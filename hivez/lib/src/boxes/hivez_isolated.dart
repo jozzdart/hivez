@@ -26,11 +26,7 @@ part of 'boxes.dart';
 /// - [HivezBoxLazy] for the non-isolated lazy variant.
 /// - [HivezBoxIsolatedLazy] for the lazy isolated variant.
 /// {@endtemplate}
-class HivezBoxIsolated<K, T>
-    extends AbstractHivezIsolatedBox<K, T, IsolatedBox<T>> {
-  @override
-  bool get isLazy => false;
-
+class HivezBoxIsolated<K, T> extends BaseHivezBox<K, T> {
   /// Creates a new [HivezBoxIsolated] instance for strongly-typed, non-lazy Hive box access
   /// in a background isolate.
   ///
@@ -86,74 +82,4 @@ class HivezBoxIsolated<K, T>
             collection: collection,
           ),
         );
-
-  @override
-  BoxType get boxType => BoxType.isolated;
-
-  @override
-  Future<T?> get(K key, {T? defaultValue}) async {
-    return _executeRead(
-        () => Future.value(box.get(key, defaultValue: defaultValue)));
-  }
-
-  @override
-  Future<List<T>> getMany(Iterable<K> keys) async {
-    return _executeRead(() async {
-      final values = <T>[];
-      for (final key in keys) {
-        final value = await box.get(key);
-        if (value != null) values.add(value);
-      }
-      return values;
-    });
-  }
-
-  @override
-  Future<Iterable<T>> getAllValues() async {
-    return _executeRead(() => box.values);
-  }
-
-  @override
-  Future<T?> valueAt(int index) async {
-    return _executeRead(() => box.getAt(index));
-  }
-
-  @override
-  Future<T?> firstWhereOrNull(bool Function(T) condition) async {
-    return _executeRead(() async {
-      for (final key in (await box.keys)) {
-        final value = await box.get(key);
-        if (value != null && condition(value)) return value;
-      }
-      return null;
-    });
-  }
-
-  /// Returns a map containing all key-value pairs in the box.
-  ///
-  /// This method retrieves the entire contents of the box as a strongly-typed
-  /// `Map<K, T>`, where each key is associated with its corresponding value.
-  ///
-  /// Example:
-  /// ```dart
-  /// final map = await myBox.toMap();
-  /// print(map); // {key1: value1, key2: value2, ...}
-  /// ```
-  @override
-  Future<Map<K, T>> toMap() async {
-    return _executeRead(
-        () async => Future.value((await box.toMap()).cast<K, T>()));
-  }
-
-  @override
-  Future<IsolatedBox<T>> _openBox() => IsolatedHive.openBox<T>(
-        name,
-        encryptionCipher: _encryptionCipher,
-        crashRecovery: _crashRecovery,
-        path: _path,
-        collection: _collection,
-      );
-
-  @override
-  IsolatedBox<T> _getExistingBox() => IsolatedHive.box<T>(name);
 }

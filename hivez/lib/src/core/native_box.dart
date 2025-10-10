@@ -26,10 +26,60 @@ abstract class SharedBoxInterface<K, T> extends HiveBoxInterface<K, T> {
   bool get isInitialized;
 
   /// Iterates asynchronously over all key-value pairs, invoking [action] for each.
-  Future<void> foreachValue(Future<void> Function(K key, T value) action);
+  Future<void> foreachValue(Future<void> Function(K key, T value) action,
+      {bool Function()? breakCondition});
 
   /// Iterates asynchronously over all keys, invoking [action] for each.
-  Future<void> foreachKey(Future<void> Function(K key) action);
+  Future<void> foreachKey(Future<void> Function(K key) action,
+      {bool Function()? breakCondition});
+
+  /// Moves the value from [oldKey] to [newKey], replacing any existing value.
+  ///
+  /// Returns `true` if the move was successful.
+  Future<bool> moveKey(K oldKey, K newKey);
+
+  /// Returns the values for the given [keys].
+  Future<List<T>> getMany(Iterable<K> keys);
+
+  /// Returns the values for the given [condition].
+  Future<List<T>> getValuesWhere(bool Function(T) condition);
+
+  /// Returns the keys for the given [condition].
+  Future<List<K>> getKeysWhere(bool Function(K key, T value) condition);
+
+  /// Returns the first key for the given [condition].
+  Future<K?> firstKeyWhere(bool Function(K key, T value) condition);
+
+  /// Returns the first value for the given [condition].
+  ///
+  /// Returns `null` if no value matches the condition.
+  Future<T?> firstValueWhere(bool Function(K key, T value) condition);
+
+  /// Returns approximate in-memory size (in bytes) of the entire box content.
+  ///
+  /// This includes keys and values, recursively traversing Maps, Lists,
+  /// primitives, and strings. Does *not* include Hive metadata or file overhead.
+  Future<int> estimateSizeBytes();
+
+  /// Returns the first value matching [condition], or `null` if none found.
+  Future<T?> firstWhereOrNull(bool Function(T item) condition);
+
+  /// Returns the first value whose [searchableText] contains [query], or `null`.
+  Future<T?> firstWhereContains(
+    String query, {
+    required String Function(T item) searchableText,
+  });
+
+  /// Replaces all data in the box with the given [entries].
+  ///
+  /// ⚠️ Note: This is a destructive operation — all existing data will be lost.
+  Future<void> replaceAll(Map<K, T> entries);
+
+  /// Deletes the values associated with the given [indices]. Faster than [deleteAt] for multiple indices.
+  Future<void> deleteAtMany(Iterable<int> indices);
+
+  /// Returns the key for the given [value], or `null` if not found.
+  Future<K?> searchKeyOf(T value);
 }
 
 abstract class NativeBox<K, T> extends SharedBoxInterface<K, T> {
@@ -58,21 +108,11 @@ abstract class NativeBox<K, T> extends SharedBoxInterface<K, T> {
 
   String? get boxPath;
 
+  Future<void> initialize();
   Future<void> boxClose();
   Future<void> boxDeleteFromDisk();
   Future<void> hiveDeleteBoxFromDisk();
   Future<void> hiveGetDeleteBoxFromDisk();
-
-  Future<List<T>> getMany(Iterable<K> keys);
-
-  Future<List<T>> getValuesWhere(bool Function(T) condition);
-  Future<List<K>> getKeysWhere(bool Function(K key, T value) condition);
-
-  Future<K?> firstKeyWhere(bool Function(K key, T value) condition);
-  Future<T?> firstValueWhere(bool Function(K key, T value) condition);
-
-  Future<bool> moveKey(K oldKey, K newKey);
-  Future<int> estimateSizeBytes();
 
   bool get _boxIsOpen;
   bool get _isOpenInHive;
@@ -114,6 +154,7 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
 
   Future<B> _openBox();
 
+  @override
   Future<void> initialize() async =>
       _box = _isOpenInHive ? _getExistingBox() : await _openBox();
 
@@ -236,6 +277,28 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
   }
 
   @override
+  Future<T?> firstWhereContains(
+    String query, {
+    required String Function(T item) searchableText,
+  }) {
+    final lowerQuery = query.toLowerCase().trim();
+    if (lowerQuery.isEmpty) return Future.value(null);
+
+    return firstWhereOrNull(
+      (item) => searchableText(item).toLowerCase().contains(lowerQuery),
+    );
+  }
+
+  @override
+  Future<T?> firstWhereOrNull(bool Function(T) condition) async {
+    for (final key in (await getAllKeys())) {
+      final value = await get(key);
+      if (value != null && condition(value)) return value;
+    }
+    return null;
+  }
+
+  @override
   Future<List<T>> getMany(Iterable<K> keys) async {
     final values = <T>[];
     for (final key in keys) {
@@ -257,6 +320,22 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
 
     return true;
   }
+
+  @override
+  Future<void> replaceAll(Map<K, T> entries) async {
+    await clear();
+    await putAll(entries);
+  }
+
+  @override
+  Future<void> deleteAtMany(Iterable<int> indices) async {
+    for (final index in indices) {
+      await deleteAt(index);
+    }
+  }
+
+  @override
+  Future<K?> searchKeyOf(T value) => firstKeyWhere((k, v) => v == value);
 }
 
 abstract class NativeBoxNonIsolatedBase<K, T, B extends BoxBase<T>>
