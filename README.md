@@ -28,6 +28,7 @@ all while remaining fully compatible with **Hive** (via the [`hive_ce`](https://
 - [How to Use `Hivez`](#-how-to-use-hivez)
   - [Which `Box` Should I Use?](#which-box-should-i-use)
   - [Available Methods](#-available-methods)
+  - [Constructor & Properties](#️-constructor--properties)
   - [Examples](#examples)
 - [Setup Guide for `hive_ce`](#-setup-guide-for-hive_ce)
 - [Quick Setup `hive_ce` (no explanations)](#-quick-setup-hive_ce-no-explanations)
@@ -106,6 +107,7 @@ Unlike raw Hive, you don’t need to worry about opening/closing boxes — the A
 
 - [Which `Box` Should I Use?](#which-box-should-i-use)
 - [Available Methods](#-available-methods)
+- [Constructor & Properties](#️-constructor--properties)
 - [Examples](#examples)
 
 ### Which `Box` Should I Use?
@@ -179,7 +181,22 @@ All `Box` types share the same complete API:
   - `restoreBackupCompressed()` — Import all data from compressed binary
   - `toMap()` — Convert full box to `Map<K, T>`
   - `estimateSizeBytes()` — Approximate in-memory size of all keys and values (bytes)
-  - `search(query, searchableText, {page, pageSize, sortBy})` — Full-text search with optional pagination & sorting
+  - `search(query, searchableText)` — (Slow search, [use `IndexedBox` instead](#-indexedbox--ultra-fast-full-text-search-for-hive))
+
+## ⚙️ Constructor & Properties
+
+All `Box` types share the same constructor parameters and configuration pattern.  
+These let you control how your box behaves, where it stores data, and how it handles safety and encryption.
+
+- **Parameters**
+
+  - `name` — The unique name of the box. Used as the on-disk file name.
+  - `type` — The box type: `regular`, `lazy`, `isolated`, or `isolatedLazy`.
+  - `encryptionCipher` — Optional [HiveCipher] for transparent AES encryption/decryption.
+  - `crashRecovery` — Enables Hive’s built-in crash recovery mechanism. Default: `true`.
+  - `path` — Custom file system path for where this box is stored.
+  - `collection` — Logical grouping of boxes (optional). Useful for namespacing.
+  - `logger` — Optional log handler for diagnostics, warnings, or crash reports.
 
 > 💡 Tip: For datasets needing fast search, [use `IndexedBox` for blazing-fast search](#-indexedbox--ultra-fast-full-text-search-for-hive) — same API, 100× faster.
 > That’s nice if you want to keep the “Extras” section visually compact.
@@ -286,6 +303,26 @@ print(results); // [Article(...)]
 
 > 📘 [Learn more in the **IndexedBox Section**](#-indexedbox--ultra-fast-full-text-search-for-hive)
 
+### 🧠 BoxType Helpers
+
+You can also use fluent helpers for quick box creation:
+
+```dart
+final isoBox = BoxType.isolated.box<String, MyModel>('myIsoBox');
+final lazyConfig = BoxType.lazy.boxConfig('lazyBox');
+```
+
+### 🔒 Example with Encryption and Logging
+
+```dart
+final cipher = HiveAesCipher(my32ByteKey);
+final box = Box<int, String>(
+  'secureNotes',
+  encryptionCipher: cipher,
+  logger: (msg) => print('[HiveLog] $msg'),
+);
+```
+
 #### 🔄 Swap Box Types Instantly
 
 You can switch between any box type (`regular`, `lazy`, `isolated`, `isolatedLazy`, `indexed`)  
@@ -319,6 +356,31 @@ final indexed = IndexedBox<int, String>(
 ```
 
 No migrations, same data and file names, drop-in swap between all box types
+
+### 🧰 Advanced: Box Configuration
+
+You can create or clone configurations using `BoxConfig` for advanced control.
+
+```dart
+final config = BoxConfig(
+  'myBox',
+  type: BoxType.lazy,
+  path: '/data/hive',
+  crashRecovery: true,
+  collection: 'settings',
+);
+
+final box = config.box<String, MyModel>();
+```
+
+Or duplicate and modify:
+
+```dart
+final updated = config.copyWith(
+  type: BoxType.isolated,
+  path: '/data/hive/isolated',
+);
+```
 
 # 🔗 Setup Guide for `hive_ce`
 
@@ -670,6 +732,12 @@ The constructor exposes several **tunable options** that let you decide **how re
 - [**`verifyMatches`** - Guard Against Stale Index](#verifymatches--guard-against-stale-index)
 - [**`keyComparator`** - Custom Result Ordering](#keycomparator--custom-result-ordering)
 - [**`analyzer`** - How Text Is Broken into Tokens](#analyzer--how-text-is-broken-into-tokens)
+
+> 💡 **Same API, same power**  
+> `IndexedBox` fully supports **all existing methods** and **properties** of regular boxes —  
+> including writes, deletes, backups, queries, and iteration — so you can use it exactly like `HivezBox`.  
+> See the full [**Available Methods**](#-available-methods) and [**Constructor & Properties**](#️-constructor--properties) sections for everything you can do.  
+> The only difference? Every search is now **indexed and blazing fast**.
 
 ---
 
