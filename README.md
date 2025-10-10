@@ -23,8 +23,6 @@ all while remaining fully compatible with **Hive** (via the [`hive_ce`](https://
 
 #### Table of Contents
 
-- [Features](#-features)
-- [Hive vs `Hivez` Comparison](#hive-vs-hivez)
 - [How to Use `Hivez`](#-how-to-use-hivez)
   - [Which `Box` Should I Use?](#which-box-should-i-use)
   - [Available Methods](#-available-methods)
@@ -38,6 +36,7 @@ all while remaining fully compatible with **Hive** (via the [`hive_ce`](https://
   - [Examples](#indexedbox---examples)
   - [Settings & Options](#-settings--options)
   - [Analyzers](#-analyzer--how-text-is-broken-into-tokens)
+- [Hive vs `Hivez` Comparison](#hive-vs-hivez)
 - [Clean Architecture with `Hivez`](#clean-architecture-with-hivez)
 - [FAQ / Common Pitfalls](#-faq--common-pitfalls)
 - [Performance & Safety](#performance--safety)
@@ -71,32 +70,6 @@ final settings = Box<String, bool>('settings');
 await settings.put('darkMode', true);
 final dark = await settings.get('darkMode'); // true
 ```
-
-**Unified API** – Box, Lazy, Isolated — same interface, swap with one `.type`
-
-```dart
-final a = Box<String, Article>.lazy('articles');
-final b = Box<String, Article>.isolated('articles');
-```
-
-# Hive vs `Hivez`
-
-_[⤴️ Back](#table-of-contents) → Table of Contents_
-
-| Feature / Concern   | Native Hive                              | With Hivez                                                      |
-| ------------------- | ---------------------------------------- | --------------------------------------------------------------- |
-| **Type Safety**     | `dynamic` with manual casts              | `Box<int, User>` guarantees correct types                       |
-| **Initialization**  | Must call `Hive.openBox` and check state | Auto-initializes on first use, no boilerplate                   |
-| **API Consistency** | Different APIs for Box types             | Unified async API, switch with a single line                    |
-| **Concurrency**     | Not concurrency-safe (in original Hive)  | Built-in locks: atomic writes, safe reads                       |
-| **Architecture**    | Logic tied to raw boxes                  | Abstracted interface, fits Clean Architecture & DI              |
-| **Utilities**       | Basic CRUD only                          | Backup/restore, search helpers, iteration, box management       |
-| **Production**      | Needs extra care for scaling & safety    | Encryption, crash recovery, compaction, isolated boxes included |
-| **Migration**       | Switching box types requires rewrites    | Swap `Box` ↔ `Box.lazy`/`Box.isolated` seamlessly               |
-| **Dev Experience**  | Verbose boilerplate, error-prone         | Cleaner, safer, future-proof, less code                         |
-
-> **Migration-free upgrade:**  
-> If you're already using **Hive** or **Hive CE**, you can switch to **Hivez** instantly — no migrations, no data loss, and no breaking changes. Just [set up your Hive adapters correctly](#-setup-guide-for-hive_ce) and reuse the same box names and types. Hivez will open your existing boxes automatically and continue right where you left off.
 
 # 📦 How to Use `Hivez`
 
@@ -356,6 +329,8 @@ final indexed = IndexedBox<int, String>(
 ```
 
 No migrations, same data and file names, drop-in swap between all box types
+
+> ⚠️ **Note on isolates:** The API is identical across all box types, but using `Isolated` boxes requires you to properly set up Hive with isolates. If you’re not familiar with isolate management in Dart/Flutter, it’s safer to stick with **`regular`** or **`lazy`** boxes.
 
 ### 🧰 Advanced: Box Configuration
 
@@ -1075,7 +1050,24 @@ ter → [key1]
 | Query `"utt"`               | ❌                         | ❌                                                                       | ✅                                                                          |
 | Query `"dart"`              | ✅                         | ✅                                                                       | ✅                                                                          |
 
----
+# Hive vs `Hivez`
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
+
+| Feature / Concern   | Native Hive                              | With Hivez                                                      |
+| ------------------- | ---------------------------------------- | --------------------------------------------------------------- |
+| **Type Safety**     | `dynamic` with manual casts              | `Box<int, User>` guarantees correct types                       |
+| **Initialization**  | Must call `Hive.openBox` and check state | Auto-initializes on first use, no boilerplate                   |
+| **API Consistency** | Different APIs for Box types             | Unified async API, switch with a single line                    |
+| **Concurrency**     | Not concurrency-safe (in original Hive)  | Built-in locks: atomic writes, safe reads                       |
+| **Architecture**    | Logic tied to raw boxes                  | Abstracted interface, fits Clean Architecture & DI              |
+| **Utilities**       | Basic CRUD only                          | Backup/restore, search helpers, iteration, box management       |
+| **Production**      | Needs extra care for scaling & safety    | Encryption, crash recovery, compaction, isolated boxes included |
+| **Migration**       | Switching box types requires rewrites    | Swap `Box` ↔ `Box.lazy`/`Box.isolated` seamlessly               |
+| **Dev Experience**  | Verbose boilerplate, error-prone         | Cleaner, safer, future-proof, less code                         |
+
+> **Migration-free upgrade:**  
+> If you're already using **Hive** or **Hive CE**, you can switch to **Hivez** instantly — no migrations, no data loss, and no breaking changes. Just [set up your Hive adapters correctly](#-setup-guide-for-hive_ce) and reuse the same box names and types. Hivez will open your existing boxes automatically and continue right where you left off.
 
 # Clean Architecture with `Hivez`
 
