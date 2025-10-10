@@ -19,7 +19,7 @@ dependencies:
   flutter:
     sdk: flutter
   hive_ce_flutter: ^2.3.2
-  hivez: ^1.0.0
+  hivez: ^1.1.0
 
 dev_dependencies:
   flutter_test:
