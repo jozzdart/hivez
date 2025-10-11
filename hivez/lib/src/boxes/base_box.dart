@@ -172,7 +172,7 @@ abstract class BaseHivezBox<K, T> extends BoxInterface<K, T> {
     LogHandler? logger,
     BoxType type = BoxType.regular,
   })  : _logger = logger,
-        _nativeBox = NativeBoxCreator.newBox(
+        _nativeBox = NativeBoxCreator.newBox<K, T>(
           name,
           type: type,
           encryptionCipher: encryptionCipher,
