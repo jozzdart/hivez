@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:hive_ce/hive.dart' show HiveCipher;
 import 'package:hivez/src/boxes/boxes.dart';
 import 'package:hivez/src/builders/builders.dart';
+import 'package:hivez/src/core/core.dart';
 import 'package:hivez/src/exceptions/box_exception.dart';
 import 'package:hivez/src/special_boxes/configured/configured_box.dart';
 
@@ -103,7 +104,8 @@ class IndexedBox<K, T> extends Box<K, T> {
       analyzer: overrideAnalyzer ?? analyzer.analyzer(searchableText),
       verifyMatches: verifyMatches,
       ensureReady: ensureInitialized,
-      getValue: super.get,
+      getValue: nativeBox.get,
+      getManyValues: nativeBox.getMany,
       keyComparator: keyComparator,
     );
     _lock = IndexedBoxLockJournal(this);
@@ -187,9 +189,9 @@ class IndexedBox<K, T> extends Box<K, T> {
   @override
   Future<void> flushBox() async {
     await _lock.operation("FLUSH_BOX").run(() async {
-      await _engine.flushBox();
-      await _journal.flushBox();
-      await super.flushBox();
+      await _engine.nativeBox.flushBox();
+      await _journal.nativeBox.flushBox();
+      await nativeBox.flushBox();
     });
   }
 
@@ -197,23 +199,21 @@ class IndexedBox<K, T> extends Box<K, T> {
   @override
   Future<void> compactBox() async {
     await _lock.operation("COMPACT_BOX").run(() async {
-      await _engine.compactBox();
-      await _journal.compactBox();
-      await super.compactBox();
+      await _engine.nativeBox.compactBox();
+      await _journal.nativeBox.compactBox();
+      await nativeBox.compactBox();
     });
   }
 
   /// Closes the box and all associated index/journal resources.
   @override
   Future<void> closeBox() async {
-    await _lock.operation("CLOSE_BOX").run(() async {
-      await _engine.flushBox();
-      await _journal.flushBox();
-      await super.flushBox();
+    await flushBox();
+    await _lock.bypassJournal.operation("CLOSE_BOX").run(() async {
       _cache.clear();
-      await _engine.closeBox();
-      await _journal.closeBox();
-      await super.closeBox();
+      await _engine.nativeBox.closeBox();
+      await _journal.nativeBox.closeBox();
+      await nativeBox.closeBox();
     });
   }
 
@@ -222,9 +222,9 @@ class IndexedBox<K, T> extends Box<K, T> {
   Future<void> deleteFromDisk() async {
     await _lock.bypassJournal.operation("DELETE_FROM_DISK").run(() async {
       _cache.clear();
-      await _engine.deleteFromDisk();
-      await _journal.deleteFromDisk();
-      await super.deleteFromDisk();
+      await _engine.nativeBox.deleteFromDisk();
+      await _journal.nativeBox.deleteFromDisk();
+      await nativeBox.deleteFromDisk();
     });
   }
 
@@ -255,8 +255,8 @@ class IndexedBox<K, T> extends Box<K, T> {
   /// Inserts or updates a value for the given [key], updating the index.
   @override
   Future<void> put(K key, T value) => _lock.operation("PUT").run(() async {
-        final old = await super.get(key);
-        await super.put(key, value);
+        final old = await nativeBox.get(key);
+        await nativeBox.put(key, value);
         await _engine.onPut(key, value, oldValue: old);
         _invalidateTokensFor(old);
         _invalidateTokensFor(value);
@@ -270,10 +270,10 @@ class IndexedBox<K, T> extends Box<K, T> {
     return _lock.operation("PUT_ALL").run(() async {
       final olds = <K, T>{};
       for (final e in entries.entries) {
-        final v = await super.get(e.key);
+        final v = await nativeBox.get(e.key);
         if (v != null) olds[e.key] = v;
       }
-      await super.putAll(entries);
+      await nativeBox.putAll(entries);
       await _engine.onPutMany(entries, olds: olds);
       for (final v in olds.values) {
         _invalidateTokensFor(v);
@@ -285,37 +285,81 @@ class IndexedBox<K, T> extends Box<K, T> {
     });
   }
 
+  /// Replaces all data in the box with the given [entries].
+  ///
+  /// This operation clears the box and its index, then writes and re-indexes
+  /// the provided entries in a single transaction. It is much faster than
+  /// calling [clear] followed by [putAll], because it avoids any `get` calls
+  /// and minimizes index operations.
+  ///
+  /// ⚠️ Note: This is a destructive operation — all existing data will be lost.
+  @override
+  Future<void> replaceAll(Map<K, T> entries) {
+    return _lock.operation("REPLACE_ALL").run(() async {
+      await nativeBox.clear();
+      await _engine.nativeBox.clear();
+      _cache.clear();
+
+      if (entries.isEmpty) {
+        await _stampSnapshot();
+        return;
+      }
+
+      await nativeBox.putAll(entries);
+      await _engine.onPutMany(entries);
+
+      for (final value in entries.values) {
+        _invalidateTokensFor(value);
+      }
+
+      await _stampSnapshot();
+    });
+  }
+
   /// Adds a value and returns its generated key, updating the index.
   @override
-  Future<int> add(T value) => _lock.operation("ADD").run(() async {
-        final id = await super.add(value);
+  Future<int> add(T value) {
+    if (K is int) {
+      return _lock.operation("ADD").run(() async {
+        final id = await nativeBox.add(value);
         await _engine.onPut(id as K, value);
         _invalidateTokensFor(value);
         await _stampSnapshot();
         return id;
       });
+    } else {
+      throw UnsupportedError('add is not supported for non-int keys');
+    }
+  }
 
   /// Adds multiple values, updating the index.
   @override
-  Future<void> addAll(Iterable<T> values) {
-    if (values.isEmpty) return Future.value();
-    return _lock.operation("ADD_ALL").run(() async {
-      final news = <K, T>{};
-      for (final v in values) {
-        final id = await super.add(v);
-        news[id as K] = v;
-        _invalidateTokensFor(v);
-      }
-      await _engine.onPutMany(news);
-      await _stampSnapshot();
-    });
+  Future<Iterable<int>> addAll(Iterable<T> values) {
+    if (K is int) {
+      if (values.isEmpty) return Future.value(const <int>[]);
+      return _lock.operation("ADD_ALL").run(() async {
+        final news = <K, T>{};
+        final ids = await nativeBox.addAll(values);
+
+        _iterateTogether<int, T>(ids.iterator, values.iterator, (id, v) {
+          news[id as K] = v;
+          _invalidateTokensFor(v);
+        });
+
+        await _engine.onPutMany(news);
+        await _stampSnapshot();
+        return news.keys.cast<int>();
+      });
+    } else {
+      throw UnsupportedError('addAll is not supported for non-int keys');
+    }
   }
 
   /// Deletes the value for the given [key], updating the index.
   @override
   Future<void> delete(K key) => _lock.operation("DELETE").run(() async {
-        final old = await super.get(key);
-        await super.delete(key);
+        final old = await nativeBox.get(key);
+        await nativeBox.delete(key);
         if (old != null) {
           await _engine.onDelete(key, oldValue: old);
           _invalidateTokensFor(old);
@@ -331,10 +375,10 @@ class IndexedBox<K, T> extends Box<K, T> {
     return _lock.operation("DELETE_ALL").run(() async {
       final olds = <K, T>{};
       for (final k in unique) {
-        final v = await super.get(k);
+        final v = await nativeBox.get(k);
         if (v != null) olds[k] = v;
       }
-      await super.deleteAll(unique);
+      await nativeBox.deleteAll(unique);
       if (olds.isNotEmpty) {
         await _engine.onDeleteMany(olds);
         for (final v in olds.values) {
@@ -349,21 +393,29 @@ class IndexedBox<K, T> extends Box<K, T> {
   @override
   Future<void> deleteAt(int index) =>
       _lock.operation("DELETE_AT").run(() async {
-        final k = await super.keyAt(index);
-        final old = await super.get(k);
-        await super.deleteAt(index);
+        final k = await nativeBox.keyAt(index);
+        final old = await nativeBox.getAt(index);
+        await nativeBox.deleteAt(index);
         if (old != null) {
-          await _engine.onDelete(k, oldValue: old);
+          await _engine.onDelete(k as K, oldValue: old);
           _invalidateTokensFor(old);
         }
+        await _stampSnapshot();
+      });
+
+  /// Deletes the values at the given [indices], updating the index.
+  @override
+  Future<void> deleteAtMany(Iterable<int> indices) =>
+      _lock.operation("DELETE_AT_MANY").run(() async {
+        await nativeBox.deleteAtMany(indices);
         await _stampSnapshot();
       });
 
   /// Clears all values and index data.
   @override
   Future<void> clear() => _lock.operation("CLEAR").run(() async {
-        await super.clear();
-        await _engine.clear();
+        await nativeBox.clear();
+        await _engine.nativeBox.clear();
         _cache.clear();
         await _stampSnapshot();
       });
@@ -372,9 +424,10 @@ class IndexedBox<K, T> extends Box<K, T> {
   @override
   Future<void> putAt(int index, T value) =>
       _lock.operation("PUT_AT").run(() async {
-        final k = await super.keyAt(index);
-        final old = await super.get(k);
-        await super.putAt(index, value);
+        final k = await nativeBox.keyAt(index);
+        if (k == null) return;
+        final old = await nativeBox.getAt(index);
+        await nativeBox.putAt(index, value);
         await _engine.onPut(k, value, oldValue: old);
         _invalidateTokensFor(old);
         _invalidateTokensFor(value);
@@ -387,9 +440,10 @@ class IndexedBox<K, T> extends Box<K, T> {
   @override
   Future<bool> moveKey(K oldKey, K newKey) =>
       _lock.operation("MOVE_KEY").run(() async {
-        final v = await super.get(oldKey);
+        final v = await nativeBox.get(oldKey);
         if (v == null) return false;
-        final moved = await super.moveKey(oldKey, newKey);
+        final moved = await nativeBox.moveKey(oldKey, newKey);
+
         if (moved) {
           await _engine.onDelete(oldKey, oldValue: v);
           await _engine.onPut(newKey, v);
@@ -426,11 +480,12 @@ class IndexedBox<K, T> extends Box<K, T> {
   /// This is called automatically if the index is out-of-date or the schema
   /// has changed. [onProgress] is called with a value between 0.0 and 1.0
   /// to report progress.
-  Future<void> rebuildIndex(
-      {void Function(double progress)? onProgress}) async {
-    await _engine.clear();
+  Future<void> rebuildIndex({bool bypassInit = true}) async {
+    if (!bypassInit) {
+      await ensureInitialized();
+    }
+    await _engine.nativeBox.clear();
     _cache.clear();
-    final total = await length;
     var processed = 0;
     const chunk = 500;
     final buffer = <String, Set<K>>{};
@@ -440,7 +495,7 @@ class IndexedBox<K, T> extends Box<K, T> {
       buffer.forEach((token, set) {
         if (set.isNotEmpty) payload[token] = set.toList(growable: false);
       });
-      if (payload.isNotEmpty) await _engine.putAll(payload);
+      if (payload.isNotEmpty) await _engine.nativeBox.putAll(payload);
       buffer.clear();
     }
 
@@ -451,11 +506,9 @@ class IndexedBox<K, T> extends Box<K, T> {
       processed++;
       if (processed % chunk == 0) {
         await flush();
-        onProgress?.call(total == 0 ? 1.0 : processed / total);
       }
     });
     await flush();
-    onProgress?.call(1.0);
     await _stampSnapshot();
   }
 
@@ -579,17 +632,23 @@ class IndexedBox<K, T> extends Box<K, T> {
   /// Returns true if the index appears valid.
   Future<bool> _quickIndexProbe({int probes = 0}) async {
     if (probes <= 0) return true; // skip probe
-    final total = await length;
+    final total = await nativeBox.length;
     if (total == 0) return true;
 
     final step = math.max(1, total ~/ probes);
     for (int i = 0, seen = 0; i < total && seen < probes; i += step, seen++) {
-      final k = await keyAt(i);
-      final v = await get(k);
+      final k = await nativeBox.keyAt(i);
+      if (k == null) continue;
+      final v = await nativeBox.get(k);
       if (v == null) continue;
       final tokens = _analyze(v).toSet();
+      bool init = false;
       for (final t in tokens.take(8)) {
-        // cap per item to keep it cheap
+        if (!init) {
+          await _engine.ensureInitialized();
+          init = true;
+        }
+
         final keys = await _engine.readToken(t);
         if (!keys.contains(k)) return false; // stale
       }
@@ -600,6 +659,14 @@ class IndexedBox<K, T> extends Box<K, T> {
   // -----------------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------------
+
+  /// Iterates over two iterables in parallel, calling [f] with the current elements.
+  void _iterateTogether<A, B>(
+      Iterator<A> a, Iterator<B> b, void Function(A, B) f) {
+    while (a.moveNext() && b.moveNext()) {
+      f(a.current, b.current);
+    }
+  }
 
   /// Analyzes a value [v] into its set of tokens using the configured analyzer.
   Iterable<String> _analyze(T v) => _engine.analyzer.analyze(v);

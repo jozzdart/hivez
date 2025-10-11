@@ -1,25 +1,5 @@
 part of 'builders.dart';
 
-/// The type of Hive box to create or interact with.
-///
-/// - [regular]: A standard, non-lazy, non-isolated Hive box.
-/// - [lazy]: A lazy box that loads values on demand, reducing memory usage.
-/// - [isolated]: A non-lazy box that operates in a background isolate for concurrency and safety.
-/// - [isolatedLazy]: A lazy box that also operates in a background isolate.
-enum BoxType {
-  /// Standard, non-lazy, non-isolated Hive box.
-  regular,
-
-  /// Lazy box that loads values on demand.
-  lazy,
-
-  /// Non-lazy box running in a background isolate.
-  isolated,
-
-  /// Lazy box running in a background isolate.
-  isolatedLazy,
-}
-
 /// Extension to determine the [BoxType] of a [BoxInterface] at runtime.
 ///
 /// This is useful for introspection and for generic code that needs to branch
@@ -57,25 +37,7 @@ extension GetTypeOfBoxInterfaceExtension<K, T> on BoxInterface<K, T> {
 ///   logger: myLogger,
 /// );
 /// ```
-class BoxConfig {
-  /// The unique name of the box.
-  final String name;
-
-  /// The type of box to create (regular, lazy, isolated, isolatedLazy).
-  final BoxType type;
-
-  /// Optional cipher for transparent encryption/decryption.
-  final HiveCipher? encryptionCipher;
-
-  /// Whether crash recovery is enabled for this box.
-  final bool crashRecovery;
-
-  /// Optional custom file system path for box storage.
-  final String? path;
-
-  /// Optional logical collection name for namespacing.
-  final String? collection;
-
+class BoxConfig extends NativeBoxConfig {
   /// Optional logger for diagnostics and error reporting.
   final LogHandler? logger;
 
@@ -83,12 +45,12 @@ class BoxConfig {
   ///
   /// [name] is required. All other parameters are optional and have sensible defaults.
   const BoxConfig(
-    this.name, {
-    this.type = BoxType.regular,
-    this.encryptionCipher,
-    this.crashRecovery = true,
-    this.path,
-    this.collection,
+    super.name, {
+    super.type,
+    super.encryptionCipher,
+    super.crashRecovery,
+    super.path,
+    super.collection,
     this.logger,
   });
 
@@ -171,6 +133,7 @@ class BoxConfig {
   /// Returns a copy of this config with the given fields replaced.
   ///
   /// This is useful for creating modified variants of an existing config.
+  @override
   BoxConfig copyWith({
     String? name,
     BoxType? type,

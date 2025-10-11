@@ -48,7 +48,7 @@ class SharedLock {
   /// Returns the result of [body].
   Future<R> runOperation<R>(Future<R> Function() body, {String? name}) async {
     try {
-      return await _run(body);
+      return await _runWrite(body);
     } catch (e, st) {
       if (onError != null) {
         await onError!(name ?? 'Unknown', e, st);
@@ -66,7 +66,7 @@ class SharedLock {
   /// Internal helper to run [body] within the [_lock] using [runner].
   ///
   /// Ensures that all operations use the same locking discipline.
-  Future<R> _run<R>(Future<R> Function() body) =>
+  Future<R> _runWrite<R>(Future<R> Function() body) =>
       _lock.synchronized(() => runner(body));
 }
 

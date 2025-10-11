@@ -34,6 +34,9 @@ part of 'boxes.dart';
 /// - [Box] for the main user-facing box abstraction.
 /// {@endtemplate}
 abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
+  @override
+  NativeBox<K, T> get _nativeBox => _internalBox._nativeBox;
+
   /// The underlying [BoxInterface] instance being decorated.
   final BoxInterface<K, T> _internalBox;
 
@@ -48,6 +51,9 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
           path: _internalBox.path,
           collection: _internalBox._collection,
         );
+
+  @override
+  BoxType get boxType => _internalBox.boxType;
 
   @override
   bool get isOpen => _internalBox.isOpen;
@@ -83,11 +89,18 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
   @override
   Future<void> putAll(Map<K, T> entries) => _internalBox.putAll(entries);
   @override
+  Future<void> replaceAll(Map<K, T> entries) =>
+      _internalBox.replaceAll(entries);
+  @override
   Future<void> putAt(int index, T value) => _internalBox.putAt(index, value);
+
   @override
   Future<int> add(T value) => _internalBox.add(value);
+
   @override
-  Future<void> addAll(Iterable<T> values) => _internalBox.addAll(values);
+  Future<Iterable<int>> addAll(Iterable<T> values) =>
+      _internalBox.addAll(values);
+
   @override
   Future<bool> moveKey(K oldKey, K newKey) =>
       _internalBox.moveKey(oldKey, newKey);
@@ -97,36 +110,50 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
   @override
   Future<void> deleteAt(int index) => _internalBox.deleteAt(index);
   @override
+  Future<void> deleteAtMany(Iterable<int> indices) =>
+      _internalBox.deleteAtMany(indices);
+  @override
   Future<void> deleteAll(Iterable<K> keys) => _internalBox.deleteAll(keys);
   @override
   Future<void> clear() => _internalBox.clear();
 
   @override
-  Future<K> keyAt(int index) => _internalBox.keyAt(index);
+  Future<K?> keyAt(int index) => _internalBox.keyAt(index);
+
   @override
   Future<T?> valueAt(int index) => _internalBox.valueAt(index);
+
   @override
   Future<T?> getAt(int index) => _internalBox.getAt(index);
+
   @override
   Future<bool> containsKey(K key) => _internalBox.containsKey(key);
+
   @override
   Future<Iterable<K>> getAllKeys() => _internalBox.getAllKeys();
+
   @override
   Future<T?> get(K key, {T? defaultValue}) =>
       _internalBox.get(key, defaultValue: defaultValue);
+
+  @override
+  Future<List<T>> getMany(Iterable<K> keys) => _internalBox.getMany(keys);
+
   @override
   Future<Iterable<T>> getAllValues() => _internalBox.getAllValues();
   @override
   Stream<BoxEvent> watch(K key) => _internalBox.watch(key);
 
   @override
-  Future<Iterable<T>> getValuesWhere(bool Function(T) condition) =>
+  Future<List<T>> getValuesWhere(bool Function(T) condition) =>
       _internalBox.getValuesWhere(condition);
 
   @override
-  Future<Iterable<K>> getKeysWhere(bool Function(K key, T value) condition) =>
+  Future<List<K>> getKeysWhere(bool Function(K key, T value) condition) =>
       _internalBox.getKeysWhere(condition);
-
+  @override
+  Future<T?> firstValueWhere(bool Function(K key, T value) condition) =>
+      _internalBox.firstValueWhere(condition);
   @override
   Future<T?> firstWhereOrNull(bool Function(T) condition) =>
       _internalBox.firstWhereOrNull(condition);
@@ -136,11 +163,14 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
       _internalBox.firstWhereContains(query, searchableText: searchableText);
 
   @override
-  Future<void> foreachValue(Future<void> Function(K, T) action) =>
-      _internalBox.foreachValue(action);
+  Future<void> foreachValue(Future<void> Function(K, T) action,
+          {bool Function()? breakCondition}) =>
+      _internalBox.foreachValue(action, breakCondition: breakCondition);
+
   @override
-  Future<void> foreachKey(Future<void> Function(K) action) =>
-      _internalBox.foreachKey(action);
+  Future<void> foreachKey(Future<void> Function(K) action,
+          {bool Function()? breakCondition}) =>
+      _internalBox.foreachKey(action, breakCondition: breakCondition);
 
   @override
   Future<K?> firstKeyWhere(bool Function(K key, T value) condition) =>
