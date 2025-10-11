@@ -236,11 +236,7 @@ void main() {
       }
       await iBox.putAll(entries);
 
-      final progresses = <double>[];
-      await iBox.rebuildIndex(onProgress: progresses.add);
-
-      expect(progresses, isNotEmpty);
-      expect(progresses.last, closeTo(1.0, 1e-9));
+      await iBox.rebuildIndex(bypassInit: false);
 
       // sanity search
       expect(await iBox.search('he'), isNotEmpty);

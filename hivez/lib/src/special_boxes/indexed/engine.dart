@@ -113,7 +113,7 @@ class IndexEngine<K, T> extends Box<String, List<K>> {
     if (tokens.isEmpty) return const [];
     final tokenSets = <Set<K>>[];
     for (final t in tokens) {
-      final ks = await get(t) ?? <K>[];
+      final ks = await nativeBox.get(t) ?? <K>[];
       tokenSets.add(ks.toSet());
     }
     if (tokenSets.isEmpty) return const [];
@@ -133,16 +133,16 @@ class IndexEngine<K, T> extends Box<String, List<K>> {
   Future<void> _addKeyToTokens(K key, T value) async {
     final payload = <String, List<K>>{};
     for (final token in analyzer.analyze(value)) {
-      final existing = await get(token) ?? <K>[];
+      final existing = await nativeBox.get(token) ?? <K>[];
       if (!existing.contains(key)) {
         payload[token] = List<K>.from(existing)..add(key);
         if (payload.length >= 256) {
-          await putAll(payload);
+          await nativeBox.putAll(payload);
           payload.clear();
         }
       }
     }
-    if (payload.isNotEmpty) await putAll(payload);
+    if (payload.isNotEmpty) await nativeBox.putAll(payload);
   }
 
   /// Removes [key] from all tokens generated from [value] in the index.
@@ -152,7 +152,7 @@ class IndexEngine<K, T> extends Box<String, List<K>> {
   Future<void> _removeKeyFromTokens(K key, T value) async {
     final payload = <String, List<K>?>{};
     for (final token in analyzer.analyze(value)) {
-      final existing = await get(token);
+      final existing = await nativeBox.get(token);
       if (existing == null) continue;
       final next = List<K>.from(existing)..remove(key);
       payload[token] = next.isEmpty ? null : next;
@@ -219,13 +219,10 @@ class IndexEngine<K, T> extends Box<String, List<K>> {
       }
     });
     if (dels.isNotEmpty) {
-      // No batch delete API; delete one-by-one is fine (usually small).
-      for (final t in dels) {
-        await delete(t);
-      }
+      await nativeBox.deleteAll(dels);
     }
     if (puts.isNotEmpty) {
-      await putAll(puts);
+      await nativeBox.putAll(puts);
     }
   }
 
@@ -233,6 +230,6 @@ class IndexEngine<K, T> extends Box<String, List<K>> {
   ///
   /// Returns an empty list if the token is not present.
   Future<List<K>> readToken(String token) async {
-    return (await get(token)) ?? <K>[];
+    return (await nativeBox.get(token)) ?? <K>[];
   }
 }

@@ -19,7 +19,7 @@ const int kWarmupIters = 0;
 const int kMeasureIters = 1;
 
 /// How many runs per (box × case). Results are averaged.
-const int kRunsPerCase = 5;
+const int kRunsPerCase = 20;
 //const int kRunsPerCase = 20;
 
 /// Global results accumulator: { caseName: { boxName: BenchStats } }
@@ -31,7 +31,7 @@ const _sizes = <int>[
   1000,
   5000,
   10000,
-  //50000,
+  50000,
 ];
 const _minWords = 3;
 const _maxWords = 10;
@@ -346,7 +346,7 @@ void main() {
             },
             // TIMED: run just the search
             measured: (box) async {
-              const q = 'lo ma';
+              const q = 'lo ma ra hel';
               if (box is IndexedBox<int, String>) {
                 await box.search(q);
               } else {
