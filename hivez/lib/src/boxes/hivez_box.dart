@@ -65,14 +65,5 @@ class HivezBox<K, T> extends BaseHivezBox<K, T> {
     super.path,
     super.collection,
     super.logger,
-  }) : super(
-          nativeBox: NativeBoxCreator.newBox(
-            name,
-            type: BoxType.regular,
-            encryptionCipher: encryptionCipher,
-            crashRecovery: crashRecovery,
-            path: path,
-            collection: collection,
-          ),
-        );
+  }) : super(type: BoxType.regular);
 }

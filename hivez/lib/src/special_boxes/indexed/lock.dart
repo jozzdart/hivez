@@ -16,6 +16,16 @@ class IndexedBoxLock extends SharedLock {
   /// implementation (primarily for advanced scenarios or testing).
   IndexedBoxLock(this.indexedBox, {super.overrideLock});
 
+  /// Runs the given [body] function within a journaled write operation.
+  ///
+  /// This ensures that the index journal is properly updated before and after
+  /// the operation, providing durability and recovery guarantees.
+  @override
+  Future<R> runner<R>(Future<R> Function() body) async {
+    await indexedBox.ensureInitialized();
+    return super.runner(body);
+  }
+
   /// Error handler for lock operations.
   ///
   /// If an error occurs during a locked operation, this handler is invoked.
@@ -50,7 +60,8 @@ class IndexedBoxLockJournal extends IndexedBoxLock {
   /// the operation, providing durability and recovery guarantees.
   @override
   Future<R> runner<R>(Future<R> Function() body) async {
-    return await indexedBox._journal.runWrite(body);
+    await indexedBox.ensureInitialized();
+    return indexedBox._journal.runWrite(body);
   }
 }
 

@@ -34,6 +34,9 @@ part of 'boxes.dart';
 /// - [Box] for the main user-facing box abstraction.
 /// {@endtemplate}
 abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
+  @override
+  NativeBox<K, T> get _nativeBox => _internalBox._nativeBox;
+
   /// The underlying [BoxInterface] instance being decorated.
   final BoxInterface<K, T> _internalBox;
 

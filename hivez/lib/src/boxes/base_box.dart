@@ -169,10 +169,17 @@ abstract class BaseHivezBox<K, T> extends BoxInterface<K, T> {
     super.crashRecovery,
     super.path,
     super.collection,
-    required NativeBox<K, T> nativeBox,
     LogHandler? logger,
+    BoxType type = BoxType.regular,
   })  : _logger = logger,
-        _nativeBox = nativeBox;
+        _nativeBox = NativeBoxCreator.newBox<K, T>(
+          name,
+          type: type,
+          encryptionCipher: encryptionCipher,
+          crashRecovery: crashRecovery,
+          path: path,
+          collection: collection,
+        );
 
   @override
   BoxType get boxType => _nativeBox.boxType;
