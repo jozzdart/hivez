@@ -72,14 +72,5 @@ class HivezBoxIsolated<K, T> extends BaseHivezBox<K, T> {
     super.path,
     super.collection,
     super.logger,
-  }) : super(
-          nativeBox: NativeBoxCreator.newBox(
-            name,
-            type: BoxType.isolated,
-            encryptionCipher: encryptionCipher,
-            crashRecovery: crashRecovery,
-            path: path,
-            collection: collection,
-          ),
-        );
+  }) : super(type: BoxType.isolated);
 }
