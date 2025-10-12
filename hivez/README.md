@@ -563,25 +563,27 @@ final articles = indexedBox.search('flut dart dev'); // Blazing fast search
 
 | Items in box | `Box` (avg `ms`) | `IndexedBox` (avg ms) |  Improvement |
 | ------------ | ---------------: | --------------------: | -----------: |
-| 100          |            11.50 |              **1.56** |     ≈ **7×** |
-| 1,000        |            85.14 |              **1.42** |    ≈ **60×** |
-| 5,000        |           426.87 |              **1.34** |   ≈ **319×** |
-| 10,000       |           833.39 |              **1.43** |   ≈ **583×** |
-| 50,000       |          4149.68 |              **2.46** | ≈ **1,687×** |
+| 100          |             1.71 |                  0.18 |   ≈ **9.5×** |
+| 1,000        |            16.73 |                  0.20 |    ≈ **84×** |
+| 5,000        |           109.26 |                  0.30 |   ≈ **364×** |
+| 10,000       |           221.11 |                  0.39 |   ≈ **567×** |
+| 50,000       |          1109.07 |                  0.97 | ≈ **1,143×** |
+| 1,000,000    |         28071.89 |                 21.06 | ≈ **1,333×** |
 
 #### 📥 Bulk inserts (put many)
 
 | Items inserted per run | `Box` (avg `ms`) | `IndexedBox` (avg `ms`) | Cost of indexing |
 | ---------------------- | ---------------: | ----------------------: | ---------------: |
-| 100                    |             1.32 |                   25.57 |        ≈ **19×** |
-| 1,000                  |             1.78 |                   32.72 |        ≈ **18×** |
-| 5,000                  |             5.92 |                   94.96 |        ≈ **16×** |
-| 10,000                 |            13.47 |                  177.99 |        ≈ **13×** |
-| 50,000                 |            56.53 |                  830.24 |        ≈ **14×** |
+| 100                    |             0.39 |                    3.67 |      ≈ **9.41×** |
+| 1,000                  |             0.67 |                    9.05 |     ≈ **13.51×** |
+| 5,000                  |             3.84 |                   34.52 |      ≈ **8.99×** |
+| 10,000                 |             8.21 |                   68.02 |      ≈ **8.29×** |
+| 50,000                 |            46.43 |                  323.73 |      ≈ **6.97×** |
+| 1,000,000              |          2875.04 |                 9740.59 |      ≈ **3.39×** |
 
 > ⚡ **Still blazing fast:**  
 > Even though writes are heavier due to index maintenance, performance remains outstanding —  
-> you can still write around **10,000 items in just ~0.1 seconds**. That’s more than enough for almost any real-world workload, while searches stay **instant**.
+> you can still write around **50,000 items in just ~0.3 seconds**. That’s more than enough for almost any real-world workload, while searches stay **instant**.
 
 ### 🔄 Instantly Switch from a Normal Box (Even from Hive!)
 
