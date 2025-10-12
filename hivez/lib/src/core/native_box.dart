@@ -83,16 +83,9 @@ abstract class SharedBoxInterface<K, T> extends HiveBoxInterface<K, T> {
 }
 
 abstract class NativeBox<K, T> extends SharedBoxInterface<K, T> {
-  /// The optional encryption cipher for securing box data.  /// The optional encryption cipher for securing box data.
   final HiveCipher? _encryptionCipher;
-
-  /// Whether crash recovery is enabled for this box.
   final bool _crashRecovery;
-
-  /// Optional custom storage path for the box.
   final String? _path;
-
-  /// Optional logical collection name for grouping boxes.
   final String? _collection;
 
   const NativeBox(
@@ -106,14 +99,14 @@ abstract class NativeBox<K, T> extends SharedBoxInterface<K, T> {
         _path = path,
         _collection = collection;
 
-  String? get boxPath;
-
   Future<void> initialize();
-  Future<void> boxClose();
-  Future<void> boxDeleteFromDisk();
-  Future<void> hiveDeleteBoxFromDisk();
-  Future<void> hiveGetDeleteBoxFromDisk();
 
+  Future<void> _boxClose();
+  Future<void> _boxDeleteFromDisk();
+  Future<void> _hiveDeleteBoxFromDisk();
+  Future<void> _hiveGetDeleteBoxFromDisk();
+
+  String? get _boxPath;
   bool get _boxIsOpen;
   bool get _isOpenInHive;
 }
@@ -131,7 +124,7 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
   bool get isInitialized => _box != null;
 
   @override
-  String? get path => isInitialized ? boxPath : _path;
+  String? get path => isInitialized ? _boxPath : _path;
 
   B? _box;
 
@@ -161,11 +154,11 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
   @override
   Future<void> deleteFromDisk() async {
     if (isOpen) {
-      await boxDeleteFromDisk();
+      await _boxDeleteFromDisk();
     } else if (_isOpenInHive) {
-      await hiveGetDeleteBoxFromDisk();
+      await _hiveGetDeleteBoxFromDisk();
     } else {
-      await hiveDeleteBoxFromDisk();
+      await _hiveDeleteBoxFromDisk();
     }
     _box = null;
   }
@@ -173,7 +166,7 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
   @override
   Future<void> closeBox() async {
     if (isOpen) {
-      await boxClose();
+      await _boxClose();
       _box = null;
     }
   }
@@ -360,16 +353,17 @@ abstract class NativeBoxNonIsolatedBase<K, T, B extends BoxBase<T>>
   Future<int> get length => Future.value(box.length);
 
   @override
-  String? get boxPath => box.path;
+  String? get _boxPath => box.path;
 
   @override
-  Future<void> boxDeleteFromDisk() => box.deleteFromDisk();
+  Future<void> _boxDeleteFromDisk() => box.deleteFromDisk();
 
   @override
-  Future<void> hiveDeleteBoxFromDisk() => Hive.deleteBoxFromDisk(name);
+  Future<void> _hiveDeleteBoxFromDisk() => Hive.deleteBoxFromDisk(name);
 
   @override
-  Future<void> hiveGetDeleteBoxFromDisk() => _getExistingBox().deleteFromDisk();
+  Future<void> _hiveGetDeleteBoxFromDisk() =>
+      _getExistingBox().deleteFromDisk();
 
   @override
   Future<void> put(K key, T value) => box.put(key, value);
@@ -426,7 +420,7 @@ abstract class NativeBoxNonIsolatedBase<K, T, B extends BoxBase<T>>
   bool get _boxIsOpen => box.isOpen;
 
   @override
-  Future<void> boxClose() => box.close();
+  Future<void> _boxClose() => box.close();
 }
 
 abstract class NativeBoxIsolatedBase<K, T, B extends IsolatedBoxBase<T>>
@@ -452,16 +446,17 @@ abstract class NativeBoxIsolatedBase<K, T, B extends IsolatedBoxBase<T>>
   Future<int> get length => box.length;
 
   @override
-  String? get boxPath => _path;
+  String? get _boxPath => _path;
 
   @override
-  Future<void> boxDeleteFromDisk() => box.deleteFromDisk();
+  Future<void> _boxDeleteFromDisk() => box.deleteFromDisk();
 
   @override
-  Future<void> hiveDeleteBoxFromDisk() => IsolatedHive.deleteBoxFromDisk(name);
+  Future<void> _hiveDeleteBoxFromDisk() => IsolatedHive.deleteBoxFromDisk(name);
 
   @override
-  Future<void> hiveGetDeleteBoxFromDisk() => _getExistingBox().deleteFromDisk();
+  Future<void> _hiveGetDeleteBoxFromDisk() =>
+      _getExistingBox().deleteFromDisk();
 
   @override
   Future<void> put(K key, T value) => box.put(key, value);
@@ -518,7 +513,7 @@ abstract class NativeBoxIsolatedBase<K, T, B extends IsolatedBoxBase<T>>
   bool get _boxIsOpen => box.isOpen;
 
   @override
-  Future<void> boxClose() => box.close();
+  Future<void> _boxClose() => box.close();
 
   @override
   Future<T?> get(K key, {T? defaultValue}) =>
