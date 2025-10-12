@@ -43,14 +43,7 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
   /// Creates a [BoxDecorator] that wraps the given [_internalBox].
   ///
   /// All method calls and property accesses are delegated to [_internalBox].
-  BoxDecorator(this._internalBox)
-      : super(
-          _internalBox.name,
-          encryptionCipher: _internalBox._encryptionCipher,
-          crashRecovery: _internalBox._crashRecovery,
-          path: _internalBox.path,
-          collection: _internalBox._collection,
-        );
+  BoxDecorator(this._internalBox) : super(_internalBox.name);
 
   @override
   BoxType get boxType => _internalBox.boxType;

@@ -42,15 +42,6 @@ typedef LogHandler = void Function(String message);
 abstract class BoxInterface<K, T> extends SharedBoxInterface<K, T> {
   NativeBox<K, T> get _nativeBox;
 
-  /// The optional encryption cipher for securing box data.
-  final HiveCipher? _encryptionCipher;
-
-  /// Whether crash recovery is enabled for this box.
-  final bool _crashRecovery;
-
-  /// Optional logical collection name for grouping boxes.
-  final String? _collection;
-
   /// Constructs a [BoxInterface] with the given [name] and options.
   ///
   /// Throws an [AssertionError] if [name] is empty.
@@ -60,9 +51,7 @@ abstract class BoxInterface<K, T> extends SharedBoxInterface<K, T> {
     super.crashRecovery,
     super.path,
     super.collection,
-  })  : _encryptionCipher = encryptionCipher,
-        _crashRecovery = crashRecovery,
-        _collection = collection;
+  });
 
   /// Ensures the box is initialized and ready for use.
   ///

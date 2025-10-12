@@ -201,6 +201,12 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
   }
 
   @override
+  Future<List<T>> getMany(Iterable<K> keys) async {
+    final values = await Future.wait(keys.map((k) => get(k)));
+    return values.cast<T>();
+  }
+
+  @override
   Future<void> foreachKey(Future<void> Function(K key) action,
       {bool Function()? breakCondition}) async {
     final keys = await getAllKeys();
@@ -258,18 +264,6 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
   }
 
   @override
-  Future<T?> firstValueWhere(bool Function(K key, T value) condition) async {
-    final keys = await getAllKeys();
-    for (final key in keys) {
-      final v = await get(key);
-      if (v != null && condition(key, v)) {
-        return v;
-      }
-    }
-    return null;
-  }
-
-  @override
   Future<T?> firstWhereContains(
     String query, {
     required String Function(T item) searchableText,
@@ -280,25 +274,6 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
     return firstWhereOrNull(
       (item) => searchableText(item).toLowerCase().contains(lowerQuery),
     );
-  }
-
-  @override
-  Future<T?> firstWhereOrNull(bool Function(T) condition) async {
-    for (final key in (await getAllKeys())) {
-      final value = await get(key);
-      if (value != null && condition(value)) return value;
-    }
-    return null;
-  }
-
-  @override
-  Future<List<T>> getMany(Iterable<K> keys) async {
-    final values = <T>[];
-    for (final key in keys) {
-      final value = await get(key);
-      if (value != null) values.add(value);
-    }
-    return values;
   }
 
   @override
@@ -315,17 +290,12 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
   }
 
   @override
-  Future<void> replaceAll(Map<K, T> entries) async {
-    await clear();
-    await putAll(entries);
-  }
+  Future<void> replaceAll(Map<K, T> entries) =>
+      clear().then((_) => putAll(entries));
 
   @override
-  Future<void> deleteAtMany(Iterable<int> indices) async {
-    for (final index in indices) {
-      await deleteAt(index);
-    }
-  }
+  Future<void> deleteAtMany(Iterable<int> indices) =>
+      Future.wait(indices.map((index) => deleteAt(index)));
 
   @override
   Future<K?> searchKeyOf(T value) => firstKeyWhere((k, v) => v == value);
@@ -351,19 +321,6 @@ abstract class NativeBoxNonIsolatedBase<K, T, B extends BoxBase<T>>
 
   @override
   Future<int> get length => Future.value(box.length);
-
-  @override
-  String? get _boxPath => box.path;
-
-  @override
-  Future<void> _boxDeleteFromDisk() => box.deleteFromDisk();
-
-  @override
-  Future<void> _hiveDeleteBoxFromDisk() => Hive.deleteBoxFromDisk(name);
-
-  @override
-  Future<void> _hiveGetDeleteBoxFromDisk() =>
-      _getExistingBox().deleteFromDisk();
 
   @override
   Future<void> put(K key, T value) => box.put(key, value);
@@ -399,10 +356,7 @@ abstract class NativeBoxNonIsolatedBase<K, T, B extends BoxBase<T>>
   Future<Iterable<int>> addAll(Iterable<T> values) => box.addAll(values);
 
   @override
-  Future<K?> keyAt(int index) {
-    final key = box.keyAt(index);
-    return Future.value(key as K?);
-  }
+  Future<K?> keyAt(int index) => Future.value(box.keyAt(index) as K?);
 
   @override
   Future<void> flushBox() => box.flush();
@@ -414,6 +368,9 @@ abstract class NativeBoxNonIsolatedBase<K, T, B extends BoxBase<T>>
   Stream<BoxEvent> watch(K key) => box.watch(key: key);
 
   @override
+  String? get _boxPath => box.path;
+
+  @override
   bool get _isOpenInHive => Hive.isBoxOpen(name);
 
   @override
@@ -421,6 +378,16 @@ abstract class NativeBoxNonIsolatedBase<K, T, B extends BoxBase<T>>
 
   @override
   Future<void> _boxClose() => box.close();
+
+  @override
+  Future<void> _boxDeleteFromDisk() => box.deleteFromDisk();
+
+  @override
+  Future<void> _hiveDeleteBoxFromDisk() => Hive.deleteBoxFromDisk(name);
+
+  @override
+  Future<void> _hiveGetDeleteBoxFromDisk() =>
+      _getExistingBox().deleteFromDisk();
 }
 
 abstract class NativeBoxIsolatedBase<K, T, B extends IsolatedBoxBase<T>>
@@ -449,16 +416,6 @@ abstract class NativeBoxIsolatedBase<K, T, B extends IsolatedBoxBase<T>>
   String? get _boxPath => _path;
 
   @override
-  Future<void> _boxDeleteFromDisk() => box.deleteFromDisk();
-
-  @override
-  Future<void> _hiveDeleteBoxFromDisk() => IsolatedHive.deleteBoxFromDisk(name);
-
-  @override
-  Future<void> _hiveGetDeleteBoxFromDisk() =>
-      _getExistingBox().deleteFromDisk();
-
-  @override
   Future<void> put(K key, T value) => box.put(key, value);
 
   @override
@@ -483,19 +440,16 @@ abstract class NativeBoxIsolatedBase<K, T, B extends IsolatedBoxBase<T>>
   Future<bool> containsKey(K key) => box.containsKey(key);
 
   @override
-  Future<Iterable<K>> getAllKeys() async => (await box.keys).cast<K>();
+  Future<List<K>> getAllKeys() => box.keys.then((keys) => keys.cast<K>());
 
   @override
   Future<int> add(T value) => box.add(value);
 
   @override
-  Future<Iterable<int>> addAll(Iterable<T> values) => box.addAll(values);
+  Future<List<int>> addAll(Iterable<T> values) => box.addAll(values);
 
   @override
-  Future<K?> keyAt(int index) async {
-    final key = await box.keyAt(index);
-    return key as K?;
-  }
+  Future<K?> keyAt(int index) => box.keyAt(index).then((key) => key as K?);
 
   @override
   Future<void> flushBox() => box.flush();
@@ -507,15 +461,6 @@ abstract class NativeBoxIsolatedBase<K, T, B extends IsolatedBoxBase<T>>
   Stream<BoxEvent> watch(K key) => box.watch(key: key);
 
   @override
-  bool get _isOpenInHive => IsolatedHive.isBoxOpen(name);
-
-  @override
-  bool get _boxIsOpen => box.isOpen;
-
-  @override
-  Future<void> _boxClose() => box.close();
-
-  @override
   Future<T?> get(K key, {T? defaultValue}) =>
       box.get(key, defaultValue: defaultValue);
 
@@ -523,26 +468,58 @@ abstract class NativeBoxIsolatedBase<K, T, B extends IsolatedBoxBase<T>>
   Future<T?> getAt(int index) => box.getAt(index);
 
   @override
-  Future<Iterable<T>> getAllValues() async {
+  Future<List<T>> getAllValues() async {
     final keys = await box.keys;
-    final values = <T>[];
+    final values = await Future.wait(keys.map((key) => box.get(key)));
+    return values.cast<T>();
+  }
+
+  @override
+  Future<T?> firstWhereOrNull(bool Function(T) condition) async {
+    final keys = await box.keys;
     for (final key in keys) {
-      final value = await box.get(key);
-      if (value != null) values.add(value);
+      final value = await Future.sync(() => box.get(key));
+      if (value != null && condition(value)) return value;
     }
-    return values;
+    return null;
+  }
+
+  @override
+  Future<T?> firstValueWhere(bool Function(K key, T value) condition) async {
+    final keys = await box.keys;
+
+    for (final key in keys) {
+      final value = await Future.sync(() => box.get(key));
+      if (value != null && condition(key, value)) return value;
+    }
+    return null;
   }
 
   @override
   Future<Map<K, T>> toMap() async {
     final keys = await box.keys;
-    final Map<K, T> map = {};
-    for (final key in keys) {
-      final value = await box.get(key);
-      if (value != null) map[key] = value;
-    }
-    return map;
+    final values = await Future.wait(keys.map((k) => box.get(k)));
+    return Map.fromIterables(keys.cast<K>(), values.cast<T>());
   }
+
+  @override
+  bool get _isOpenInHive => IsolatedHive.isBoxOpen(name);
+
+  @override
+  bool get _boxIsOpen => box.isOpen;
+
+  @override
+  Future<void> _boxDeleteFromDisk() => box.deleteFromDisk();
+
+  @override
+  Future<void> _hiveDeleteBoxFromDisk() => IsolatedHive.deleteBoxFromDisk(name);
+
+  @override
+  Future<void> _hiveGetDeleteBoxFromDisk() =>
+      _getExistingBox().deleteFromDisk();
+
+  @override
+  Future<void> _boxClose() => box.close();
 }
 
 class NativeBoxImpl<K, T> extends NativeBoxNonIsolatedBase<K, T, Box<T>> {
@@ -580,6 +557,38 @@ class NativeBoxImpl<K, T> extends NativeBoxNonIsolatedBase<K, T, Box<T>> {
   Future<Iterable<T>> getAllValues() => Future.value(box.values);
 
   @override
+  Future<T?> firstWhereOrNull(bool Function(T) condition) =>
+      Future.value(box.values.firstWhereOrNull(condition));
+
+  @override
+  Future<T?> firstValueWhere(bool Function(K key, T value) condition) {
+    final keyIterator = box.keys.iterator;
+    final valueIterator = box.values.iterator;
+
+    while (keyIterator.moveNext() && valueIterator.moveNext()) {
+      final key = keyIterator.current as K;
+      final value = valueIterator.current;
+      if (condition(key, value)) return Future.value(value);
+    }
+
+    return Future.value(null);
+  }
+
+  @override
+  Future<K?> firstKeyWhere(bool Function(K key, T value) condition) {
+    final keyIterator = box.keys.iterator;
+    final valueIterator = box.values.iterator;
+
+    while (keyIterator.moveNext() && valueIterator.moveNext()) {
+      final key = keyIterator.current as K;
+      final value = valueIterator.current;
+      if (condition(key, value)) return Future.value(key);
+    }
+
+    return Future.value(null);
+  }
+
+  @override
   Future<T?> getAt(int index) => Future.value(box.getAt(index));
 
   @override
@@ -603,6 +612,45 @@ class NativeBoxLazyImpl<K, T>
   BoxType get boxType => BoxType.lazy;
 
   @override
+  Future<T?> get(K key, {T? defaultValue}) =>
+      box.get(key, defaultValue: defaultValue);
+
+  @override
+  Future<T?> getAt(int index) => box.getAt(index);
+
+  @override
+  Future<Iterable<T>> getAllValues() async {
+    final keys = box.keys;
+    final values = await Future.wait(keys.map((key) => box.get(key)));
+    return values.cast<T>();
+  }
+
+  @override
+  Future<T?> firstWhereOrNull(bool Function(T) condition) async {
+    for (final key in box.keys) {
+      final value = await Future.sync(() => box.get(key));
+      if (value != null && condition(value)) return value;
+    }
+    return null;
+  }
+
+  @override
+  Future<T?> firstValueWhere(bool Function(K key, T value) condition) async {
+    for (final key in box.keys) {
+      final value = await Future.sync(() => box.get(key));
+      if (value != null && condition(key, value)) return value;
+    }
+    return null;
+  }
+
+  @override
+  Future<Map<K, T>> toMap() async {
+    final keys = box.keys;
+    final values = await Future.wait(keys.map((k) => box.get(k)));
+    return Map.fromIterables(keys.cast<K>(), values.cast<T>());
+  }
+
+  @override
   LazyBox<T> _getExistingBox() => Hive.lazyBox<T>(name);
 
   @override
@@ -613,35 +661,6 @@ class NativeBoxLazyImpl<K, T>
         path: _path,
         collection: _collection,
       );
-
-  @override
-  Future<T?> get(K key, {T? defaultValue}) =>
-      box.get(key, defaultValue: defaultValue);
-
-  @override
-  Future<T?> getAt(int index) => box.getAt(index);
-
-  @override
-  Future<Iterable<T>> getAllValues() async {
-    final keys = box.keys;
-    final values = <T>[];
-    for (final key in keys) {
-      final value = await box.get(key);
-      if (value != null) values.add(value);
-    }
-    return values;
-  }
-
-  @override
-  Future<Map<K, T>> toMap() async {
-    final keys = box.keys;
-    final Map<K, T> map = {};
-    for (final key in keys) {
-      final value = await box.get(key);
-      if (value != null) map[key] = value;
-    }
-    return map;
-  }
 }
 
 class NativeBoxIsolatedImpl<K, T>
@@ -656,8 +675,10 @@ class NativeBoxIsolatedImpl<K, T>
 
   @override
   bool get isLazy => false;
+
   @override
   BoxType get boxType => BoxType.isolated;
+
   @override
   IsolatedBox<T> _getExistingBox() => IsolatedHive.box<T>(name);
 
