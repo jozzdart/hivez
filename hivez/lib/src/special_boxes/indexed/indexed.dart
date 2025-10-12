@@ -5,7 +5,7 @@ import 'package:hive_ce/hive.dart' show HiveCipher;
 import 'package:hivez/src/boxes/boxes.dart';
 import 'package:hivez/src/builders/builders.dart';
 import 'package:hivez/src/core/core.dart';
-import 'package:hivez/src/exceptions/box_exception.dart';
+import 'package:hivez/src/exceptions/exceptions.dart';
 import 'package:hivez/src/special_boxes/configured/configured_box.dart';
 
 part 'engine.dart';
@@ -319,7 +319,7 @@ class IndexedBox<K, T> extends Box<K, T> {
   /// Adds a value and returns its generated key, updating the index.
   @override
   Future<int> add(T value) {
-    if (K is int) {
+    if (nativeBox.isIntKey) {
       return _lock.operation("ADD").run(() async {
         final id = await nativeBox.add(value);
         await _engine.onPut(id as K, value);
@@ -328,14 +328,14 @@ class IndexedBox<K, T> extends Box<K, T> {
         return id;
       });
     } else {
-      throw UnsupportedError('add is not supported for non-int keys');
+      throw InvalidAddOperationException<K>(boxName: name);
     }
   }
 
   /// Adds multiple values, updating the index.
   @override
   Future<Iterable<int>> addAll(Iterable<T> values) {
-    if (K is int) {
+    if (nativeBox.isIntKey) {
       if (values.isEmpty) return Future.value(const <int>[]);
       return _lock.operation("ADD_ALL").run(() async {
         final news = <K, T>{};
@@ -351,7 +351,7 @@ class IndexedBox<K, T> extends Box<K, T> {
         return news.keys.cast<int>();
       });
     } else {
-      throw UnsupportedError('addAll is not supported for non-int keys');
+      throw InvalidAddAllOperationException<K>(boxName: name);
     }
   }
 

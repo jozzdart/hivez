@@ -29,3 +29,5 @@ export 'special_boxes/special_boxes.dart'
         CreateIndexedBoxFromType;
 
 export 'extensions/extensions.dart';
+
+export 'exceptions/exceptions.dart' show HivezException, HivezBoxException;

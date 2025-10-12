@@ -80,6 +80,7 @@ abstract class SharedBoxInterface<K, T> extends HiveBoxInterface<K, T> {
 }
 
 abstract class NativeBox<K, T> extends SharedBoxInterface<K, T> {
+  final bool _isIntKey;
   final HiveCipher? _encryptionCipher;
   final bool _crashRecovery;
   final String? _path;
@@ -91,10 +92,12 @@ abstract class NativeBox<K, T> extends SharedBoxInterface<K, T> {
     super.crashRecovery,
     super.path,
     super.collection,
+    required bool isIntKey,
   })  : _encryptionCipher = encryptionCipher,
         _crashRecovery = crashRecovery,
         _path = path,
-        _collection = collection;
+        _collection = collection,
+        _isIntKey = isIntKey;
 
   Future<void> initialize();
 
@@ -108,6 +111,10 @@ abstract class NativeBox<K, T> extends SharedBoxInterface<K, T> {
   bool get _isOpenInHive;
 }
 
+extension NativeBoxHelpers<K, T> on NativeBox<K, T> {
+  bool get isIntKey => _isIntKey;
+}
+
 abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
   NativeBoxBase(
     super.name, {
@@ -115,7 +122,7 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
     super.crashRecovery,
     super.path,
     super.collection,
-  });
+  }) : super(isIntKey: K == int);
 
   @override
   bool get isInitialized => _box != null;
@@ -343,10 +350,14 @@ abstract class NativeBoxNonIsolatedBase<K, T, B extends BoxBase<T>>
   Future<Iterable<K>> getAllKeys() => Future.value(box.keys.cast<K>());
 
   @override
-  Future<int> add(T value) => box.add(value);
+  Future<int> add(T value) => _isIntKey
+      ? box.add(value)
+      : throw InvalidAddOperationException<K>(boxName: name);
 
   @override
-  Future<Iterable<int>> addAll(Iterable<T> values) => box.addAll(values);
+  Future<Iterable<int>> addAll(Iterable<T> values) => _isIntKey
+      ? box.addAll(values)
+      : throw InvalidAddAllOperationException<K>(boxName: name);
 
   @override
   Future<K?> keyAt(int index) => Future.value(box.keyAt(index) as K?);
@@ -436,10 +447,14 @@ abstract class NativeBoxIsolatedBase<K, T, B extends IsolatedBoxBase<T>>
   Future<List<K>> getAllKeys() => box.keys.then((keys) => keys.cast<K>());
 
   @override
-  Future<int> add(T value) => box.add(value);
+  Future<int> add(T value) => _isIntKey
+      ? box.add(value)
+      : throw InvalidAddOperationException<K>(boxName: name);
 
   @override
-  Future<List<int>> addAll(Iterable<T> values) => box.addAll(values);
+  Future<List<int>> addAll(Iterable<T> values) => _isIntKey
+      ? box.addAll(values)
+      : throw InvalidAddAllOperationException<K>(boxName: name);
 
   @override
   Future<K?> keyAt(int index) => box.keyAt(index).then((key) => key as K?);

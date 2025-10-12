@@ -17,10 +17,11 @@ import 'package:hive_ce/hive.dart'
         IsolatedBox,
         IsolatedLazyBox;
 
-import 'package:hivez/src/exceptions/init_exception.dart';
+import 'package:hivez/src/exceptions/exceptions.dart';
 
 part 'hive_box_interface.dart';
 part 'native_box.dart';
 part 'creator.dart';
 part 'type.dart';
 part 'config.dart';
+part 'exceptions.dart';
