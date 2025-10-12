@@ -432,5 +432,5 @@ Future<void> runBenchmark(
   final buffer = StringBuffer();
   printResultsTableTo(buffer);
   await File(config.fileName).writeAsString(buffer.toString());
-  print('\n✅ Results written to benchmark_results.txt');
+  print('\n✅ Results written to ${config.fileName}');
 }
