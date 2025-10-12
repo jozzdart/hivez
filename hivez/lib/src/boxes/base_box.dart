@@ -174,8 +174,12 @@ abstract class BaseHivezBox<K, T> extends BoxInterface<K, T> {
   BoxType get boxType => _nativeBox.boxType;
 
   @override
-  Future<void> ensureInitialized() async {
-    if (_nativeBox.isInitialized) return;
+  Future<void> ensureInitialized() {
+    if (_nativeBox.isInitialized) return Future.value();
+    return _ensureInitialized();
+  }
+
+  Future<void> _ensureInitialized() async {
     _debugLog(() => 'Initializing box...');
     await _initLock.synchronized(() async {
       if (_nativeBox.isInitialized) return;
