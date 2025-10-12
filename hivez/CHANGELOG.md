@@ -1,7 +1,7 @@
 ## Unreleased
 
-- **2x Faster IndexedBox and Internal Engine**  
-  Significantly improved performance of `IndexedBox` (up to 2x faster in search, add, and update operations). Introduced a new robust internal framework for managing all internal Hive boxes and engines with minimal redundancy, reducing duplicated work and calculations. This change brings stricter handling of box initialization and background operations, improving performance, stability, and memory use for all box types _(including non-indexed boxes)_ through lighter and safer auto-initialization.
+- **5x Faster IndexedBox and Internal Engine**  
+  Significantly improved performance of `IndexedBox` (up to 5x faster in search, add, and update operations). Introduced a new robust internal framework for managing all internal Hive boxes and engines with minimal redundancy, reducing duplicated work and calculations. This change brings stricter handling of box initialization and background operations, improving performance, stability, and memory use for all box types _(including non-indexed boxes)_ through lighter and safer auto-initialization.
 
 - **Improved Type-Safety for Add Operations** — Added type validation to prevent misuse of `add()` and `addAll()` on non-int-keyed boxes. Calls now throw `InvalidAddOperationException` or `InvalidAddAllOperationException` instead of failing silently for incorrect key types, ensuring safer and more predictable behavior.
 
