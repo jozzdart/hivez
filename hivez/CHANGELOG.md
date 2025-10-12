@@ -1,12 +1,25 @@
 ## Unreleased
 
-- **Improved Type-Safety for Add Operations** — Added type validation to prevent misuse of `add()` and `addAll()` on boxes where the key type is not `int`. These methods now throw clear exceptions (`InvalidAddOperationException`, `InvalidAddAllOperationException`) instead of failing silently, ensuring safer and more predictable behavior.
+- **2x Faster IndexedBox and Internal Engine**  
+  Significantly improved performance of `IndexedBox` (up to 2x faster in search, add, and update operations). Introduced a new robust internal framework for managing all internal Hive boxes and engines with minimal redundancy, reducing duplicated work and calculations. This change brings stricter handling of box initialization and background operations, improving performance, stability, and memory use for all box types _(including non-indexed boxes)_ through lighter and safer auto-initialization.
+
+- **Improved Type-Safety for Add Operations** — Added type validation to prevent misuse of `add()` and `addAll()` on non-int-keyed boxes. Calls now throw `InvalidAddOperationException` or `InvalidAddAllOperationException` instead of failing silently for incorrect key types, ensuring safer and more predictable behavior.
 
   ```dart
   final box = HivezBox<String, User>('users');
   await box.add(User(...));
   // ❌ Throws InvalidAddOperationException
   ```
+
+- **Fixed `addAll`** — now correctly returns the Iterable of IDs of the added values (instead of `Future<void>` like before), making it clear which IDs were generated when adding many entries at once.
+
+- **Fixed `keyAt`** — The return type of `keyAt` is now nullable (`Future<K?>`) to match native Hive and avoid exceptions when an index has no key.
+
+- **Extensive Production-Scale Benchmarking** - Added comprehensive benchmarks targeting boxes with up to 1,000,000 items, measuring both query times and the performance of bulk writes. Below are sample results comparing HivezBox (standard Box) and IndexedBox performance on the same hardware:
+  On a box with `1,000,000 items`, search is  
+  `~1640x` faster with IndexedBox (`22.90ms vs 37,621.74ms`, or a 99.94% reduction in time).
+
+- **Dedicated Benchmark Folder** - Added a designated folder containing all extensive benchmark tests, so you can run them yourself and verify performance on your own hardware.
 
 ## 1.1.0
 
