@@ -539,8 +539,8 @@ You keep the **same API**, but get **instant keyword/prefix/substring search** w
 ### Why use it:
 
 - **Blazing search:** stop scanning; lookups hit the index.
-  - _50,000 items:_ **4149.60 ms → 2.46 ms** (~**1,687×** faster).
-  - _500 items:_ **125.20 ms → 1.10 ms** (~**114×** faster).
+  - _50,000 items:_ **1109.07 ms → 0.97 ms** (~**1,143×** faster).
+  - _500 items:_ **16.73 ms → 0.20 ms** (~**84×** faster).
 - **Zero friction:** same `Hivez` API + `search()`/`searchKeys()` helpers.
 - **Robust by design:** journaled writes, auto-rebuild on mismatch, and an LRU cache for hot tokens.
 - **Configurable:** choose `basic`, `prefix`, or `ngram` analyzers; toggle AND/OR matching; optional result verification.
