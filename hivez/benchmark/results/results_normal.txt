@@ -4,15 +4,15 @@
 ───────────────────────────────────────────────────────────────────────────────
 Case                   │ HivezBox (avg ms) │ IndexedBox (avg ms) │ Best      
 ───────────────────────┼───────────────────┼─────────────────────┼───────────
-Put many - n_100       │ 0.56              │ 3.41                │ HivezBox  
-Put many - n_1000      │ 0.71              │ 6.74                │ HivezBox  
-Put many - n_5000      │ 3.94              │ 32.19               │ HivezBox  
-Put many - n_10000     │ 8.01              │ 60.25               │ HivezBox  
-Put many - n_50000     │ 44.47             │ 305.88              │ HivezBox  
-Query Search - n_100   │ 1.91              │ 0.25                │ IndexedBox
-Query Search - n_1000  │ 17.16             │ 0.21                │ IndexedBox
-Query Search - n_5000  │ 110.70            │ 0.32                │ IndexedBox
-Query Search - n_10000 │ 222.33            │ 0.38                │ IndexedBox
-Query Search - n_50000 │ 1116.04           │ 0.97                │ IndexedBox
+Put many - n_100       │ 0.39              │ 3.67                │ HivezBox  
+Put many - n_1000      │ 0.67              │ 9.05                │ HivezBox  
+Put many - n_5000      │ 3.84              │ 34.52               │ HivezBox  
+Put many - n_10000     │ 8.21              │ 68.02               │ HivezBox  
+Put many - n_50000     │ 46.43             │ 323.73              │ HivezBox  
+Query Search - n_100   │ 1.71              │ 0.18                │ IndexedBox
+Query Search - n_1000  │ 16.73             │ 0.20                │ IndexedBox
+Query Search - n_5000  │ 109.26            │ 0.30                │ IndexedBox
+Query Search - n_10000 │ 221.11            │ 0.39                │ IndexedBox
+Query Search - n_50000 │ 1109.07           │ 0.97                │ IndexedBox
 ───────────────────────────────────────────────────────────────────────────────
 
