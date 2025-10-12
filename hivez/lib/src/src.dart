@@ -24,6 +24,7 @@ export 'special_boxes/special_boxes.dart'
         IndexedBox,
         TextAnalyzer,
         Analyzer,
+        IndexedBoxSearchExtensions,
         CreateTextAnalyzerExtensions,
         CreateIndexedBoxFromConfig,
         CreateIndexedBoxFromType;

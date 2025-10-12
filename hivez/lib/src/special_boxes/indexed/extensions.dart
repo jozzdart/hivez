@@ -166,9 +166,7 @@ extension IndexedBoxSearchExtensions<K, T> on IndexedBox<K, T> {
 
     return values;
   }
-}
 
-extension IndexedBoxPagination<K, T> on IndexedBox<K, T> {
   /// Performs a full-text search with optional filtering, sorting, and pagination.
   ///
   /// - [query]: Text to search for.

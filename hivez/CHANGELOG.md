@@ -3,6 +3,12 @@
 - **5x Faster IndexedBox and Internal Engine**  
   Significantly improved performance of `IndexedBox` (up to 5x faster in search, add, and update operations). Introduced a new robust internal framework for managing all internal Hive boxes and engines with minimal redundancy, reducing duplicated work and calculations. This change brings stricter handling of box initialization and background operations, improving performance, stability, and memory use for all box types _(including non-indexed boxes)_ through lighter and safer auto-initialization.
 
+- **New `searchFiltered` and `searchPaginated` Extensions**  
+  Introduced two new high-level querying helpers for `IndexedBox`:
+
+  - `searchFiltered()` — adds optional `filter`, `sortBy`, `limit`, and `offset` support to any search query, enabling flexible in-memory filtering and custom sorting over indexed results.
+  - `searchPaginated()` — provides built-in pagination support with optional `prePaginate` mode for faster page-based queries on large datasets.
+
 - **Improved Type-Safety for Add Operations** — Added type validation to prevent misuse of `add()` and `addAll()` on non-int-keyed boxes. Calls now throw `InvalidAddOperationException` or `InvalidAddAllOperationException` instead of failing silently for incorrect key types, ensuring safer and more predictable behavior.
 
   ```dart
