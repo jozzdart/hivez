@@ -17,6 +17,11 @@ part 'extensions.dart';
 part 'exceptions.dart';
 part 'lock.dart';
 
+// constants
+const _kIndexName = '__idx';
+const _kJournalName = '__idx_meta';
+const _kProbeCount = 16;
+
 /// A [Box] implementation that provides full-text search and secondary indexing.
 ///
 /// [IndexedBox] maintains a secondary index for fast text search and token-based
@@ -76,7 +81,7 @@ class IndexedBox<K, T> extends Box<K, T> {
     int Function(K a, K b)? keyComparator,
     TextAnalyzer<T>? overrideAnalyzer,
   })  : _engine = IndexEngine<K, T>(
-          '${name}__idx',
+          '$name$_kIndexName',
           type: type,
           encryptionCipher: encryptionCipher,
           crashRecovery: crashRecovery,
@@ -87,7 +92,7 @@ class IndexedBox<K, T> extends Box<K, T> {
           matchAllTokens: matchAllTokens,
         ),
         _journal = BoxIndexJournal(
-          '${name}__idx_meta',
+          '$name$_kJournalName',
           type: type,
           encryptionCipher: encryptionCipher,
           crashRecovery: crashRecovery,
@@ -162,7 +167,8 @@ class IndexedBox<K, T> extends Box<K, T> {
     var needsRebuild = await _shouldRebuild();
     if (needsRebuild) {
       // Optional light probe to avoid unnecessary rebuilds if desired:
-      final ok = await _quickIndexProbe(probes: 16); // set e.g. 16 to enable
+      final ok =
+          await _quickIndexProbe(probes: _kProbeCount); // set e.g. 16 to enable
       needsRebuild = !ok;
     }
 
@@ -302,9 +308,8 @@ class IndexedBox<K, T> extends Box<K, T> {
   ///
   /// ⚠️ Note: This is a destructive operation — all existing data will be lost.
   @override
-  Future<void> replaceAll(Map<K, T> entries) {
-    return _lock.operation("REPLACE_ALL").run(() => _replaceAll(entries));
-  }
+  Future<void> replaceAll(Map<K, T> entries) =>
+      _lock.operation("REPLACE_ALL").run(() => _replaceAll(entries));
 
   Future<void> _replaceAll(Map<K, T> entries) async {
     if (await nativeBox.isNotEmpty) {
@@ -474,6 +479,35 @@ class IndexedBox<K, T> extends Box<K, T> {
 
   /// Returns a stream of values matching the [query] string.
   Stream<T> searchStream(String query) => _searcher.valuesStream(query);
+
+  /// Counts the number of values matching the query without fetching them.
+  Future<int> countMatching(String query) =>
+      _searcher.keys(query).then((keys) => keys.length);
+
+  /// Returns the first value matching [query], or null if none.
+  Future<T?> firstMatchOrNull(String query) => _searcher
+      .values(query, limit: 1)
+      .then((results) => results.isEmpty ? null : results.first);
+
+  /// Returns key–value pairs matching the query.
+  Future<Map<K, T>> searchPairs(String query,
+      {int? limit, int offset = 0}) async {
+    final keys = await _searcher.keys(query, limit: limit, offset: offset);
+    if (keys.isEmpty) return const {};
+    final values = await nativeBox.getMany(keys);
+    final map = <K, T>{};
+    for (int i = 0; i < keys.length && i < values.length; i++) {
+      final v = values[i];
+      if (v != null) map[keys[i]] = v;
+    }
+    return map;
+  }
+
+  /// Marks the index as dirty to trigger rebuild on next init.
+  Future<void> markIndexDirty() =>
+      _lock.bypassJournal.operation("MARK_INDEX_DIRTY").run(() async {
+        await _journal.markDirty();
+      });
 
   // -----------------------------------------------------------------------------
   // Rebuild index (journaled)

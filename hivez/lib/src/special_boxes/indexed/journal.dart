@@ -37,6 +37,9 @@ abstract class IndexJournal extends Box<String, int> {
   /// Marks clean (used for explicit resets, e.g., after rebuild).
   Future<void> reset();
 
+  /// Marks dirty (used for explicit marks, e.g., after put/delete).
+  Future<void> markDirty();
+
   // --- NEW: snapshot API ------------------------------------------------------
   Future<void> writeSnapshot({
     int? dataMtimeMs,
@@ -74,7 +77,7 @@ class BoxIndexJournal extends IndexJournal {
 
   @override
   Future<R> runWrite<R>(Future<R> Function() op) async {
-    await nativeBox.put(_kDirtyKey, 1);
+    await markDirty();
     try {
       final out = await op();
       await nativeBox.put(_kDirtyKey, 0);
@@ -87,6 +90,9 @@ class BoxIndexJournal extends IndexJournal {
 
   @override
   Future<void> reset() => nativeBox.put(_kDirtyKey, 0);
+
+  @override
+  Future<void> markDirty() => nativeBox.put(_kDirtyKey, 1);
 
   @override
   Future<void> writeSnapshot({
