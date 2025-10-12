@@ -331,10 +331,6 @@ abstract class BaseHivezBox<K, T> extends BoxInterface<K, T> {
       _executeWrite(() => _nativeBox.deleteAt(index));
 
   @override
-  Future<void> deleteAtMany(Iterable<int> indices) =>
-      _executeWrite(() => _nativeBox.deleteAtMany(indices));
-
-  @override
   Future<void> deleteAll(Iterable<K> keys) =>
       _executeWrite(() => _nativeBox.deleteAll(keys));
 

@@ -102,9 +102,7 @@ abstract class BoxDecorator<K, T> extends BoxInterface<K, T> {
   Future<void> delete(K key) => _internalBox.delete(key);
   @override
   Future<void> deleteAt(int index) => _internalBox.deleteAt(index);
-  @override
-  Future<void> deleteAtMany(Iterable<int> indices) =>
-      _internalBox.deleteAtMany(indices);
+
   @override
   Future<void> deleteAll(Iterable<K> keys) => _internalBox.deleteAll(keys);
   @override

@@ -403,14 +403,6 @@ class IndexedBox<K, T> extends Box<K, T> {
         await _stampSnapshot();
       });
 
-  /// Deletes the values at the given [indices], updating the index.
-  @override
-  Future<void> deleteAtMany(Iterable<int> indices) =>
-      _lock.operation("DELETE_AT_MANY").run(() async {
-        await nativeBox.deleteAtMany(indices);
-        await _stampSnapshot();
-      });
-
   /// Clears all values and index data.
   @override
   Future<void> clear() => _lock.operation("CLEAR").run(() async {

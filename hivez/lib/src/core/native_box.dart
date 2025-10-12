@@ -75,9 +75,6 @@ abstract class SharedBoxInterface<K, T> extends HiveBoxInterface<K, T> {
   /// ⚠️ Note: This is a destructive operation — all existing data will be lost.
   Future<void> replaceAll(Map<K, T> entries);
 
-  /// Deletes the values associated with the given [indices]. Faster than [deleteAt] for multiple indices.
-  Future<void> deleteAtMany(Iterable<int> indices);
-
   /// Returns the key for the given [value], or `null` if not found.
   Future<K?> searchKeyOf(T value);
 }
@@ -292,10 +289,6 @@ abstract class NativeBoxBase<K, T, B> extends NativeBox<K, T> {
   @override
   Future<void> replaceAll(Map<K, T> entries) =>
       clear().then((_) => putAll(entries));
-
-  @override
-  Future<void> deleteAtMany(Iterable<int> indices) =>
-      Future.wait(indices.map((index) => deleteAt(index)));
 
   @override
   Future<K?> searchKeyOf(T value) => firstKeyWhere((k, v) => v == value);
