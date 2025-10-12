@@ -391,10 +391,14 @@ void main() {
         1: 'a',
         2: 'b',
         3: 'ab',
+        4: 'ab a',
+        5: 'ba',
+        6: 'ba b',
+        7: 'aa ba',
       });
       // 'a' and 'b' are dropped; only 'ab' is a token
-      expect(await searcher.keys('a'), isEmpty);
-      expect(await searcher.keys('b'), isEmpty);
+      expect(await searcher.keys('ab'), [3, 4]);
+      expect(await searcher.keys('ba'), [5, 6, 7]);
       expect(await searcher.keys('ab'), containsAllInOrder([3]));
     });
   });
