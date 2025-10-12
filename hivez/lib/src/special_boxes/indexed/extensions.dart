@@ -145,8 +145,6 @@ extension IndexedBoxSearchExtensions<K, T> on IndexedBox<K, T> {
     int? limit,
     int offset = 0,
   }) async {
-    await ensureInitialized();
-
     if (filter == null && sortBy == null) {
       return _searcher.values(query, limit: limit, offset: offset);
     }
@@ -191,8 +189,6 @@ extension IndexedBoxPagination<K, T> on IndexedBox<K, T> {
     int pageSize = 20,
     bool prePaginate = false,
   }) async {
-    await ensureInitialized();
-
     if (prePaginate) {
       final offset = page * pageSize;
       final keys = await _searcher.keys(query, limit: pageSize, offset: offset);
