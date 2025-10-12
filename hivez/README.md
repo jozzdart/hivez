@@ -1458,33 +1458,33 @@ If you find them useful and feel like supporting, you’re welcome to do so (:
 - [limit](#-limit--cooldowns--rate-limits-simplified) – Cooldowns & Rate Limits, Simplified
 - [jozz_events](#-jozz_events--strongly-typed-events-for-clean-architecture) – Strongly-Typed Events for Clean Architecture
 
-### 🔽 [shrink](https://pub.dev/packages/shrink) – Compress Anything in One Line
+### 🔽 [`shrink` – Compress Anything in One Line](https://pub.dev/packages/shrink)
 
 Because every byte counts. `shrink` makes data compression effortless with a **one-line API** and fully lossless results. It auto-detects the best method, often cutting size by **5× to 40×** (and up to **1,000×+** for structured data). Perfect for **Firestore, local storage, or bandwidth-sensitive apps**. Backed by clear docs and real-world benchmarks.
 
-### 📊 [track](https://pub.dev/packages/track) – Persistent Streaks, Counters & Records
+### 📊 [`track` – Persistent Streaks, Counters & Records](https://pub.dev/packages/track)
 
 Define once, track forever. `track` gives you plug-and-play tools for **streaks, counters, activity logs, and records** — all persisted safely across sessions and isolates. From **daily streaks** to **rolling counters** to **best-ever records**, it handles resets, history, and storage automatically. Clean APIs, zero boilerplate, and deeply detailed documentation.
 
-### ⚡ [prf](https://pub.dev/packages/prf) – SharedPreferences, Without the Pain
+### ⚡ [`prf` – SharedPreferences, Without the Pain](https://pub.dev/packages/prf)
 
 No strings, no boilerplate, no setup. `prf` lets you define variables once, then `get()` and `set()` them anywhere with a **type-safe API**. It fully replaces raw `SharedPreferences` with support for **20+ built-in types** (including `DateTime`, `Duration`, `Uint8List`, JSON, and enums). Every variable is cached, test-friendly, and isolate-safe with a `.isolated` mode. Designed for **clarity, scale, and zero friction**, with docs that make local persistence finally headache-free.
 
-### ⏱ [time_plus](https://pub.dev/packages/time_plus) – Smarter DateTime & Duration Extensions
+### ⏱ [`time_plus` – Smarter DateTime & Duration Extensions](https://pub.dev/packages/time_plus)
 
 Stop wrestling with `DateTime` and `Duration`. `time_plus` adds the missing tools you wish Dart had built in: **add and subtract time units**, **start/end of day/week/month**, **compare by precision**, **yesterday/tomorrow**, **fractional durations**, and more. Built with **128+ extensions**, **700+ tests**, and **zero dependencies**, it’s faster, more precise, and more reliable than the classic `time` package — while keeping APIs clear and intuitive. Ideal for **scheduling, analytics, or any app where every microsecond counts**.
 
-### 🎨 [exui](https://pub.dev/packages/exui) – Supercharge Your Flutter UI
+### 🎨 [`exui` – Supercharge Your Flutter UI](https://pub.dev/packages/exui)
 
 Everything your widgets wish they had. `exui` is a **zero-dependency extension library** for Flutter with **200+ chainable utilities** for padding, margin, centering, gaps, visibility, constraints, gestures, buttons, text styling, and more — all while keeping your widget tree fully native.
 
 No wrappers. No boilerplate. Just concise, expressive methods that feel built into Flutter itself. Backed by **hundreds of unit tests** and **exceptional documentation**, `exui` makes UI code cleaner, faster, and easier to maintain.
 
-### ⏲ [limit](https://pub.dev/packages/limit) – Cooldowns & Rate Limits, Simplified
+### ⏲ [`limit` – Cooldowns & Rate Limits, Simplified](https://pub.dev/packages/limit)
 
 One line. No boilerplate. No setup. `limit` gives you **persistent cooldowns** and **token-bucket rate limiting** across sessions, isolates, and restarts. Perfect for **daily rewards**, **retry delays**, **API quotas**, or **chat limits**. Define once, automate forever — the system handles the timing, persistence, and safety behind the scenes. Clear docs and practical examples included.
 
-### 📢 [jozz_events](https://pub.dev/packages/jozz_events) – Strongly-Typed Events for Clean Architecture
+### 📢 [`jozz_events` – Strongly-Typed Events for Clean Architecture](https://pub.dev/packages/jozz_events)
 
 A **domain-first, framework-agnostic event bus** built for scalable apps. `jozz_events` enables **decoupled, strongly-typed communication** between features and layers — without the spaghetti. It’s lightweight, dependency-free, lifecycle-aware, and integrates naturally with **Clean Architecture**. Ideal for Flutter or pure Dart projects where modularity, testability, and clarity matter most.
 
