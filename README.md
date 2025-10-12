@@ -32,7 +32,8 @@ all while remaining fully compatible with **Hive** (via the [`hive_ce`](https://
 - [Quick Setup `hive_ce` (no explanations)](#-quick-setup-hive_ce-no-explanations)
 - [`IndexedBox` _Ultra Fast Searches_](#-indexedbox--ultra-fast-full-text-search-for-hive)
   - [**Benchmarks** - _how fast it is_](#benchmarks)
-  - [**Quick Start**](#-instantly-switch-from-a-normal-box-even-from-hive)
+  - [**Quick Start** - _no migrations no setup needed_](#-instantly-switch-from-a-normal-box-even-from-hive)
+  - [Available Methods](#available-methods-for-indexedbox)
   - [Examples](#indexedbox---examples)
   - [Settings & Options](#-settings--options)
   - [Analyzers](#-analyzer--how-text-is-broken-into-tokens)
@@ -533,14 +534,15 @@ Future<void> main() async {
 
 _[⤴️ Back](#table-of-contents) → Table of Contents_
 
-**What it is:** a drop-in replacement for `HivezBox` that adds a tiny **on-disk inverted index**.
+**What it is:** a drop-in replacement for `Box` that adds a tiny **on-disk inverted index**.
 You keep the **same API**, but get **instant keyword/prefix/substring search** with ~**`1–3 ms`** queries on thousands of items.
 
 ### Why use it:
 
+- **No migrations & no setup needed:** your existing data and boxes stay exactly the same.
 - **Blazing search:** stop scanning; lookups hit the index.
-  - _50,000 items:_ **4149.60 ms → 2.46 ms** (~**1,687×** faster).
-  - _500 items:_ **125.20 ms → 1.10 ms** (~**114×** faster).
+  - _50,000 items:_ **1109.07 ms → 0.97 ms** (~**1,143×** faster).
+  - _500 items:_ **16.73 ms → 0.20 ms** (~**84×** faster).
 - **Zero friction:** same `Hivez` API + `search()`/`searchKeys()` helpers.
 - **Robust by design:** journaled writes, auto-rebuild on mismatch, and an LRU cache for hot tokens.
 - **Configurable:** choose `basic`, `prefix`, or `ngram` analyzers; toggle AND/OR matching; optional result verification.
@@ -549,10 +551,9 @@ You keep the **same API**, but get **instant keyword/prefix/substring search** w
 final articles = indexedBox.search('flut dart dev'); // Blazing fast search
 ```
 
-> Heads-up: writes cost more than a plain box (the index is maintained on each mutation). If you do heavy bulk inserts, you can batch with `putAll` and still enjoy ultra-fast reads.
-
 - [**Benchmarks** - how fast it is](#benchmarks)
 - [**Instantly `Switch` from a Normal Box** (Even from Hive!)](#-instantly-switch-from-a-normal-box-even-from-hive)
+- [**Available Methods** - how to use `IndexedBox`](#available-methods-for-indexedbox)
 - [**Examples** - how to use `IndexedBox`](#indexedbox---examples)
 - [**Settings & Options** - how to tune it](#-settings--options)
 - [**Analyzers** - how text is broken into tokens](#-analyzer--how-text-is-broken-into-tokens)
@@ -563,27 +564,29 @@ final articles = indexedBox.search('flut dart dev'); // Blazing fast search
 
 | Items in box | `Box` (avg `ms`) | `IndexedBox` (avg ms) |  Improvement |
 | ------------ | ---------------: | --------------------: | -----------: |
-| 100          |            21.86 |              **1.94** |    ≈ **11×** |
-| 1,000        |           138.21 |              **1.03** |   ≈ **133×** |
-| 5,000        |           366.12 |              **1.04** |   ≈ **351×** |
-| 10,000       |           732.28 |              **1.20** |   ≈ **610×** |
-| 50,000       |          3640.56 |              **2.07** | ≈ **1,758×** |
+| 100          |             1.71 |                  0.18 |   ≈ **9.5×** |
+| 1,000        |            16.73 |                  0.20 |    ≈ **84×** |
+| 5,000        |           109.26 |                  0.30 |   ≈ **364×** |
+| 10,000       |           221.11 |                  0.39 |   ≈ **567×** |
+| 50,000       |          1109.07 |                  0.97 | ≈ **1,143×** |
+| 1,000,000    |         28071.89 |                 21.06 | ≈ **1,333×** |
 
 #### 📥 Bulk inserts (put many)
 
 | Items inserted per run | `Box` (avg `ms`) | `IndexedBox` (avg `ms`) | Cost of indexing |
 | ---------------------- | ---------------: | ----------------------: | ---------------: |
-| 100                    |             1.09 |                   20.65 |        ≈ **18×** |
-| 1,000                  |             1.59 |                   28.98 |        ≈ **18×** |
-| 5,000                  |             5.28 |                   53.62 |        ≈ **10×** |
-| 10,000                 |             9.73 |                   85.93 |         ≈ **9x** |
-| 50,000                 |            51.26 |                  409.61 |         ≈ **8×** |
+| 100                    |             0.39 |                    3.67 |      ≈ **9.41×** |
+| 1,000                  |             0.67 |                    9.05 |     ≈ **13.51×** |
+| 5,000                  |             3.84 |                   34.52 |      ≈ **8.99×** |
+| 10,000                 |             8.21 |                   68.02 |      ≈ **8.29×** |
+| 50,000                 |            46.43 |                  323.73 |      ≈ **6.97×** |
+| 1,000,000              |          2875.04 |                 9740.59 |      ≈ **3.39×** |
 
 > ⚡ **Still blazing fast:**  
 > Even though writes are heavier due to index maintenance, performance remains outstanding —  
-> you can still write around **10,000 items in just ~0.1 seconds**. That’s more than enough for almost any real-world workload, while searches stay **instant**.
+> you can still write around **50,000 items in just ~0.3 seconds**. That’s more than enough for almost any real-world workload, while searches stay **instant**.
 
-### 🔄 Instantly Switch from a Normal Box (Even from Hive!)
+## 🔄 Instantly Switch from a Normal Box (Even from Hive!)
 
 You don’t need to migrate or rebuild anything — `IndexedBox` is a **drop-in upgrade** for your existing Hive or Hivez boxes.
 It reads all your current data, keeps it fully intact, and automatically creates a search index behind the scenes.
@@ -619,6 +622,40 @@ print(results); // [Note(...), Note(...)]
 
 > 💡 You can freely switch back and forth between `Box`, `HivezBox`, and `IndexedBox`.  
 > The data always stays compatible — `IndexedBox` simply adds its own index boxes under the hood.
+
+# Available Methods for `IndexedBox`:
+
+> _[⤴️ Back](#-indexedbox--ultra-fast-full-text-search-for-hive) → IndexedBox_
+
+- **Read & search operations**
+
+  - `search(query, {limit, offset})` — Retrieve values `List<T>` matching a search string
+  - `searchKeys(query, {limit, offset})` — Retrieve keys `List<K>` matching a search string
+  - `searchPairs(query, {limit, offset})` — Return key–value `Map` pairs for matches
+  - `searchStream(query, {limit, offset})` — Stream live search results `Stream<T>` (values)
+  - `searchKeysStream(query)` — Stream live search results `Stream<K>` (keys)
+  - `firstMatchOrNull(query)` — Get the first matching value or `null`
+  - `countMatching(query)` — Count how many values match the query `int`
+
+- **Extended search operations**
+
+  - `searchFiltered(query, {filter, sortBy, limit, offset})`  
+    Retrieve values `List<T>` matching a search string with optional filtering and sorting
+  - `searchPaginated(query, {page, pageSize, prePaginate})`  
+    Retrieve values `List<T>` matching a search string with optional pre-pagination
+
+- **Index management**
+
+  - `rebuildIndex({bypassInit})` — Fully rebuild index from current data
+  - `markIndexDirty()` — Mark index as dirty to trigger rebuild on next init
+  - `ensureInitialized()` — Initialize box, index, and journal safely
+  - `resetRuntimeState()` — Clear caches and reset journal state
+
+> 💡 **Same API, same power**  
+> `IndexedBox` fully supports **all existing methods** and **properties** of regular boxes —  
+> including writes, deletes, backups, queries, and iteration — so you can use it exactly like `HivezBox`.  
+> See the full [**Available Methods**](#-available-methods) and [**Constructor & Properties**](#️-constructor--properties) sections for everything you can do.  
+> The only difference? Every search is now **indexed and blazing fast**.
 
 # `IndexedBox` - Examples
 
