@@ -268,21 +268,29 @@ class IndexedBox<K, T> extends Box<K, T> {
   Future<void> putAll(Map<K, T> entries) {
     if (entries.isEmpty) return Future.value();
     return _lock.operation("PUT_ALL").run(() async {
-      final olds = <K, T>{};
-      for (final e in entries.entries) {
-        final v = await nativeBox.get(e.key);
-        if (v != null) olds[e.key] = v;
+      if (await nativeBox.isEmpty) {
+        await _replaceAll(entries);
+      } else {
+        await _putAll(entries);
       }
-      await nativeBox.putAll(entries);
-      await _engine.onPutMany(entries, olds: olds);
-      for (final v in olds.values) {
-        _invalidateTokensFor(v);
-      }
-      for (final v in entries.values) {
-        _invalidateTokensFor(v);
-      }
-      await _stampSnapshot();
     });
+  }
+
+  Future<void> _putAll(Map<K, T> entries) async {
+    final olds = <K, T>{};
+    for (final e in entries.entries) {
+      final v = await nativeBox.get(e.key);
+      if (v != null) olds[e.key] = v;
+    }
+    await nativeBox.putAll(entries);
+    await _engine.onPutMany(entries, olds: olds);
+    for (final v in olds.values) {
+      _invalidateTokensFor(v);
+    }
+    for (final v in entries.values) {
+      _invalidateTokensFor(v);
+    }
+    await _stampSnapshot();
   }
 
   /// Replaces all data in the box with the given [entries].
@@ -295,25 +303,29 @@ class IndexedBox<K, T> extends Box<K, T> {
   /// ⚠️ Note: This is a destructive operation — all existing data will be lost.
   @override
   Future<void> replaceAll(Map<K, T> entries) {
-    return _lock.operation("REPLACE_ALL").run(() async {
+    return _lock.operation("REPLACE_ALL").run(() => _replaceAll(entries));
+  }
+
+  Future<void> _replaceAll(Map<K, T> entries) async {
+    if (await nativeBox.isNotEmpty) {
       await nativeBox.clear();
       await _engine.nativeBox.clear();
       _cache.clear();
+    }
 
-      if (entries.isEmpty) {
-        await _stampSnapshot();
-        return;
-      }
-
-      await nativeBox.putAll(entries);
-      await _engine.onPutMany(entries);
-
-      for (final value in entries.values) {
-        _invalidateTokensFor(value);
-      }
-
+    if (entries.isEmpty) {
       await _stampSnapshot();
-    });
+      return;
+    }
+
+    await nativeBox.putAll(entries);
+    await _engine.onPutMany(entries);
+
+    for (final value in entries.values) {
+      _invalidateTokensFor(value);
+    }
+
+    await _stampSnapshot();
   }
 
   /// Adds a value and returns its generated key, updating the index.
