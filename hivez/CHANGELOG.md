@@ -1,3 +1,13 @@
+## Unreleased
+
+- **Improved Type-Safety for Add Operations** — Added type validation to prevent misuse of `add()` and `addAll()` on boxes where the key type is not `int`. These methods now throw clear exceptions (`InvalidAddOperationException`, `InvalidAddAllOperationException`) instead of failing silently, ensuring safer and more predictable behavior.
+
+  ```dart
+  final box = HivezBox<String, User>('users');
+  await box.add(User(...));
+  // ❌ Throws InvalidAddOperationException
+  ```
+
 ## 1.1.0
 
 ### _New `Indexed Box`_ - Ultra-fast full-text search for Hive
