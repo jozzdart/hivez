@@ -72,6 +72,11 @@ class IndexSearcher<K, T> {
   /// This is typically provided by the decorated box or storage layer.
   final Future<T?> Function(K key) _getValue;
 
+  /// Retrieves values by keys from the underlying box.
+  ///
+  /// This is typically provided by the decorated box or storage layer.
+  final Future<List<T>> Function(Iterable<K>) _getManyValues;
+
   /// Creates a new [IndexSearcher] with the given dependencies.
   ///
   /// - [engine]: The index engine for token-to-key lookups.
@@ -88,6 +93,7 @@ class IndexSearcher<K, T> {
     required bool verifyMatches,
     required Future<void> Function() ensureReady,
     required Future<T?> Function(K) getValue,
+    required Future<List<T>> Function(Iterable<K>) getManyValues,
     int Function(K a, K b)? keyComparator,
   })  : _engine = engine,
         _cache = cache,
@@ -95,7 +101,8 @@ class IndexSearcher<K, T> {
         _verifyMatches = verifyMatches,
         _keyComparator = keyComparator,
         _ensureReady = ensureReady,
-        _getValue = getValue;
+        _getValue = getValue,
+        _getManyValues = getManyValues;
 
   /// Searches for keys matching the given [query] string.
   ///
@@ -115,18 +122,26 @@ class IndexSearcher<K, T> {
     if (tokens.isEmpty) return const [];
 
     // Gather candidate postings per token (cached).
-    final tokenSets = <Set<K>>[];
+    final tokenSets = <List<K>>[];
     for (final t in tokens) {
       final ks = await _cache.get(t, () => _engine.readToken(t));
-      tokenSets.add(ks.toSet());
+      tokenSets.add(ks);
     }
 
-    // Merge by AND/OR depending on engine configuration.
     Set<K> merged;
     if (_engine.matchAllTokens) {
-      merged = tokenSets.isEmpty
-          ? <K>{}
-          : tokenSets.reduce((a, b) => a.intersection(b));
+      if (tokenSets.isEmpty) {
+        merged = <K>{};
+      } else {
+        final sortedByLength = tokenSets
+          ..sort((a, b) => a.length.compareTo(b.length));
+        merged = sortedByLength.first.toSet();
+        for (var i = 1; i < sortedByLength.length; i++) {
+          // Intersect in place
+          merged = merged.intersection(sortedByLength[i].toSet());
+          if (merged.isEmpty) break;
+        }
+      }
     } else {
       merged = <K>{};
       for (final s in tokenSets) {
@@ -136,9 +151,10 @@ class IndexSearcher<K, T> {
 
     // Order results.
     final list = merged.toList(growable: false);
-    _sortStable(list);
+    if (_keyComparator != null && list.length > 1) {
+      list.sort(_keyComparator);
+    }
 
-    // Paginate results.
     if (offset >= list.length) return const [];
     final start = offset.clamp(0, list.length);
     final end =
@@ -160,14 +176,18 @@ class IndexSearcher<K, T> {
   Future<List<T>> values(String query, {int? limit, int offset = 0}) async {
     final ks = await keys(query, limit: limit, offset: offset);
     if (ks.isEmpty) return const [];
-    final out = <T>[];
-    for (final k in ks) {
-      final v = await _getValue(k);
-      if (v == null) continue;
-      if (_verifyMatches && !_verify(query, v)) continue;
-      out.add(v);
+    final values = await _getManyValues(ks);
+
+    if (_verifyMatches) {
+      final out = <T>[];
+      for (final v in values) {
+        if (!_verify(query, v)) continue;
+        out.add(v);
+      }
+      return out;
+    } else {
+      return values;
     }
-    return out;
   }
 
   /// Returns a stream of keys matching the given [query] string.
@@ -221,23 +241,5 @@ class IndexSearcher<K, T> {
     return _engine.matchAllTokens
         ? qTokens.every(vTokens.contains)
         : qTokens.any(vTokens.contains);
-  }
-
-  /// Orders the list of keys using the configured comparator, [Comparable], or string order.
-  ///
-  /// This ensures stable, predictable ordering of search results.
-  void _sortStable(List<K> list) {
-    if (list.length < 2) return;
-    if (_keyComparator != null) {
-      list.sort(_keyComparator);
-      return;
-    }
-    final first = list.first;
-    if (first is Comparable) {
-      // Sort using Comparable if available.
-      (list as List).sort();
-    } else {
-      list.sort((a, b) => a.toString().compareTo(b.toString()));
-    }
   }
 }

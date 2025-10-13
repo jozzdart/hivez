@@ -1,4 +1,4 @@
-import 'package:hivez/src/exceptions/exceptions.dart';
+part of 'exceptions.dart';
 
 /// {@template hivez_box_exception}
 /// Exception thrown for general box-level failures in the Hivez storage system.

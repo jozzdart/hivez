@@ -39,198 +39,27 @@ typedef LogHandler = void Function(String message);
 /// Type Parameters:
 ///   - [K]: The type of the keys used in the box.
 ///   - [T]: The type of the values stored in the box.
-abstract class BoxInterface<K, T> {
-  /// The unique name of the box.
-  final String name;
-
-  /// The optional encryption cipher for securing box data.
-  final HiveCipher? _encryptionCipher;
-
-  /// Whether crash recovery is enabled for this box.
-  final bool _crashRecovery;
-
-  /// Optional custom storage path for the box.
-  final String? _path;
-
-  /// Optional logical collection name for grouping boxes.
-  final String? _collection;
+abstract class BoxInterface<K, T> extends SharedBoxInterface<K, T> {
+  NativeBox<K, T> get _nativeBox;
 
   /// Constructs a [BoxInterface] with the given [name] and options.
   ///
   /// Throws an [AssertionError] if [name] is empty.
-  BoxInterface(
-    /// The unique name of the box.
-    this.name, {
-    /// The optional encryption cipher for securing box data.
-    HiveCipher? encryptionCipher,
-
-    /// Whether crash recovery is enabled for this box.
-    bool crashRecovery = true,
-
-    /// Optional custom storage path for the box.
-    String? path,
-
-    /// Optional logical collection name for grouping boxes.
-    String? collection,
-  })  : _encryptionCipher = encryptionCipher,
-        _crashRecovery = crashRecovery,
-        _path = path,
-        _collection = collection,
-        assert(name.isNotEmpty, 'Box name cannot be empty');
-
-  /// Whether the underlying Hive box is currently open.
-  bool get isOpen;
-
-  /// Whether the box has been initialized and is ready for operations.
-  bool get isInitialized;
-
-  /// Whether this box is running in an isolated (background) context.
-  bool get isIsolated;
-
-  /// Whether this box is a lazy box (values loaded on demand).
-  bool get isLazy;
-
-  /// The resolved storage path for this box, if set.
-  String? get path;
-
-  /// Returns `true` if the box contains no elements.
-  Future<bool> get isEmpty;
-
-  /// Returns `true` if the box contains at least one element.
-  Future<bool> get isNotEmpty;
-
-  /// The number of key-value pairs in the box.
-  Future<int> get length;
-
-  // ---------------------------------------------------------------------------
-  // Write Operations
-  // ---------------------------------------------------------------------------
-
-  /// Inserts or updates the value for the given [key].
-  Future<void> put(K key, T value);
-
-  /// Inserts or updates multiple key-value pairs at once.
-  Future<void> putAll(Map<K, T> entries);
-
-  /// Updates the value at the specified [index].
-  Future<void> putAt(int index, T value);
-
-  /// Adds a value to the box using an auto-incremented key (if supported).
-  ///
-  /// Returns the generated key or index.
-  Future<int> add(T value);
-
-  /// Adds multiple values to the box using auto-incremented keys (if supported).
-  Future<void> addAll(Iterable<T> values);
-
-  /// Moves the value from [oldKey] to [newKey], replacing any existing value.
-  ///
-  /// Returns `true` if the move was successful.
-  Future<bool> moveKey(K oldKey, K newKey);
-
-  // ---------------------------------------------------------------------------
-  // Delete Operations
-  // ---------------------------------------------------------------------------
-
-  /// Deletes the value associated with the given [key].
-  Future<void> delete(K key);
-
-  /// Deletes the value at the specified [index].
-  Future<void> deleteAt(int index);
-
-  /// Deletes all values associated with the given [keys].
-  Future<void> deleteAll(Iterable<K> keys);
-
-  /// Removes all key-value pairs from the box.
-  Future<void> clear();
-
-  // ---------------------------------------------------------------------------
-  // Read Operations
-  // ---------------------------------------------------------------------------
-
-  /// Returns the key at the specified [index].
-  Future<K> keyAt(int index);
-
-  /// Returns the value at the specified [index], or `null` if not found.
-  Future<T?> valueAt(int index);
-
-  /// Alias for [valueAt].
-  Future<T?> getAt(int index);
-
-  /// Returns `true` if the box contains the given [key].
-  Future<bool> containsKey(K key);
-
-  /// Returns all keys in the box.
-  Future<Iterable<K>> getAllKeys();
-
-  /// Returns the value for the given [key], or [defaultValue] if not found.
-  Future<T?> get(K key, {T? defaultValue});
-
-  /// Returns all values in the box.
-  Future<Iterable<T>> getAllValues();
-
-  /// Watches for changes to the value associated with [key].
-  ///
-  /// Emits [BoxEvent]s when the value changes.
-  Stream<BoxEvent> watch(K key);
-
-  /// Returns a map containing all key-value pairs in the box.
-  Future<Map<K, T>> toMap();
-
-  // ---------------------------------------------------------------------------
-  // Query Operations
-  // ---------------------------------------------------------------------------
-
-  /// Returns all values matching the given [condition] predicate.
-  Future<Iterable<T>> getValuesWhere(bool Function(T) condition);
-
-  /// Returns all keys matching the given [condition] predicate.
-  Future<Iterable<K>> getKeysWhere(bool Function(K key, T value) condition);
-
-  /// Returns the first value matching [condition], or `null` if none found.
-  Future<T?> firstWhereOrNull(bool Function(T item) condition);
-
-  /// Returns the first value whose [searchableText] contains [query], or `null`.
-  Future<T?> firstWhereContains(
-    String query, {
-    required String Function(T item) searchableText,
+  const BoxInterface(
+    super.name, {
+    super.encryptionCipher,
+    super.crashRecovery,
+    super.path,
+    super.collection,
   });
-
-  /// Iterates asynchronously over all key-value pairs, invoking [action] for each.
-  Future<void> foreachValue(Future<void> Function(K key, T value) action);
-
-  /// Iterates asynchronously over all keys, invoking [action] for each.
-  Future<void> foreachKey(Future<void> Function(K key) action);
-
-  /// Returns the key for the given [value], or `null` if not found.
-  Future<K?> searchKeyOf(T value);
-
-  /// Returns the first key matching [condition], or `null` if none found.
-  Future<K?> firstKeyWhere(bool Function(K key, T value) condition);
-
-  // ---------------------------------------------------------------------------
-  // Box Management Operations
-  // ---------------------------------------------------------------------------
 
   /// Ensures the box is initialized and ready for use.
   ///
   /// Opens the box if it is not already open.
   Future<void> ensureInitialized();
 
-  /// Permanently deletes the box and all its data from disk.
-  Future<void> deleteFromDisk();
-
-  /// Closes the box, releasing all resources.
-  Future<void> closeBox();
-
-  /// Flushes any pending changes to disk.
-  Future<void> flushBox();
-
-  /// Compacts the box file to reclaim unused space.
-  Future<void> compactBox();
-
-  /// Returns an approximate size of the box in bytes.
-  Future<int> estimateSizeBytes();
+  /// Returns the value at the specified [index], or `null` if not found.
+  Future<T?> valueAt(int index);
 
   @override
   bool operator ==(Object other) {
@@ -238,49 +67,23 @@ abstract class BoxInterface<K, T> {
         other.name == name &&
         other.isIsolated == isIsolated &&
         other.isLazy == isLazy &&
-        other._path == _path;
+        other.path == path;
   }
 
   @override
   int get hashCode =>
-      name.hashCode ^ isIsolated.hashCode ^ isLazy.hashCode ^ _path.hashCode;
+      name.hashCode ^ isIsolated.hashCode ^ isLazy.hashCode ^ path.hashCode;
 
   @override
   String toString() => _stringBox('BoxInterface', this);
 }
 
-String _stringBox<K, T>(String boxType, BoxInterface<K, T> box) =>
-    '$boxType [$K - $T] [${box.name}] (${box.isIsolated ? 'isolated, ' : ''}${box.isLazy ? 'lazy ' : ''}pth: ${box._path}) [${box.isInitialized ? 'initialized' : 'not initialized'}, ${box.isOpen ? 'open' : 'closed'}]';
-
-/// Internal helper interface for HivezBox implementations.
-///
-/// Provides low-level accessors and lifecycle methods for managing the
-/// underlying Hive box instance. This interface is intended for use by
-/// advanced box implementations and should not be used directly by end users.
-///
-/// Type Parameters:
-///   - [K]: The type of the keys used in the box.
-///   - [T]: The type of the values stored in the box.
-///   - [BoxType]: The concrete type of the underlying Hive box (e.g., [Box], [LazyBox], etc.).
-abstract class _BoxInterfaceHelpers<K, T, BoxType> {
-  /// Returns the underlying Hive box instance.
-  ///
-  /// Throws a [BoxNotInitializedException] if the box has not been initialized.
-  BoxType get box;
-
-  /// Returns `true` if the box is currently open in Hive.
-  bool get _isOpenInHive;
-
-  /// Returns the existing open Hive box instance.
-  ///
-  /// Throws if the box is not open.
-  BoxType _getExistingBox();
-
-  /// Opens the Hive box and returns the instance.
-  ///
-  /// If the box is already open, returns the existing instance.
-  Future<BoxType> _openBox();
+extension InternalBoxInterfaceHelpers<K, T> on BoxInterface<K, T> {
+  NativeBox<K, T> get nativeBox => _nativeBox;
 }
+
+String _stringBox<K, T>(String boxType, BoxInterface<K, T> box) =>
+    '$boxType [$K - $T] [${box.name}] (${box.isIsolated ? 'isolated, ' : ''}${box.isLazy ? 'lazy ' : ''}pth: ${box.path}) [${box.isInitialized ? 'initialized' : 'not initialized'}, ${box.isOpen ? 'open' : 'closed'}]';
 
 /// Base class for all HivezBox implementations, providing core logic for
 /// initialization, locking, logging, and high-level box operations.
@@ -307,8 +110,22 @@ abstract class _BoxInterfaceHelpers<K, T, BoxType> {
 /// ```dart
 /// class MyBox extends BaseHivezBox<String, MyModel, Box<MyModel>> { ... }
 /// ```
-abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
-    implements _BoxInterfaceHelpers<K, T, B> {
+abstract class BaseHivezBox<K, T> extends BoxInterface<K, T> {
+  @override
+  bool get isLazy => _nativeBox.isLazy;
+
+  @override
+  final NativeBox<K, T> _nativeBox;
+
+  @override
+  bool get isIsolated => _nativeBox.isIsolated;
+
+  @override
+  bool get isOpen => _nativeBox.isOpen;
+
+  @override
+  String? get path => _nativeBox.path;
+
   /// Optional custom logger for box operations.
   final LogHandler? _logger;
 
@@ -318,24 +135,8 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
   /// Lock for synchronizing write operations.
   final Lock _lock = Lock();
 
-  /// Additional lock for advanced operations (e.g., moveKey).
-  final Lock _additionalLock = Lock();
-
-  /// The underlying Hive box instance, or null if not initialized.
-  B? _box;
-
   @override
-  bool get isInitialized => _box != null;
-
-  @override
-  B get box {
-    if (_box == null) {
-      throw BoxNotInitializedException(
-        boxName: name,
-      );
-    }
-    return _box!;
-  }
+  bool get isInitialized => _nativeBox.isInitialized;
 
   /// Creates a new [BaseHivezBox] instance.
   ///
@@ -358,16 +159,32 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
     super.path,
     super.collection,
     LogHandler? logger,
-  }) : _logger = logger;
+    BoxType type = BoxType.regular,
+  })  : _logger = logger,
+        _nativeBox = NativeBoxCreator.newBox<K, T>(
+          name,
+          type: type,
+          encryptionCipher: encryptionCipher,
+          crashRecovery: crashRecovery,
+          path: path,
+          collection: collection,
+        );
 
   @override
-  Future<void> ensureInitialized() async {
-    if (isInitialized) return;
+  BoxType get boxType => _nativeBox.boxType;
+
+  @override
+  Future<void> ensureInitialized() {
+    if (_nativeBox.isInitialized) return Future.value();
+    return _ensureInitialized();
+  }
+
+  Future<void> _ensureInitialized() async {
     _debugLog(() => 'Initializing box...');
     await _initLock.synchronized(() async {
-      if (isInitialized) return;
+      if (_nativeBox.isInitialized) return;
       try {
-        _box = _isOpenInHive ? _getExistingBox() : await _openBox();
+        await _nativeBox.initialize();
         _debugLog(() => 'Box initialized successfully.');
       } catch (e, st) {
         _debugLog(() => 'Error initializing box: $e\n$st');
@@ -392,76 +209,54 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
   Future<T?> firstWhereContains(
     String query, {
     required String Function(T item) searchableText,
-  }) async {
-    final lowerQuery = query.toLowerCase().trim();
-    if (lowerQuery.isEmpty) return null;
-
-    return firstWhereOrNull(
-      (item) => searchableText(item).toLowerCase().contains(lowerQuery),
-    );
-  }
+  }) =>
+      _executeRead(() =>
+          _nativeBox.firstWhereContains(query, searchableText: searchableText));
 
   @override
-  Future<Iterable<T>> getValuesWhere(bool Function(T value) condition) async {
-    final values = <T>[];
-    await foreachValue((k, v) async {
-      if (condition(v)) {
-        values.add(v);
-      }
-    });
-    return values;
-  }
+  Future<T?> firstWhereOrNull(bool Function(T item) condition) =>
+      _executeRead(() => _nativeBox.firstWhereOrNull(condition));
 
   @override
-  Future<Iterable<K>> getKeysWhere(
-      bool Function(K key, T value) condition) async {
-    final keys = <K>[];
-    await foreachKey((k) async {
-      final v = await get(k);
-      if (v != null && condition(k, v)) {
-        keys.add(k);
-      }
-    });
-    return keys;
-  }
+  Future<List<T>> getValuesWhere(bool Function(T value) condition) =>
+      _executeRead(() => _nativeBox.getValuesWhere(condition));
 
   @override
-  Future<K?> firstKeyWhere(bool Function(K key, T value) condition) async {
-    final results = <K>[];
-    await foreachValue(
-      (k, v) async {
-        if (condition(k, v)) {
-          results.add(k);
-          return;
-        }
-      },
-      breakCondition: () => results.isNotEmpty,
-    );
-    return results.firstOrNull;
-  }
+  Future<List<K>> getKeysWhere(bool Function(K key, T value) condition) =>
+      _executeRead(() => _nativeBox.getKeysWhere(condition));
+
+  @override
+  Future<K?> firstKeyWhere(bool Function(K key, T value) condition) =>
+      _executeRead(() => _nativeBox.firstKeyWhere(condition));
+
+  @override
+  Future<T?> firstValueWhere(bool Function(K key, T value) condition) =>
+      _executeRead(() => _nativeBox.firstValueWhere(condition));
 
   @override
   Future<K?> searchKeyOf(T value) => firstKeyWhere((k, v) => v == value);
 
   @override
-  Future<T?> getAt(int index) => valueAt(index);
+  Future<T?> get(K key, {T? defaultValue}) =>
+      _executeRead(() => _nativeBox.get(key, defaultValue: defaultValue));
 
   @override
-  Future<bool> moveKey(K oldKey, K newKey) async {
-    return _additionalLock.synchronized(() async {
-      await ensureInitialized();
+  Future<Iterable<T>> getAllValues() =>
+      _executeRead(() => _nativeBox.getAllValues());
 
-      final oldValue = await get(oldKey);
-      if (oldValue == null) {
-        return false;
-      }
+  @override
+  Future<Map<K, T>> toMap() => _executeRead(() => _nativeBox.toMap());
 
-      await put(newKey, oldValue);
-      await delete(oldKey);
+  @override
+  Future<T?> getAt(int index) => _executeRead(() => _nativeBox.getAt(index));
 
-      return true;
-    });
-  }
+  @override
+  Future<List<T>> getMany(Iterable<K> keys) =>
+      _executeRead(() => _nativeBox.getMany(keys));
+
+  @override
+  Future<bool> moveKey(K oldKey, K newKey) =>
+      _executeWrite(() => _nativeBox.moveKey(oldKey, newKey));
 
   Future<R> _executeWrite<R>(Future<R> Function() action) async {
     await ensureInitialized(); // <-- ensures box is ready
@@ -475,102 +270,28 @@ abstract class BaseHivezBox<K, T, B> extends BoxInterface<K, T>
 
   @override
   Future<void> foreachKey(Future<void> Function(K key) action,
-      {bool Function()? breakCondition}) async {
-    await _executeRead(() async {
-      final keys = await getAllKeys();
-      for (final key in keys) {
-        await action(key);
-        if (breakCondition != null && breakCondition()) {
-          return;
-        }
-      }
-    });
-  }
+          {bool Function()? breakCondition}) =>
+      _executeRead(
+          () => _nativeBox.foreachKey(action, breakCondition: breakCondition));
 
   @override
   Future<void> foreachValue(Future<void> Function(K key, T value) action,
-      {bool Function()? breakCondition}) async {
-    await foreachKey((key) async {
-      final value = await get(key);
-      if (value != null) {
-        await action(key, value);
-      }
-    }, breakCondition: breakCondition);
-  }
+          {bool Function()? breakCondition}) =>
+      _executeRead(() =>
+          _nativeBox.foreachValue(action, breakCondition: breakCondition));
 
-  /// Returns approximate in-memory size (in bytes) of the entire box content.
-  ///
-  /// This includes keys and values, recursively traversing Maps, Lists,
-  /// primitives, and strings. Does *not* include Hive metadata or file overhead.
   @override
-  Future<int> estimateSizeBytes() async => _executeRead(() async {
-        int total = 0;
-        await foreachValue((k, v) async {
-          total += _estimateAny(k) + _estimateAny(v);
-        });
-        return total;
-      });
-
-  // Internal recursive estimator.
-  static int _estimateAny(dynamic obj) {
-    if (obj == null) return 0;
-    if (obj is num || obj is bool) return 8;
-    if (obj is String) return utf8.encode(obj).length;
-    if (obj is List) {
-      return obj.fold<int>(0, (sum, e) => sum + _estimateAny(e));
-    }
-    if (obj is Map) {
-      return obj.entries.fold<int>(
-        0,
-        (sum, e) => sum + _estimateAny(e.key) + _estimateAny(e.value),
-      );
-    }
-    try {
-      return utf8.encode(obj.toString()).length;
-    } catch (_) {
-      return 0;
-    }
-  }
+  Future<int> estimateSizeBytes() =>
+      _executeRead(() => _nativeBox.estimateSizeBytes());
 
   @override
   String toString() => _stringBox('BaseHivezBox', this);
-}
-
-abstract class AbstractHivezBox<K, T, B extends BoxBase<T>>
-    extends BaseHivezBox<K, T, B> {
-  @override
-  bool get isIsolated => false;
-
-  @override
-  bool get isOpen {
-    if (_box == null) return false;
-    return box.isOpen;
-  }
-
-  @override
-  String? get path => isInitialized ? box.path : _path;
-
-  AbstractHivezBox(
-    super.name, {
-    super.encryptionCipher,
-    super.crashRecovery,
-    super.path,
-    super.collection,
-    super.logger,
-  });
 
   @override
   Future<void> deleteFromDisk() async {
     _debugLog(() => 'Deleting box from disk...');
     try {
-      if (isOpen) {
-        await box.deleteFromDisk();
-      } else if (_isOpenInHive) {
-        await _getExistingBox().deleteFromDisk();
-      } else {
-        await Hive.deleteBoxFromDisk(name);
-      }
-      _box = null;
+      await _nativeBox.deleteFromDisk();
       _debugLog(() => 'Box deleted successfully.');
     } catch (e, st) {
       _debugLog(() => 'Error deleting box: $e\n$st');
@@ -581,283 +302,90 @@ abstract class AbstractHivezBox<K, T, B extends BoxBase<T>>
   @override
   Future<void> closeBox() async {
     _debugLog(() => 'Closing box...');
-    if (isOpen) {
-      try {
-        await box.close();
-        _box = null;
-        _debugLog(() => 'Box closed successfully.');
-      } catch (e, st) {
-        _debugLog(() => 'Error closing box: $e\n$st');
-        rethrow;
-      }
-    } else {
-      _debugLog(() => 'Box is not open, skipping close...');
-    }
-  }
-
-  @override
-  Future<void> put(K key, T value) async {
-    await _executeWrite(() => box.put(key, value));
-  }
-
-  @override
-  Future<void> putAll(Map<K, T> entries) async {
-    await _executeWrite(() => box.putAll(entries));
-  }
-
-  @override
-  Future<void> putAt(int index, T value) async {
-    await _executeWrite(() => box.putAt(index, value));
-  }
-
-  @override
-  Future<void> delete(K key) async {
-    await _executeWrite(() => box.delete(key));
-  }
-
-  @override
-  Future<void> deleteAt(int index) async {
-    await _executeWrite(() => box.deleteAt(index));
-  }
-
-  @override
-  Future<void> deleteAll(Iterable<K> keys) async {
-    await _executeWrite(() => box.deleteAll(keys));
-  }
-
-  @override
-  Future<void> clear() async {
-    await _executeWrite(() => box.clear());
-  }
-
-  @override
-  Future<bool> containsKey(K key) async {
-    return _executeRead(() => Future.value(box.containsKey(key)));
-  }
-
-  @override
-  Future<int> get length async {
-    return _executeRead(() => Future.value(box.length));
-  }
-
-  @override
-  Future<Iterable<K>> getAllKeys() async {
-    return _executeRead(() => Future.value(box.keys.cast<K>()));
-  }
-
-  @override
-  Future<int> add(T value) async {
-    return _executeWrite(() => box.add(value));
-  }
-
-  @override
-  Future<void> addAll(Iterable<T> values) async {
-    return _executeWrite(() => box.addAll(values));
-  }
-
-  @override
-  Future<K> keyAt(int index) async {
-    return _executeRead(() => Future.value(box.keyAt(index) as K));
-  }
-
-  @override
-  Future<bool> get isEmpty async {
-    return _executeRead(() => Future.value(box.isEmpty));
-  }
-
-  @override
-  Future<bool> get isNotEmpty async {
-    return _executeRead(() => Future.value(box.isNotEmpty));
-  }
-
-  @override
-  Future<void> flushBox() async {
-    await _executeWrite(() async {
-      _debugLog(() => 'Flushing box...');
-      try {
-        await box.flush();
-        _debugLog(() => 'Box flushed successfully.');
-      } catch (e, st) {
-        _debugLog(() => 'Error flushing box: $e\n$st');
-        rethrow;
-      }
-    });
-  }
-
-  @override
-  Future<void> compactBox() async {
-    await _executeWrite(() => box.compact());
-  }
-
-  @override
-  Stream<BoxEvent> watch(K key) {
-    return box.watch(key: key);
-  }
-
-  @override
-  bool get _isOpenInHive => Hive.isBoxOpen(name);
-}
-
-abstract class AbstractHivezIsolatedBox<K, T, B extends IsolatedBoxBase<T>>
-    extends BaseHivezBox<K, T, B> {
-  @override
-  bool get isIsolated => true;
-
-  @override
-  bool get isOpen {
-    if (_box == null) return false;
-    return box.isOpen;
-  }
-
-  @override
-  String? get path => _path;
-
-  AbstractHivezIsolatedBox(
-    super.name, {
-    super.encryptionCipher,
-    super.crashRecovery,
-    super.path,
-    super.collection,
-    super.logger,
-  });
-
-  @override
-  Future<void> deleteFromDisk() async {
-    _debugLog(() => 'Deleting box from disk...');
     try {
-      if (isOpen) {
-        await box.deleteFromDisk();
-      } else if (_isOpenInHive) {
-        await _getExistingBox().deleteFromDisk();
-      } else {
-        await IsolatedHive.deleteBoxFromDisk(name);
-      }
-      _box = null;
-      _debugLog(() => 'Box deleted successfully.');
+      await _nativeBox.closeBox();
+      _debugLog(() => 'Box closed successfully.');
     } catch (e, st) {
-      _debugLog(() => 'Error deleting box: $e\n$st');
+      _debugLog(() => 'Error closing box: $e\n$st');
       rethrow;
     }
   }
 
   @override
-  Future<void> closeBox() async {
-    _debugLog(() => 'Closing box...');
-    if (isOpen) {
-      try {
-        await box.close();
-        _box = null;
-        _debugLog(() => 'Box closed successfully.');
-      } catch (e, st) {
-        _debugLog(() => 'Error closing box: $e\n$st');
-        rethrow;
-      }
-    } else {
-      _debugLog(() => 'Box is not open, skipping close...');
-    }
-  }
+  Future<void> put(K key, T value) =>
+      _executeWrite(() => _nativeBox.put(key, value));
 
   @override
-  Future<void> put(K key, T value) async {
-    await _executeWrite(() => box.put(key, value));
-  }
+  Future<void> putAll(Map<K, T> entries) =>
+      _executeWrite(() => _nativeBox.putAll(entries));
 
   @override
-  Future<void> putAll(Map<K, T> entries) async {
-    await _executeWrite(() => box.putAll(entries));
-  }
+  Future<void> replaceAll(Map<K, T> entries) =>
+      _executeWrite(() => _nativeBox.replaceAll(entries));
 
   @override
-  Future<void> putAt(int index, T value) async {
-    await _executeWrite(() => box.putAt(index, value));
-  }
+  Future<void> putAt(int index, T value) =>
+      _executeWrite(() => _nativeBox.putAt(index, value));
 
   @override
-  Future<void> delete(K key) async {
-    await _executeWrite(() => box.delete(key));
-  }
+  Future<void> delete(K key) => _executeWrite(() => _nativeBox.delete(key));
 
   @override
-  Future<void> deleteAt(int index) async {
-    await _executeWrite(() => box.deleteAt(index));
-  }
+  Future<void> deleteAt(int index) =>
+      _executeWrite(() => _nativeBox.deleteAt(index));
 
   @override
-  Future<void> deleteAll(Iterable<K> keys) async {
-    await _executeWrite(() => box.deleteAll(keys));
-  }
+  Future<void> deleteAll(Iterable<K> keys) =>
+      _executeWrite(() => _nativeBox.deleteAll(keys));
 
   @override
-  Future<void> clear() async {
-    await _executeWrite(() => box.clear());
-  }
+  Future<void> clear() => _executeWrite(() => _nativeBox.clear());
 
   @override
-  Future<bool> containsKey(K key) async {
-    return _executeRead(() => box.containsKey(key));
-  }
+  Future<bool> containsKey(K key) =>
+      _executeRead(() => _nativeBox.containsKey(key));
 
   @override
-  Future<int> get length async {
-    return _executeRead(() => box.length);
-  }
+  Future<int> get length => _executeRead(() => _nativeBox.length);
 
   @override
-  Future<Iterable<K>> getAllKeys() async {
-    return _executeRead(
-      () async => Future.value((await box.keys).map((key) => key as K)),
-    );
-  }
+  Future<Iterable<K>> getAllKeys() =>
+      _executeRead(() => _nativeBox.getAllKeys());
 
   @override
-  Future<int> add(T value) async {
-    return _executeWrite(() => box.add(value));
-  }
+  Future<int> add(T value) => _executeWrite(() => _nativeBox.add(value));
 
   @override
-  Future<void> addAll(Iterable<T> values) async {
-    return _executeWrite(() => box.addAll(values));
-  }
+  Future<Iterable<int>> addAll(Iterable<T> values) =>
+      _executeWrite(() => _nativeBox.addAll(values));
 
   @override
-  Future<K> keyAt(int index) async {
-    return _executeRead(() async => (await box.keyAt(index)) as K);
-  }
+  Future<K?> keyAt(int index) => _executeRead(() => _nativeBox.keyAt(index));
 
   @override
-  Future<bool> get isEmpty async {
-    return _executeRead(() => box.isEmpty);
-  }
+  Future<bool> get isEmpty => _executeRead(() => _nativeBox.isEmpty);
 
   @override
-  Future<bool> get isNotEmpty async {
-    return _executeRead(() => box.isNotEmpty);
-  }
+  Future<bool> get isNotEmpty => _executeRead(() => _nativeBox.isNotEmpty);
 
   @override
-  Future<void> flushBox() async {
-    await _executeWrite(() async {
-      _debugLog(() => 'Flushing box...');
-      try {
-        await box.flush();
-        _debugLog(() => 'Box flushed successfully.');
-      } catch (e, st) {
-        _debugLog(() => 'Error flushing box: $e\n$st');
-        rethrow;
-      }
-    });
-  }
+  Future<void> flushBox() => _executeWrite(() async {
+        _debugLog(() => 'Flushing box...');
+        try {
+          await _nativeBox.flushBox();
+          _debugLog(() => 'Box flushed successfully.');
+        } catch (e, st) {
+          _debugLog(() => 'Error flushing box: $e\n$st');
+          rethrow;
+        }
+      });
 
   @override
-  Future<void> compactBox() async {
-    await _executeWrite(() => box.compact());
-  }
+  Future<void> compactBox() => _executeWrite(() => _nativeBox.compactBox());
 
   @override
-  Stream<BoxEvent> watch(K key) {
-    return box.watch(key: key);
-  }
+  Stream<BoxEvent> watch(K key) => _nativeBox.watch(key);
 
   @override
-  bool get _isOpenInHive => IsolatedHive.isBoxOpen(name);
+  Future<T?> valueAt(int index) => getAt(index);
 }

@@ -7,9 +7,10 @@ export 'boxes/boxes.dart'
         BaseHivezBox,
         BoxInterface;
 
+export 'core/core.dart' show BoxType;
+
 export 'builders/builders.dart'
     show
-        BoxType,
         GetTypeOfBoxInterfaceExtension,
         Box,
         BoxConfig,
@@ -23,8 +24,11 @@ export 'special_boxes/special_boxes.dart'
         IndexedBox,
         TextAnalyzer,
         Analyzer,
+        IndexedBoxSearchExtensions,
         CreateTextAnalyzerExtensions,
         CreateIndexedBoxFromConfig,
         CreateIndexedBoxFromType;
 
 export 'extensions/extensions.dart';
+
+export 'exceptions/exceptions.dart' show HivezException, HivezBoxException;

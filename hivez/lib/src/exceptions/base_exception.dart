@@ -1,3 +1,5 @@
+part of 'exceptions.dart';
+
 /// {@template hivez_exception}
 /// The base class for all exceptions and errors thrown by the Hivez library.
 ///

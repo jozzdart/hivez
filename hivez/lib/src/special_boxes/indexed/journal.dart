@@ -37,6 +37,9 @@ abstract class IndexJournal extends Box<String, int> {
   /// Marks clean (used for explicit resets, e.g., after rebuild).
   Future<void> reset();
 
+  /// Marks dirty (used for explicit marks, e.g., after put/delete).
+  Future<void> markDirty();
+
   // --- NEW: snapshot API ------------------------------------------------------
   Future<void> writeSnapshot({
     int? dataMtimeMs,
@@ -70,14 +73,14 @@ class BoxIndexJournal extends IndexJournal {
   });
 
   @override
-  Future<bool> isDirty() async => (await get(_kDirtyKey)) == 1;
+  Future<bool> isDirty() async => (await nativeBox.get(_kDirtyKey)) == 1;
 
   @override
   Future<R> runWrite<R>(Future<R> Function() op) async {
-    await put(_kDirtyKey, 1);
+    await markDirty();
     try {
       final out = await op();
-      await put(_kDirtyKey, 0);
+      await nativeBox.put(_kDirtyKey, 0);
       return out;
     } catch (_) {
       // stay dirty for recovery
@@ -86,7 +89,10 @@ class BoxIndexJournal extends IndexJournal {
   }
 
   @override
-  Future<void> reset() => put(_kDirtyKey, 0);
+  Future<void> reset() => nativeBox.put(_kDirtyKey, 0);
+
+  @override
+  Future<void> markDirty() => nativeBox.put(_kDirtyKey, 1);
 
   @override
   Future<void> writeSnapshot({
@@ -105,21 +111,21 @@ class BoxIndexJournal extends IndexJournal {
     if (dataMtimeMs != null) payload[_kMtime] = dataMtimeMs;
     if (dataSizeBytes != null) payload[_kSize] = dataSizeBytes;
 
-    await putAll(payload);
+    await nativeBox.putAll(payload);
   }
 
   @override
   Future<IndexSnapshot?> readSnapshot() async {
     // If no entries recorded yet, treat as missing snapshot
-    final entries = await get(_kEntries);
+    final entries = await nativeBox.get(_kEntries);
     if (entries == null) return null;
 
     return IndexSnapshot(
-      dataMtimeMs: await get(_kMtime),
-      dataSizeBytes: await get(_kSize),
+      dataMtimeMs: await nativeBox.get(_kMtime),
+      dataSizeBytes: await nativeBox.get(_kSize),
       entries: entries,
-      analyzerSigHash: await get(_kSig),
-      indexVersion: await get(_kVer),
+      analyzerSigHash: await nativeBox.get(_kSig),
+      indexVersion: await nativeBox.get(_kVer),
     );
   }
 }

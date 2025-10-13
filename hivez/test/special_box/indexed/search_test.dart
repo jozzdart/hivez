@@ -83,7 +83,8 @@ void main() {
         analyzer: BasicTextAnalyzer<String>((s) => s),
         verifyMatches: true,
         ensureReady: () async {},
-        getValue: (k) => data.get(k),
+        getValue: data.get,
+        getManyValues: data.getMany,
         keyComparator: (a, b) => a.compareTo(b),
       );
     });
@@ -151,7 +152,8 @@ void main() {
         analyzer: BasicTextAnalyzer<String>((s) => s),
         verifyMatches: true,
         ensureReady: () async {},
-        getValue: (k) => data.get(k),
+        getValue: data.get,
+        getManyValues: data.getMany,
         keyComparator: (a, b) => a.compareTo(b),
       );
 
@@ -185,7 +187,8 @@ void main() {
         analyzer: BasicTextAnalyzer<String>((s) => s),
         verifyMatches: true,
         ensureReady: () async {},
-        getValue: (k) => data.get(k),
+        getValue: data.get,
+        getManyValues: data.getMany,
         keyComparator: (a, b) => -a.compareTo(b),
       );
 
@@ -261,7 +264,8 @@ void main() {
         analyzer: BasicTextAnalyzer<String>((s) => s),
         verifyMatches: false,
         ensureReady: () async {},
-        getValue: (k) => data.get(k),
+        getValue: data.get,
+        getManyValues: data.getMany,
       );
 
       final vs = await noVerify.values('alpha');
@@ -298,7 +302,8 @@ void main() {
         ensureReady: () async {
           called = true;
         },
-        getValue: (k) => data.get(k),
+        getValue: data.get,
+        getManyValues: data.getMany,
       );
 
       await putManyBoth({1: 'alpha'});
@@ -314,7 +319,8 @@ void main() {
         analyzer: BasicTextAnalyzer<String>((s) => s),
         verifyMatches: true,
         ensureReady: () async {},
-        getValue: (k) => data.get(k),
+        getValue: data.get,
+        getManyValues: data.getMany,
       );
 
       await putManyBoth({
@@ -369,7 +375,8 @@ void main() {
         analyzer: BasicTextAnalyzer<String>((s) => s),
         verifyMatches: true,
         ensureReady: () async {},
-        getValue: (k) => data.get(k),
+        getValue: data.get,
+        getManyValues: data.getMany,
         keyComparator: (a, b) => -a.compareTo(b),
       );
 
@@ -384,10 +391,14 @@ void main() {
         1: 'a',
         2: 'b',
         3: 'ab',
+        4: 'ab a',
+        5: 'ba',
+        6: 'ba b',
+        7: 'aa ba',
       });
       // 'a' and 'b' are dropped; only 'ab' is a token
-      expect(await searcher.keys('a'), isEmpty);
-      expect(await searcher.keys('b'), isEmpty);
+      expect(await searcher.keys('ab'), [3, 4]);
+      expect(await searcher.keys('ba'), [5, 6, 7]);
       expect(await searcher.keys('ab'), containsAllInOrder([3]));
     });
   });

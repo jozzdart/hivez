@@ -17,10 +17,7 @@ part of 'boxes.dart';
 /// - [HivezBoxIsolated] for the isolated version.
 /// - [HivezBoxIsolatedLazy] for the lazy isolated variant.
 /// {@endtemplate}
-class HivezBoxLazy<K, T> extends AbstractHivezBox<K, T, LazyBox<T>> {
-  @override
-  bool get isLazy => true;
-
+class HivezBoxLazy<K, T> extends BaseHivezBox<K, T> {
   /// Creates a new [HivezBoxLazy] instance for strongly-typed, lazy Hive box access.
   ///
   /// This constructor initializes a Hive box that leverages Hive's lazy loading
@@ -59,67 +56,5 @@ class HivezBoxLazy<K, T> extends AbstractHivezBox<K, T, LazyBox<T>> {
     super.path,
     super.collection,
     super.logger,
-  });
-
-  @override
-  Future<LazyBox<T>> _openBox() => Hive.openLazyBox<T>(
-        name,
-        encryptionCipher: _encryptionCipher,
-        crashRecovery: _crashRecovery,
-        path: _path,
-        collection: _collection,
-      );
-
-  @override
-  LazyBox<T> _getExistingBox() => Hive.lazyBox<T>(name);
-
-  @override
-  Future<T?> get(K key, {T? defaultValue}) async {
-    return _executeRead(
-        () => Future.value(box.get(key, defaultValue: defaultValue)));
-  }
-
-  @override
-  Future<Iterable<T>> getAllValues() async {
-    return _executeRead(() async {
-      final keys = box.keys.cast<K>();
-      final List<T> values = [];
-      for (final key in keys) {
-        final value = await box.get(key);
-        if (value != null) values.add(value);
-      }
-      return values;
-    });
-  }
-
-  @override
-  Future<Map<K, T>> toMap() async {
-    return _executeRead(
-      () async {
-        final keys = box.keys.cast<K>();
-        final Map<K, T> map = {};
-        for (final key in keys) {
-          final value = await box.get(key);
-          if (value != null) map[key] = value;
-        }
-        return map;
-      },
-    );
-  }
-
-  @override
-  Future<T?> valueAt(int index) async {
-    return _executeRead(() => box.getAt(index));
-  }
-
-  @override
-  Future<T?> firstWhereOrNull(bool Function(T) condition) async {
-    return _executeRead(() async {
-      for (final key in box.keys) {
-        final value = await box.get(key);
-        if (value != null && condition(value)) return value;
-      }
-      return null;
-    });
-  }
+  }) : super(type: BoxType.lazy);
 }
