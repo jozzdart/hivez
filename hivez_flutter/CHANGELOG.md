@@ -1,3 +1,7 @@
+## 1.2.1
+
+- Updated README
+
 ## 1.2.0
 
 - Updated the version of `hivez` to `1.2.0` to support all new improvements
