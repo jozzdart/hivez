@@ -1,4 +1,4 @@
-## Unreleased
+## 1.2.0
 
 - **5× Faster IndexedBox & Engine Overhaul**  
   `IndexedBox` is now up to **5× faster** in search, insert, and update operations.  
