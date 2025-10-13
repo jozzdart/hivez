@@ -24,10 +24,9 @@ all while remaining fully compatible with **Hive** (via the [`hive_ce`](https://
 #### Table of Contents
 
 - [How to Use `Hivez`](#-how-to-use-hivez)
-  - [Which `Box` Should I Use?](#which-box-should-i-use)
   - [Available Methods](#-available-methods)
   - [Constructor & Properties](#️-constructor--properties)
-  - [Examples](#examples)
+  - [Which `Box` Should I Use?](#which-box-should-i-use)
 - [Setup Guide for `hive_ce`](#-setup-guide-for-hive_ce)
 - [Quick Setup `hive_ce` (no explanations)](#-quick-setup-hive_ce-no-explanations)
 - [`IndexedBox` _Ultra Fast Searches_](#-indexedbox--ultra-fast-full-text-search-for-hive)
@@ -74,112 +73,20 @@ final dark = await settings.get('darkMode'); // true
 
 # 📦 How to Use `Hivez`
 
-[⤴️ Back](#table-of-contents) → Table of Contents
+Hivez act as complete, self-initializing services for storing and managing data. Unlike raw Hive, you don’t need to worry about opening/closing boxes — the API is unified and stays identical across box types.
 
-Hivez provides **four box types** that act as complete, self-initializing services for storing and managing data.  
-Unlike raw Hive, you don’t need to worry about opening/closing boxes — the API is unified and stays identical across box types.
-
-- [Which `Box` Should I Use?](#which-box-should-i-use)
 - [Available Methods](#-available-methods)
 - [Constructor & Properties](#️-constructor--properties)
-- [Examples](#examples)
-
-### Which `Box` Should I Use?
-
-- **`Box`** → Default choice. Fast, synchronous reads with async writes.
-- **`Box.lazy`** → Use when working with **large datasets** where values are only loaded on demand.
-- **`Box.isolated`** → Use when you need **isolate safety** (background isolates or heavy concurrency).
-- **`Box.isolatedLazy`** → Combine **lazy loading + isolate safety** for maximum scalability.
-
-> 💡 Switching between them is a **single-line change**.  
-> Your app logic and API calls stay exactly the same — while in raw Hive, this would break your code.  
-> ⚠️ **Note on isolates:** The API is identical across all box types, but using `Isolated` boxes requires you to properly set up Hive with isolates. If you’re not familiar with isolate management in Dart/Flutter, it’s safer to stick with **`regular`** or **`lazy`** boxes.
-
-## 🔧 Available Methods
-
-All `Box` types share the same complete API:
-
-- **Write operations**
-
-  - `put(key, value)` — Insert or update a value by key
-  - `putAll(entries)` — Insert/update multiple entries at once
-  - `putAt(index, value)` — Update value at a specific index
-  - `add(value)` — Auto-increment key insert
-  - `addAll(values)` — Insert multiple values sequentially
-  - `moveKey(oldKey, newKey)` — Move value from one key to another
-
-- **Delete operations**
-
-  - `delete(key)` — Remove a value by key
-  - `deleteAt(index)` — Remove value at index
-  - `deleteAll(keys)` — Remove multiple keys
-  - `clear()` — Delete all data in the box
-
-- **Read operations**
-
-  - `get(key)` — Retrieve value by key (with optional `defaultValue`)
-  - `getAt(index)` — Retrieve value by index
-  - `valueAt(index)` — Alias for `getAt`
-  - `getAllKeys()` — Returns all keys
-  - `getAllValues()` — Returns all values
-  - `keyAt(index)` — Returns key at given index
-  - `containsKey(key)` — Check if key exists
-  - `length` — Number of items in box
-  - `isEmpty` / `isNotEmpty` — Quick state checks
-  - `watch(key)` — Listen to changes for a specific key
-
-- **Query helpers**
-
-  - `getValuesWhere(condition)` — Filter values by predicate
-  - `getKeysWhere(condition)` — Filter keys by predicate
-  - `firstWhereOrNull(condition)` — Returns first matching value or `null`
-  - `firstKeyWhere(condition)` — Returns first matching key or `null`
-  - `firstWhereContains(query, searchableText)` — Search string fields
-  - `foreachKey(action)` — Iterate keys asynchronously
-  - `foreachValue(action)` — Iterate values asynchronously
-  - `searchKeyOf(value)` — Find key for a given value
-
-- **Box management**
-
-  - `ensureInitialized()` — Safely open box if not already open
-  - `deleteFromDisk()` — Permanently delete box data
-  - `closeBox()` — Close box in memory
-  - `flushBox()` — Write pending changes to disk
-  - `compactBox()` — Compact file to save space
-
-- **Extras**
-
-  - `generateBackupJson()` — Export all data as JSON
-  - `restoreBackupJson()` — Import all data from JSON
-  - `generateBackupCompressed()` — Export all data as compressed binary
-  - `restoreBackupCompressed()` — Import all data from compressed binary
-  - `toMap()` — Convert full box to `Map<K, T>`
-  - `estimateSizeBytes()` — Approximate in-memory size of all keys and values (bytes)
-  - `search(query, searchableText)` — (Slow search, [use `IndexedBox` instead](#-indexedbox--ultra-fast-full-text-search-for-hive))
-
-## ⚙️ Constructor & Properties
-
-All `Box` types share the same constructor parameters and configuration pattern.  
-These let you control how your box behaves, where it stores data, and how it handles safety and encryption.
-
-- **Parameters**
-
-  - `name` — The unique name of the box. Used as the on-disk file name.
-  - `type` — The box type: `regular`, `lazy`, `isolated`, or `isolatedLazy`.
-  - `encryptionCipher` — Optional [HiveCipher] for transparent AES encryption/decryption.
-  - `crashRecovery` — Enables Hive’s built-in crash recovery mechanism. Default: `true`.
-  - `path` — Custom file system path for where this box is stored.
-  - `collection` — Logical grouping of boxes (optional). Useful for namespacing.
-  - `logger` — Optional log handler for diagnostics, warnings, or crash reports.
-
-> 💡 Tip: For datasets needing fast search, [use `IndexedBox` for blazing-fast search](#-indexedbox--ultra-fast-full-text-search-for-hive) — same API, 100× faster.
-> That’s nice if you want to keep the “Extras” section visually compact.
+- [Which `Box` Should I Use?](#which-box-should-i-use)
 
 ## Examples
 
 > Before diving in — make sure you’ve set up Hive correctly with adapters.  
 > The setup takes **less than 1 minute** and is explained here: [Setup Guide](#-setup-guide-for-hive_ce).  
 > Once Hive is set up, you can use `Hivez` right away:
+
+> 💡 Tip: For datasets needing fast search, [use `IndexedBox` for blazing-fast search](#-indexedbox--ultra-fast-full-text-search-for-hive) — same API, 100×-1000× faster.
+> That’s nice if you want to keep the “Extras” section visually compact.
 
 #### ➕ Put & Get
 
@@ -276,6 +183,101 @@ print(results); // [Article(...)]
 🪶 Zero setup — data stays compatible with Hive
 
 > 📘 [Learn more in the **IndexedBox Section**](#-indexedbox--ultra-fast-full-text-search-for-hive)
+
+## 🔧 Available Methods
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
+
+All `Box` types share the same complete API:
+
+- **Write operations**
+
+  - `put(key, value)` — Insert or update a value by key
+  - `putAll(entries)` — Insert/update multiple entries at once
+  - `putAt(index, value)` — Update value at a specific index
+  - `add(value)` — Auto-increment key insert
+  - `addAll(values)` — Insert multiple values sequentially
+  - `moveKey(oldKey, newKey)` — Move value from one key to another
+
+- **Delete operations**
+
+  - `delete(key)` — Remove a value by key
+  - `deleteAt(index)` — Remove value at index
+  - `deleteAll(keys)` — Remove multiple keys
+  - `clear()` — Delete all data in the box
+
+- **Read operations**
+
+  - `get(key)` — Retrieve value by key (with optional `defaultValue`)
+  - `getAt(index)` — Retrieve value by index
+  - `valueAt(index)` — Alias for `getAt`
+  - `getAllKeys()` — Returns all keys
+  - `getAllValues()` — Returns all values
+  - `keyAt(index)` — Returns key at given index
+  - `containsKey(key)` — Check if key exists
+  - `length` — Number of items in box
+  - `isEmpty` / `isNotEmpty` — Quick state checks
+  - `watch(key)` — Listen to changes for a specific key
+
+- **Query helpers**
+
+  - `getValuesWhere(condition)` — Filter values by predicate
+  - `getKeysWhere(condition)` — Filter keys by predicate
+  - `firstWhereOrNull(condition)` — Returns first matching value or `null`
+  - `firstKeyWhere(condition)` — Returns first matching key or `null`
+  - `firstWhereContains(query, searchableText)` — Search string fields
+  - `foreachKey(action)` — Iterate keys asynchronously
+  - `foreachValue(action)` — Iterate values asynchronously
+  - `searchKeyOf(value)` — Find key for a given value
+
+- **Box management**
+
+  - `ensureInitialized()` — Safely open box if not already open
+  - `deleteFromDisk()` — Permanently delete box data
+  - `closeBox()` — Close box in memory
+  - `flushBox()` — Write pending changes to disk
+  - `compactBox()` — Compact file to save space
+
+- **Extras**
+
+  - `generateBackupJson()` — Export all data as JSON
+  - `restoreBackupJson()` — Import all data from JSON
+  - `generateBackupCompressed()` — Export all data as compressed binary
+  - `restoreBackupCompressed()` — Import all data from compressed binary
+  - `toMap()` — Convert full box to `Map<K, T>`
+  - `estimateSizeBytes()` — Approximate in-memory size of all keys and values (bytes)
+  - `search(query, searchableText)` — (Slow search, [use `IndexedBox` instead](#-indexedbox--ultra-fast-full-text-search-for-hive))
+
+## ⚙️ Constructor & Properties
+
+All `Box` types share the same constructor parameters and configuration pattern.  
+These let you control how your box behaves, where it stores data, and how it handles safety and encryption.
+
+- **Parameters**
+
+  - `name` — The unique name of the box. Used as the on-disk file name.
+  - `type` — The box type: `regular`, `lazy`, `isolated`, or `isolatedLazy`.
+  - `encryptionCipher` — Optional [HiveCipher] for transparent AES encryption/decryption.
+  - `crashRecovery` — Enables Hive’s built-in crash recovery mechanism. Default: `true`.
+  - `path` — Custom file system path for where this box is stored.
+  - `collection` — Logical grouping of boxes (optional). Useful for namespacing.
+  - `logger` — Optional log handler for diagnostics, warnings, or crash reports.
+
+> 💡 Tip: For datasets needing fast search, [use `IndexedBox` for blazing-fast search](#-indexedbox--ultra-fast-full-text-search-for-hive) — same API, 100×-1000× faster.
+> That’s nice if you want to keep the “Extras” section visually compact.
+
+### Which `Box` Should I Use?
+
+_[⤴️ Back](#table-of-contents) → Table of Contents_
+
+- **`BoxType.regular`** → Default choice. Fast, synchronous reads with async writes.
+- **`BoxType.lazy`** → Use when working with **large datasets** where values are only loaded on demand.
+- **`BoxType.isolated`** → Use when you need **isolate safety** (background isolates or heavy concurrency).
+- **`BoxType.isolatedLazy`** → Combine **lazy loading + isolate safety** for maximum scalability.
+
+> 💡 Switching between them is a **single-line change**.  
+> Your app logic and API calls stay exactly the same — while in raw Hive, this would break your code.  
+> ⚠️ **Note on isolates:** The API is identical across all box types, but using `Isolated` boxes requires you to properly set up Hive with isolates. If you’re not familiar with isolate management in Dart/Flutter, it’s safer to stick with **`regular`** or **`lazy`** boxes.
 
 ### 🧠 BoxType Helpers
 
