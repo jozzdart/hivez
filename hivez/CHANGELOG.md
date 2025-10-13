@@ -1,7 +1,8 @@
 ## Unreleased
 
-- **5x Faster IndexedBox and Internal Engine**  
-  Significantly improved performance of `IndexedBox` (up to 5x faster in search, add, and update operations). Introduced a new robust internal framework for managing all internal Hive boxes and engines with minimal redundancy, reducing duplicated work and calculations. This change brings stricter handling of box initialization and background operations, improving performance, stability, and memory use for all box types _(including non-indexed boxes)_ through lighter and safer auto-initialization.
+- **5× Faster IndexedBox & Engine Overhaul**  
+  `IndexedBox` is now up to **5× faster** in search, insert, and update operations.  
+  Introduced a new unified internal engine with stricter initialization and lighter background handling, improving **performance, stability, and memory use** across all box types.
 
 - **New `searchFiltered` and `searchPaginated` Extensions**  
   Introduced two new high-level querying helpers for `IndexedBox`:
@@ -26,6 +27,10 @@
   `~1640x` faster with IndexedBox (`22.90ms vs 37,621.74ms`, or a 99.94% reduction in time).
 
 - **Dedicated Benchmark Folder** - Added a designated folder containing all extensive benchmark tests, so you can run them yourself and verify performance on your own hardware.
+
+- **New Methods for all box types:**
+  - `getMany(keys)` — Efficiently retrieve multiple values by their keys.
+  - `replaceAll(entries)` — Clears all existing data and replaces it with a new map of entries.
 
 ## 1.1.0
 

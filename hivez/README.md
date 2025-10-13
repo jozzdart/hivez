@@ -86,7 +86,6 @@ Hivez act as complete, self-initializing services for storing and managing data.
 > Once Hive is set up, you can use `Hivez` right away:
 
 > 💡 Tip: For datasets needing fast search, [use `IndexedBox` for blazing-fast search](#-indexedbox--ultra-fast-full-text-search-for-hive) — same API, 100×-1000× faster.
-> That’s nice if you want to keep the “Extras” section visually compact.
 
 #### ➕ Put & Get
 
@@ -205,10 +204,12 @@ All `Box` types share the same complete API:
   - `deleteAt(index)` — Remove value at index
   - `deleteAll(keys)` — Remove multiple keys
   - `clear()` — Delete all data in the box
+  - `replaceAll(entries)` — Clear and replace all values in the box
 
 - **Read operations**
 
   - `get(key)` — Retrieve value by key (with optional `defaultValue`)
+  - `getMany(keys)` — Retrieve multiple values by keys
   - `getAt(index)` — Retrieve value by index
   - `valueAt(index)` — Alias for `getAt`
   - `getAllKeys()` — Returns all keys
@@ -264,7 +265,6 @@ These let you control how your box behaves, where it stores data, and how it han
   - `logger` — Optional log handler for diagnostics, warnings, or crash reports.
 
 > 💡 Tip: For datasets needing fast search, [use `IndexedBox` for blazing-fast search](#-indexedbox--ultra-fast-full-text-search-for-hive) — same API, 100×-1000× faster.
-> That’s nice if you want to keep the “Extras” section visually compact.
 
 ### Which `Box` Should I Use?
 
