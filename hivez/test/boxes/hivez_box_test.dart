@@ -73,7 +73,7 @@ void main() {
     expect(await hivezBox.length, 3);
     expect(await hivezBox.valueAt(0), 100);
     final firstKey = await hivezBox.keyAt(0);
-    expect(await hivezBox.containsKey(firstKey), true);
+    expect(await hivezBox.containsKey(firstKey!), true);
     await hivezBox.deleteAt(0);
     expect(await hivezBox.length, 2);
   });
@@ -311,5 +311,85 @@ void main() {
     await expectLater(run(), throwsA(isA<StateError>()));
     expect(count, lessThan(4));
     expect(count, greaterThanOrEqualTo(3)); // 0,1,2 visited
+  });
+
+  group('getApproxSizeBytes', () {
+    test('returns 0 for empty box', () async {
+      await hivezBox.clear();
+      final size = await hivezBox.estimateSizeBytes();
+      expect(size, 0);
+    });
+
+    test('counts numeric values roughly proportional to count', () async {
+      await hivezBox.clear();
+      await hivezBox.putAll({1: 1, 2: 2, 3: 3});
+      final sizeSmall = await hivezBox.estimateSizeBytes();
+
+      await hivezBox.putAll({4: 4, 5: 5, 6: 6, 7: 7});
+      final sizeLarger = await hivezBox.estimateSizeBytes();
+
+      expect(sizeLarger, greaterThan(sizeSmall));
+    });
+
+    test('counts string content length correctly', () async {
+      final box = HivezBox<int, String>('sizeBox1');
+      await box.ensureInitialized();
+      await box.clear();
+
+      await box.putAll({
+        1: 'a',
+        2: 'abc',
+        3: 'abcdefghij', // 10 chars
+      });
+
+      final size = await box.estimateSizeBytes();
+      // Roughly > sum of utf8 lengths (13 chars * ~1 byte each)
+      expect(size, greaterThanOrEqualTo(13));
+      expect(size, lessThan(200)); // upper sanity bound
+
+      await box.deleteFromDisk();
+    });
+
+    test('handles maps and lists recursively', () async {
+      final box = HivezBox<int, dynamic>('complexBox');
+      await box.ensureInitialized();
+      await box.clear();
+
+      await box.putAll({
+        1: {'a': 1, 'b': 2},
+        2: [1, 2, 3, 4, 5],
+      });
+
+      final size = await box.estimateSizeBytes();
+      expect(size, greaterThan(0));
+      expect(size, lessThan(1000));
+      await box.deleteFromDisk();
+    });
+
+    test('returns 0 after clear', () async {
+      await hivezBox.clear();
+      await hivezBox.putAll({1: 100, 2: 200});
+      final before = await hivezBox.estimateSizeBytes();
+      expect(before, greaterThan(0));
+
+      await hivezBox.clear();
+      final after = await hivezBox.estimateSizeBytes();
+      expect(after, 0);
+    });
+
+    test('handles nullable values gracefully', () async {
+      final box = HivezBox<int, String?>('nullableSizeBox');
+      await box.ensureInitialized();
+      await box.clear();
+
+      await box.putAll({
+        1: null,
+        2: 'hello',
+      });
+
+      final size = await box.estimateSizeBytes();
+      expect(size, greaterThanOrEqualTo(5)); // for "hello"
+      await box.deleteFromDisk();
+    });
   });
 }

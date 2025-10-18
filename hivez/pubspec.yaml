@@ -1,6 +1,6 @@
 name: hivez
-description: "The cleanest way to use Hive in production. Type-safe, concurrency-safe, boilerplate-free. (Using hive_ce)"
-version: 1.0.2
+description: "The cleanest way to use Hive databases in production. 1000x faster queries, auto-initialization, type-safe, and unified API. (Wrapping hive_ce)"
+version: 1.2.2
 homepage: https://github.com/jozzdart/hivez
 repository: https://github.com/jozzdart/hivez/tree/main/hivez
 issue_tracker: https://github.com/jozzdart/hivez/issues
@@ -9,6 +9,7 @@ topics:
   - database
   - nosql
   - clean
+  - queries
 
 environment:
   sdk: ">=3.5.0 <4.0.0"

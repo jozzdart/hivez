@@ -1,4 +1,4 @@
-import 'package:meta/meta.dart';
+part of 'core.dart';
 
 /// {@template box_not_initialized_exception}
 /// Exception thrown when a Hivez box is accessed before it has been properly initialized.
@@ -22,16 +22,24 @@ import 'package:meta/meta.dart';
 /// ```
 ///
 /// {@endtemplate}
-@internal
-class BoxNotInitializedException implements Exception {
-  /// A human-readable message describing the error.
-  final String message;
+class BoxNotInitializedException extends HivezBoxException {
+  BoxNotInitializedException(
+      {required super.boxName, super.cause, super.stackTrace})
+      : super(message: 'Box not initialized. Call ensureInitialized() first.');
+}
 
-  /// Creates a new [BoxNotInitializedException] with the provided [message].
-  ///
-  /// The [message] should describe the context or reason for the exception.
-  BoxNotInitializedException(this.message);
+class InvalidAddOperationException<K> extends HivezBoxException {
+  InvalidAddOperationException(
+      {required super.boxName, super.cause, super.stackTrace})
+      : super(
+            message: 'Cannot use add() on a box with non-int keys (K = $K). '
+                'Use put(key, value) instead.');
+}
 
-  @override
-  String toString() => 'HivezBoxInitException: $message';
+class InvalidAddAllOperationException<K> extends HivezBoxException {
+  InvalidAddAllOperationException(
+      {required super.boxName, super.cause, super.stackTrace})
+      : super(
+            message:
+                'Cannot use addAll() on a box with non-int keys (K = $K).');
 }

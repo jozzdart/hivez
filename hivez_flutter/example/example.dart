@@ -22,7 +22,7 @@ class User {
 
 Future<void> main() async {
   // Create a typed box for users
-  final users = HivezBox<int, User>('users');
+  final users = Box<int, User>('users');
 
   // Add data
   await users.put(1, User('Alice', 24));

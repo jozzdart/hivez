@@ -1,6 +1,6 @@
 name: hivez_flutter
 description: "A library for using Hivez with Flutter. Includes Hivez and Hive CE Flutter bindings."
-version: 1.0.2
+version: 1.2.2
 homepage: https://github.com/jozzdart/hivez
 repository: https://github.com/jozztech/hivez/tree/main/hivez_flutter
 issue_tracker: https://github.com/jozzdart/hivez/issues
@@ -19,7 +19,7 @@ dependencies:
   flutter:
     sdk: flutter
   hive_ce_flutter: ^2.3.2
-  hivez: ^1.0.0
+  hivez: ^1.2.0
 
 dev_dependencies:
   flutter_test:

@@ -1,3 +1,21 @@
+## 1.2.2
+
+- Added missing exports for `IsolatedHiveInterface`
+
+## 1.2.1
+
+- Updated README
+
+## 1.2.0
+
+- Updated the version of `hivez` to `1.2.0` to support all new improvements
+
+## 1.1.0
+
+- Updated the version of `hivez` to `1.1.0` to support all new features:
+  - `IndexedBox` for ultra-fast full-text search
+  - `Box` API for universal box creation
+
 ## 1.0.2
 
 - **Fix:** Resolved missing exports for generated adapters (`BinaryReader`, `BinaryWriter`, `TypeAdapter`, etc.), which caused build errors when running  
