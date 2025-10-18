@@ -1,11 +1,11 @@
 import 'package:hivez/hivez.dart';
 import 'package:synchronized/synchronized.dart';
 
-class HivezHashIndexBox<BI extends BoxInterface<String, int>> {
+class HivezHashIndexBox {
   static const String _indexKey = 'index';
 
-  BI get hashBox => _internalBox;
-  final BI _internalBox;
+  BoxInterface<String, int> get hashBox => _internalBox;
+  final BoxInterface<String, int> _internalBox;
   final Lock _lock = Lock();
 
   HivezHashIndexBox(this._internalBox);
