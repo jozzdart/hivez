@@ -1,3 +1,7 @@
+## 1.2.2
+
+- Added missing exports for `IsolatedHiveInterface`
+
 ## 1.2.1
 
 - Updated README
