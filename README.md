@@ -386,7 +386,7 @@ or add the following to your `pubspec.yaml` with the _latest_ versions:
 
 ```yaml
 dependencies:
-  hivez_flutter: ^1.2.1
+  hivez_flutter: ^1.2.2
 
 dev_dependencies:
   build_runner: ^2.4.7

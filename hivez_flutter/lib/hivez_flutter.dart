@@ -13,6 +13,7 @@ export 'package:hive_ce_flutter/hive_flutter.dart'
         GenerateAdapters,
         AdapterSpec,
         HiveInterface,
+        IsolatedHiveInterface,
         TypeRegistry,
         BinaryReader,
         BinaryWriter,
