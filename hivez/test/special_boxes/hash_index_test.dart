@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hivez/src/boxes/boxes.dart';
 import 'package:hivez/src/special_boxes/hivez_hash_index_box.dart';
 
 import '../utils/test_setup.dart';
@@ -9,12 +8,12 @@ void main() {
   const testBoxName = 'test_hash_database';
 
   setUpAll(() async {
-    setupHiveTest();
+    await setupHiveTest();
   });
 
   setUp(() async {
-    hashDatabase = HivezHashIndexBox(HivezBox(testBoxName));
-    await hashDatabase.init();
+    hashDatabase = HivezHashIndexBox(testBoxName);
+    await hashDatabase.ensureInitialized();
   });
 
   tearDown(() async {

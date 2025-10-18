@@ -2,52 +2,58 @@ import 'package:hivez/src/boxes/boxes.dart';
 import 'hivez_hash_index_box.dart';
 import 'package:synchronized/synchronized.dart';
 
-class HivezEntityBox<T> {
+class HivezEntityBox<T> extends BoxDecorator<int, T> {
   final Lock _lock = Lock();
-  final Lock _additionalLock = Lock();
 
-  final BoxInterface<int, T> dataBox;
   final HivezHashIndexBox hashIndexBox;
 
   final String Function(T item) hashFunction;
   final T Function(int newIndex, T item) assignIndex;
 
-  HivezEntityBox({
-    required this.dataBox,
-    required this.hashIndexBox,
+  HivezEntityBox(
+    super._internalBox, {
     required this.hashFunction,
     required this.assignIndex,
-  });
+  }) : hashIndexBox = HivezHashIndexBox(
+          '${_internalBox.name}_hashed_index',
+          type: _internalBox.boxType,
+          path: _internalBox.path,
+        );
 
+  @override
   Future<void> ensureInitialized() async {
-    await hashIndexBox.hashBox.ensureInitialized();
-    await dataBox.ensureInitialized();
+    if (isInitialized) return;
+    await hashIndexBox.ensureInitialized();
+    await super.ensureInitialized();
   }
 
-  Future<int> get length async => await dataBox.length;
+  @override
+  Future<int> add(T value) => _lock.synchronized(() async {
+        await ensureInitialized();
+        return _add(value);
+      });
 
-  Future<int> addItem(T item) async {
-    return await _lock.synchronized(() async {
-      await ensureInitialized();
-      final index = await hashIndexBox.getIndex(hashFunction(item));
-      final itemWithIndex = assignIndex(index, item);
-      await dataBox.put(index, itemWithIndex);
-      return index;
-    });
+  Future<int> _add(T value) async {
+    final index = await hashIndexBox.getIndex(hashFunction(value));
+    final itemWithIndex = assignIndex(index, value);
+    await nativeBox.put(index, itemWithIndex);
+    return index;
   }
 
-  Future<void> addMultipleItems(List<T> items) async {
-    await _additionalLock.synchronized(() async {
-      for (final item in items) {
-        await addItem(item);
-      }
-    });
-  }
+  @override
+  Future<List<int>> addAll(Iterable<T> values) => _lock.synchronized(() async {
+        final indices = <int>[];
+        for (final item in values) {
+          final index = await _add(item);
+          indices.add(index);
+        }
+        return indices;
+      });
 
   Future<void> verifyItems() async {
     _lock.synchronized(() async {
       final hashes = <String>[];
-      await dataBox.foreachValue((key, value) async {
+      await foreachValue((key, value) async {
         hashes.add(hashFunction(value));
       });
 
@@ -67,14 +73,15 @@ class HivezEntityBox<T> {
       }
 
       final indexedNewItem = assignIndex(index, newItem);
-      await dataBox.put(index, indexedNewItem);
+      await nativeBox.put(index, indexedNewItem);
       return true;
     });
   }
 
+  @override
   Future<void> clear() async {
     await _lock.synchronized(() async {
-      await dataBox.clear();
+      await super.clear();
       await hashIndexBox.clear();
     });
   }

@@ -1,115 +1,120 @@
 import 'package:hivez/hivez.dart';
+import 'package:hivez/src/boxes/boxes.dart';
 import 'package:synchronized/synchronized.dart';
 
-class HivezHashIndexBox {
+class HivezHashIndexBox extends Box<String, int> {
   static const String _indexKey = 'index';
 
-  BoxInterface<String, int> get hashBox => _internalBox;
-  final BoxInterface<String, int> _internalBox;
   final Lock _lock = Lock();
 
-  HivezHashIndexBox(this._internalBox);
+  HivezHashIndexBox(
+    super.name, {
+    super.type,
+    super.encryptionCipher,
+    super.crashRecovery,
+    super.path,
+    super.collection,
+    super.logger,
+  });
 
-  Future<void> init() async {
-    await _internalBox.ensureInitialized();
-    final hasIndex = await _internalBox.containsKey(_indexKey);
+  factory HivezHashIndexBox.fromConfig(BoxConfig config) => HivezHashIndexBox(
+        config.name,
+        type: config.type,
+        encryptionCipher: config.encryptionCipher,
+        crashRecovery: config.crashRecovery,
+        path: config.path,
+        collection: config.collection,
+        logger: config.logger,
+      );
+
+  @override
+  Future<void> ensureInitialized() async {
+    if (isInitialized) return;
+    await super.ensureInitialized();
+    final hasIndex = await nativeBox.containsKey(_indexKey);
     if (!hasIndex) {
-      await _internalBox.put(_indexKey, 1);
+      await nativeBox.put(_indexKey, 1);
     }
   }
 
   /// Returns the ID for a given hash.
   /// If the hash is not yet in the DB, assigns it a new ID.
-  Future<int> getIndex(String hash) async {
-    return _lock.synchronized(() async {
-      await _internalBox.ensureInitialized();
+  Future<int> getIndex(String hash) => _lock.synchronized(() async {
+        await ensureInitialized();
 
-      final existing = await _internalBox.get(hash);
-      if (existing != null) return existing;
+        final existing = await nativeBox.get(hash);
+        if (existing != null) return existing;
 
-      final currentIndex = await _internalBox.get(_indexKey) ?? 1;
-      await _internalBox.put(hash, currentIndex);
-      await _internalBox.put(_indexKey, currentIndex + 1);
+        final currentIndex = await nativeBox.get(_indexKey) ?? 1;
+        await nativeBox.put(hash, currentIndex);
+        await nativeBox.put(_indexKey, currentIndex + 1);
 
-      return currentIndex;
-    });
-  }
-
-  Future<int?> renameHash(String oldHash, String newHash) async {
-    await _internalBox.ensureInitialized();
-
-    return _lock.synchronized(() async {
-      // Get the ID associated with the old hash
-      final index = await _internalBox.get(oldHash);
-      if (index == null) {
-        return null; // Old hash doesn't exist
-      }
-
-      // Check if new hash already exists
-      final existingId = await _internalBox.get(newHash);
-      if (existingId != null) {
-        return null; // New hash already exists with a different ID
-      }
-
-      // Add the new hash with the same ID
-      await _internalBox.put(newHash, index);
-
-      // Remove the old hash
-      await _internalBox.delete(oldHash);
-
-      return index;
-    });
-  }
-
-  /// Returns the current max index without modifying anything
-  Future<int> getCurrentIndex() async {
-    await _internalBox.ensureInitialized();
-    return (await _internalBox.get(_indexKey)) ?? 1;
-  }
-
-  /// Clears everything, including the index
-  Future<void> clear() async {
-    await _internalBox.clear();
-    await _internalBox.put(_indexKey, 1);
-  }
-
-  Future<bool> containsHash(String hash) async {
-    return _internalBox.containsKey(hash);
-  }
-
-  Future<int?> tryGetIndex(String hash) async {
-    return _internalBox.get(hash);
-  }
-
-  Future<void> verifyHashes(List<String> allowedHashes) async {
-    await _lock.synchronized(() async {
-      await _internalBox.ensureInitialized();
-
-      final allKeys = await _internalBox.getAllKeys();
-      final Set<String> allowedSet = allowedHashes.toSet();
-
-      final keysToDelete = allKeys.where((key) {
-        return key != _indexKey && !allowedSet.contains(key);
+        return currentIndex;
       });
 
-      if (keysToDelete.isNotEmpty) {
-        await _internalBox.deleteAll(keysToDelete);
-      }
-    });
-  }
+  Future<int?> renameHash(String oldHash, String newHash) =>
+      _lock.synchronized(() async {
+        await ensureInitialized();
 
-  Future<String> generateBackup() async {
-    return _internalBox.generateBackupJson(
-      keyToString: (key) => key,
-      valueToJson: (value) => value.toString(),
-    );
-  }
+        // Get the ID associated with the old hash
+        final index = await nativeBox.get(oldHash);
+        if (index == null) {
+          return null; // Old hash doesn't exist
+        }
 
-  Future<void> restoreBackup(String json) async {
-    await _internalBox.restoreBackupJson(
-      json,
-      stringToKey: (k) => k,
-      jsonToValue: (v) => int.parse(v),
-    );
-  }
+        // Check if new hash already exists
+        final existingId = await nativeBox.get(newHash);
+        if (existingId != null) {
+          return null; // New hash already exists with a different ID
+        }
+
+        // Add the new hash with the same ID
+        await nativeBox.put(newHash, index);
+
+        // Remove the old hash
+        await nativeBox.delete(oldHash);
+
+        return index;
+      });
+
+  /// Returns the current max index without modifying anything
+  Future<int> getCurrentIndex() async => await get(_indexKey) ?? 1;
+
+  @override
+  Future<void> clear() => _lock.synchronized(() async {
+        await ensureInitialized();
+        await nativeBox.clear();
+        await nativeBox.put(_indexKey, 1);
+      });
+
+  Future<bool> containsHash(String hash) => containsKey(hash);
+
+  Future<int?> tryGetIndex(String hash) => get(hash);
+
+  Future<void> verifyHashes(List<String> allowedHashes) =>
+      _lock.synchronized(() async {
+        await ensureInitialized();
+
+        final allKeys = await nativeBox.getAllKeys();
+        final Set<String> allowedSet = allowedHashes.toSet();
+
+        final keysToDelete = allKeys.where((key) {
+          return key != _indexKey && !allowedSet.contains(key);
+        });
+
+        if (keysToDelete.isNotEmpty) {
+          await nativeBox.deleteAll(keysToDelete);
+        }
+      });
+
+  Future<String> generateBackup() => generateBackupJson(
+        keyToString: (key) => key,
+        valueToJson: (value) => value.toString(),
+      );
+
+  Future<void> restoreBackup(String json) => restoreBackupJson(
+        json,
+        stringToKey: (k) => k,
+        jsonToValue: (v) => int.parse(v),
+      );
 }

@@ -2,9 +2,8 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hivez/hivez.dart';
 import 'package:hivez/src/special_boxes/hivez_entity_box.dart';
-import 'package:hivez/src/special_boxes/hivez_hash_index_box.dart';
+import 'package:hivez/src/src.dart';
 
 import '../utils/test_setup.dart';
 
@@ -31,7 +30,6 @@ final _testWords = [
 void main() {
   late HivezEntityBox<String> database;
   const testItemBoxName = 'test_items';
-  const testHashBoxName = 'test_hashes';
 
   setUpAll(() async {
     await setupHiveTest();
@@ -39,8 +37,7 @@ void main() {
 
   setUp(() async {
     database = HivezEntityBox<String>(
-      dataBox: HivezBox<int, String>(testItemBoxName),
-      hashIndexBox: HivezHashIndexBox(HivezBox(testHashBoxName)),
+      IndexedBox<int, String>(testItemBoxName, searchableText: (item) => item),
       hashFunction: (item) => _hashList([item]),
       assignIndex: (index, item) => item,
     );
@@ -54,22 +51,22 @@ void main() {
   group('WordDatabase Tests', () {
     test('Initialization', () async {
       expect(database, isNotNull);
-      expect(await database.dataBox.getAllValues(), isEmpty);
+      expect(await database.getAllValues(), isEmpty);
     });
 
     test('Add single word', () async {
       final testWord = 'Watermelon';
 
-      await database.addItem(testWord);
-      final words = await database.dataBox.getAllValues();
+      await database.add(testWord);
+      final words = await database.getAllValues();
 
       expect(words.length, 1);
       expect(words.first, testWord);
     });
 
     test('Add multiple words', () async {
-      await database.addMultipleItems(_testWords);
-      final words = await database.dataBox.getAllValues();
+      await database.addAll(_testWords);
+      final words = await database.getAllValues();
 
       expect(words.length, _testWords.length);
       expect(words, containsAll(_testWords));
@@ -78,18 +75,18 @@ void main() {
     test('Clear database', () async {
       final testWord = 'Watermelon';
 
-      await database.addItem(testWord);
+      await database.add(testWord);
       await database.clear();
-      final words = await database.dataBox.getAllValues();
+      final words = await database.getAllValues();
       expect(words, isEmpty);
     });
 
     test('Contains ID check', () async {
       final testWord = 'Watermelon';
 
-      final id = await database.addItem(testWord);
+      final id = await database.add(testWord);
       final hash = database.hashFunction(testWord);
-      final idAtHash = await database.hashIndexBox.hashBox.get(hash);
+      final idAtHash = await database.hashIndexBox.get(hash);
 
       expect(idAtHash, id);
     });
